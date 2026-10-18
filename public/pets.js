@@ -1,6 +1,6 @@
-// 寵物像素圖：6 種，每種有幾款毛色（含花紋），每種 2 格動畫（搖尾巴、跳一下）
+// 寵物像素圖：6 種，正面坐姿、大眼睛加反光點，每種有幾款毛色；第 2 格是輕輕跳一下（走路、搖尾巴時交替）
 // 字母代表部位，顏色由毛色決定：
-// x 主色、d 深色（耳朵）、s 斑紋、w 白色部位（嘴邊、胸口）、b 腳掌、t 尾巴、e 眼睛、n 鼻子、o 橘色（鳥腳、嘴）
+// x 主色、d 深色（耳朵、花紋、魚鰭）、w 白色部位（嘴邊、肚子）、e 眼睛、l 眼睛反光、k 腮紅／耳朵內側、n 鼻子、o 橘色（鳥嘴、鳥腳）
 
 export const PET_TYPES = [['dog', '狗'], ['cat', '貓'], ['rabbit', '兔子'], ['bird', '鳥'], ['hamster', '倉鼠'], ['fish', '魚']];
 export const PET_ICONS = { dog: '🐶', cat: '🐱', rabbit: '🐰', bird: '🐦', hamster: '🐹', fish: '🐟' };
@@ -12,24 +12,24 @@ export const PET_COLORS = {
   dog: [
     { label: '黃狗', x: '#c98a4b', d: '#8b5a2b', w: '#ead2b4' },
     { label: '白狗', x: '#f2f0ea', d: '#c9c4bc' },
-    { label: '黑狗', x: '#3a3a40', d: '#1e1e24', w: '#6a6a74' },
+    { label: '黑狗', x: '#4b4b57', d: '#34343e', w: '#6e6e7a' },
     { label: '黃金獵犬', x: '#e6c27a', d: '#b8914a' },
     { label: '柴犬', x: '#d9863a', d: '#a85f22', w: '#fbefe0', b: '#fbefe0' },
-    { label: '黑白狗', x: '#33333a', d: '#1e1e24', w: '#f4f2ee', b: '#f4f2ee' },
+    { label: '黑白狗', x: '#4b4b57', d: '#34343e', w: '#f4f2ee', b: '#f4f2ee' },
   ],
   cat: [
     { label: '橘貓', x: '#e8954a', d: '#c06a2a', s: '#c06a2a', w: '#f6c48e' },
     { label: '灰虎斑', x: '#9aa0aa', d: '#6e747e', s: '#6e747e', w: '#d8dbe0' },
-    { label: '黑貓', x: '#33333a', d: '#1c1c22', w: '#44444c' },
+    { label: '黑貓', x: '#4b4b57', d: '#34343e', w: '#5c5c68' },
     { label: '白貓', x: '#f4f4f0', d: '#f0b8c0', w: '#ffffff' },
     { label: '橘白貓', x: '#ea9a4e', d: '#c46e2c', s: '#c46e2c', w: '#fbf6ef', b: '#fbf6ef' },
-    { label: '賓士貓', x: '#2e2e36', d: '#1c1c22', w: '#f4f2ee', b: '#f4f2ee' },
+    { label: '賓士貓', x: '#4b4b57', d: '#34343e', w: '#f4f2ee', b: '#f4f2ee' },
   ],
   rabbit: [
     { label: '白兔', x: '#f4f4f0', d: '#f0b8c0', w: '#ffffff' },
     { label: '棕兔', x: '#a8774f', d: '#7a5232', w: '#f4f0e8' },
     { label: '灰兔', x: '#9aa0aa', d: '#6e747e', w: '#e4e6ea' },
-    { label: '黑兔', x: '#3a3a40', d: '#22222a', w: '#f4f0e8' },
+    { label: '黑兔', x: '#4b4b57', d: '#34343e', w: '#f4f0e8' },
   ],
   bird: [
     { label: '黃色', x: '#ffd36b', d: '#e0a93a' },
@@ -44,56 +44,179 @@ export const PET_COLORS = {
     { label: '金黃', x: '#e8c46a', d: '#b8943a', w: '#fbf1d8' },
   ],
   fish: [
-    { label: '橘色', x: '#f08a3a', d: '#ffffff' },
-    { label: '紅色', x: '#e0473a', d: '#ffd36b' },
-    { label: '藍色', x: '#4a8fd8', d: '#ffd36b' },
-    { label: '金色', x: '#ffd36b', d: '#e0473a' },
+    { label: '橘色', x: '#f08a3a', d: '#ffb27a' },
+    { label: '紅色', x: '#e0473a', d: '#ff9a8a' },
+    { label: '藍色', x: '#4a8fd8', d: '#9cc8f2' },
+    { label: '金色', x: '#ffd36b', d: '#ffeaa8' },
   ],
 };
 
-// 面向右邊；[frame0, frame1]
+// 正面坐姿（魚是側面）
 const SPRITES = {
   dog: [
-    ['........dd..', '.......xxxx.', 't......xexwn', '.txxxxxxxw..', '..xxxxxxxx..', '..xb.xb.xb.b'],
-    ['t.......dd..', '.t.....xxxx.', '.......xexwn', '.txxxxxxxw..', '..xxxxxxxx..', '..bx.bx.bx.b'],
+    '...xxxxxxx...',
+    '.ddxxxxxxxdd.',
+    'dddxxxxxxxddd',
+    'dddxelxxelddd',
+    'dddxeexxeeddd',
+    '.ddkwwnwwkdd.',
+    '...xwwwwwx...',
+    '....xxxxx....',
+    '...xxwwwxx...',
+    '..xxxwwwxxx.d',
+    '..xxxwwwxxxd.',
+    '..wwx...xww..',
   ],
-  // 貓：大一點的頭，白色嘴邊與胸口、背上虎斑
   cat: [
-    ['.......d...d', 't......xxxxx', 't......xexex', '.t..xxxxwnwx', '..xsxsxsxww.', '..xxxxxxxww.', '..b.b..b.b..'],
-    ['.......d...d', '.t.....xxxxx', '..t....xexex', '..t.xxxxwnwx', '..xsxsxsxww.', '..xxxxxxxww.', '...b.b..b.b.'],
+    '.d.......d..',
+    '.dd.....dd..',
+    '.xkxxxxxkx..',
+    '.xxdxdxdxx..',
+    'xxelxxxelxx.',
+    'xxeexxxeexx.',
+    'xkwwwnwwwkx.',
+    '.xwwwwwwwx..',
+    '..xwwwwwx...',
+    '.xxwwwwwxx.d',
+    '.xxwwwwwxxd.',
+    '.ww.....ww..',
   ],
   rabbit: [
-    ['.......d.d', '.......d.d', '......xxxx', '......xexn', '.wxxxxxxw.', '..xxxxxxw.', '..b....b..'],
-    ['..........', '.......d.d', '.......d.d', '......xxxx', '.wxxxxxexn', '..xxxxxxw.', '...b...b..'],
+    '..xx...xx..',
+    '..xk...kx..',
+    '..xk...kx..',
+    '..xk...kx..',
+    '..xxxxxxx..',
+    '.xxxxxxxxx.',
+    'xxelxxxelxx',
+    'xxeexxxeexx',
+    'xkxxwnwxxkx',
+    '.xxxwwwxxx.',
+    '.xxwwwwwxx.',
+    'xxxwwwwwxxx',
+    '.www...www.',
+  ],
+  fish: [
+    '.....dd.......',
+    '....dxxx...dd.',
+    '..xxxxxxx.ddd.',
+    '.xwlxxxxxxddd.',
+    'xxweexxxxxdd..',
+    'xxxxxxdxxxddd.',
+    '.xxxxxxxxx.ddd',
+    '..xxxxxxx...dd',
+    '....dd........',
   ],
   bird: [
-    ['..xx..', '.xxexo', 'dxxwx.', '.xxx..', '..o.o.'],
-    ['..xx..', 'dxxexo', '.dxwx.', '.xxx..', '..o.o.'],
+    '...xxxx...',
+    '..xxxxxx..',
+    '.xxxelxxx.',
+    '.xxxeexxoo',
+    '.dkxxxxxo.',
+    'ddxwwwwx..',
+    'dddwwwwx..',
+    '.ddxwwx...',
+    '...o..o...',
   ],
   hamster: [
-    ['..d.d..', '.xxxxx.', 'xwexxwx', 'xxxxwnx', '.b...b.'],
-    ['..d.d..', '.xxxxx.', 'xwexxwx', 'xxxxwnx', '..b.b..'],
+    '.kd.....dk.',
+    '.dd.....dd.',
+    '.xxxxxxxxx.',
+    'xxelxxxelxx',
+    'xxeexxxeexx',
+    'xkxwwnwwxkx',
+    'xxwwwwwwwxx',
+    '.xwwwwwwwx.',
+    '..ww...ww..',
   ],
 };
 
-// 尺寸含描邊
-export const petSize = (type) => (type === 'fish' ? [8, 7] : [SPRITES[type][0][0].length + 2, SPRITES[type][0].length + 2]);
+// 場景用的縮小版：一樣的畫法，高度大約是小人的六成，寵物一定比人小
+const MINI = {
+  dog: [
+    '...xxxxxxx...',
+    '.ddxxxxxxxdd.',
+    'dddxelxxelddd',
+    'dddxeexxeeddd',
+    '.ddkwwnwwkdd.',
+    '...xwwwwwx...',
+    '..xxxwwwxxx.d',
+    '..xxxwwwxxxd.',
+    '..wwx...xww..',
+  ],
+  cat: [
+    '.d.....d..',
+    '.dd...dd..',
+    '.xxdxdxx..',
+    'xelxxxelx.',
+    'xeexxxeex.',
+    'xkwwnwwkx.',
+    '.xwwwwwx.d',
+    '.xwwwwwxd.',
+    '.ww...ww..',
+  ],
+  rabbit: [
+    '..xx...xx..',
+    '..xk...kx..',
+    '..xk...kx..',
+    '.xxxxxxxxx.',
+    'xxelxxxelxx',
+    'xxeexxxeexx',
+    'xkxxwnwxxkx',
+    '.xxwwwwwxx.',
+    'xxxwwwwwxxx',
+    '.www...www.',
+  ],
+  fish: [
+    '..xxx....',
+    '.xelxx.dd',
+    'xxeexxxd.',
+    '.xxxxx.dd',
+    '..xxx....',
+  ],
+  bird: [
+    '..xxx...',
+    '.xxelxoo',
+    '.xxeexo.',
+    'dkxxxx..',
+    'ddwwwx..',
+    '.dwwx...',
+    '..o.o...',
+  ],
+  hamster: [
+    '.d.....d.',
+    '.xxxxxxx.',
+    'xelxxxelx',
+    'xeexxxeex',
+    'xkwwnwwkx',
+    '.xwwwwwx.',
+    '..w...w..',
+  ],
+};
+
+// 尺寸含描邊；第 2 格跳起來 1 格，所以高度多留 1 格
+export const petSize = (type) => [(MINI[type] || MINI.dog)[0].length + 2, (MINI[type] || MINI.dog).length + 3];
+
+// 深色毛的眼睛改成琥珀色，才看得到
+const isDark = (hex) => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) & 255) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11 < 110; };
 
 function palette(type, idx) {
   const list = PET_COLORS[type] || PET_COLORS.dog;
   const c = list[idx] || list[0];
   return {
-    x: c.x, t: c.x, d: c.d, s: c.s || c.x, w: c.w || c.x, b: c.b || c.x,
-    e: '#2a2230', n: type === 'cat' || type === 'hamster' || type === 'rabbit' ? '#e88a9a' : '#2a2230', o: '#f0a03a',
+    x: c.x, d: c.d, w: c.w || c.x,
+    e: isDark(c.x) ? '#f4c45a' : '#2a2230', l: '#ffffff',
+    k: type === 'rabbit' ? '#f2a6b6' : '#f4a8b4', n: '#e88a9a', o: '#f2a446',
   };
 }
 
-// 寵物的格子（含描邊），快取起來，每一格只算一次
+// 寵物的格子（含描邊），快取起來，每一種只算一次
 const cache = new Map();
-function petGrid(type, idx, frame) {
-  const key = `${type}:${idx}:${frame}`;
+function petGrid(type, idx, small = false) {
+  const key = `${type}:${idx}:${small ? 's' : 'b'}`;
   if (cache.has(key)) return cache.get(key);
-  const rows = SPRITES[type][frame % 2];
+  const set = small ? MINI : SPRITES;
+  const rows = set[type] || set.dog;
   const w = rows[0].length + 2;
   const h = rows.length + 2;
   const colors = palette(type, idx);
@@ -110,26 +233,7 @@ function petGrid(type, idx, frame) {
   return out;
 }
 
-// 畫到 canvas：x, y 是左上角（含描邊），ctx 已縮放成 1 格 = 1 單位
-export function drawPet(ctx, type, colorIdx, x, y, frame = 0, flip = false) {
-  if (type === 'fish') {
-    const c = palette('fish', colorIdx);
-    const px = (dx, dy, color) => { ctx.fillStyle = color; ctx.fillRect(x + dx, y + dy, 1, 1); };
-    // 魚缸：描邊、玻璃、水、游來游去的小魚
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(x, y + 1, 1, 5); ctx.fillRect(x + 7, y + 1, 1, 5); ctx.fillRect(x + 1, y + 6, 6, 1); ctx.fillRect(x + 1, y, 6, 1);
-    ctx.fillStyle = 'rgba(200,230,250,0.85)';
-    ctx.fillRect(x + 1, y + 1, 6, 1);
-    ctx.fillStyle = '#6fb6e3';
-    ctx.fillRect(x + 1, y + 2, 6, 4);
-    px(1, 2, '#a8d8f2');
-    const fx = frame ? 4 : 2;
-    const face = frame ? -1 : 1;
-    px(fx, 3, c.x); px(fx + 1, 3, c.x); px(fx - face, 3, c.d); px(fx + (face > 0 ? 1 : 0), 4, c.x);
-    px(fx + (face > 0 ? 1 : 0), 3, '#2a2230');
-    return;
-  }
-  const g = petGrid(type, colorIdx, frame);
+function paint(ctx, g, x, y, flip) {
   const w = g[0].length;
   g.forEach((row, dy) => row.forEach((c, dx) => {
     if (!c) return;
@@ -138,14 +242,35 @@ export function drawPet(ctx, type, colorIdx, x, y, frame = 0, flip = false) {
   }));
 }
 
-// 靜態小圖（人物清單、人物卡）
+// 魚缸（場景用）：寬 14、高 11，魚在裡面左右游
+export const BOWL = [14, 11];
+function drawBowl(ctx, colorIdx, x, y, frame) {
+  const R = (rx, ry, rw, rh, c) => { ctx.fillStyle = c; ctx.fillRect(x + rx, y + ry, rw, rh); };
+  // 圓圓的玻璃缸：描邊、水、缸口
+  const rows = [[2, 10], [1, 12], [0, 14], [0, 14], [0, 14], [0, 14], [0, 14], [1, 12], [1, 12], [2, 10]];
+  rows.forEach(([ox, w], i) => { R(ox, i + 1, w, 1, OUTLINE); if (w > 2) R(ox + 1, i + 1, w - 2, 1, i < 2 ? '#eaf6fb' : '#bfe3f2'); });
+  R(2, 0, 10, 1, OUTLINE);
+  R(2, 4, 1, 2, '#ffffff'); // 玻璃反光
+  R(3, 9, 8, 1, '#e8d9b8'); // 缸底的沙
+  paint(ctx, petGrid('fish', colorIdx, true), x + (frame ? 2 : 1), y + 2, !!frame);
+}
+
+// 畫到場景（縮小版）：x, y 是左上角（含描邊），ctx 已縮放成 1 格 = 1 單位
+// 第 2 格會往上跳 1 格；魚加上 { bowl: true } 就畫在魚缸裡
+export function drawPet(ctx, type, colorIdx, x, y, frame = 0, flip = false, { bowl = false } = {}) {
+  if (type === 'fish' && bowl) { drawBowl(ctx, colorIdx, x, y, frame); return; }
+  paint(ctx, petGrid(type, colorIdx, true), x, y + (frame ? 0 : 1), flip);
+}
+
+// 靜態小圖（人物清單、人物卡）：用細節比較多的大版本
 export function petSvg(type, colorIdx) {
-  const [w, h] = petSize(type);
-  const rects = [];
-  const fake = { fillStyle: '', fillRect(x, y, rw, rh) { rects.push(`<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="${this.fillStyle}"/>`); } };
-  drawPet(fake, type, colorIdx, 0, 0, 0, false);
+  const g = petGrid(type, colorIdx);
+  const w = g[0].length;
+  const h = g.length;
+  let rects = '';
+  g.forEach((row, y) => row.forEach((c, x) => { if (c) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; }));
   const size = Math.max(w, h) + 2;
-  return `<svg viewBox="${-(size - w) / 2} ${-(size - h) / 2} ${size} ${size}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${rects.join('')}</svg>`;
+  return `<svg viewBox="${-(size - w) / 2} ${-(size - h) / 2} ${size} ${size}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${rects}</svg>`;
 }
 
 // 毛色按鈕：雙色的用斜切顯示（例如橘白）

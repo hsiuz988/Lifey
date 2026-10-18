@@ -1,8 +1,8 @@
 // 會動的像素場景：天空跟著真實時間與天氣變化，小人會呼吸、眨眼、散步
-// 160×72 格；物件都有深色描邊與三階明暗。約每秒 10 格，切到背景或捲出畫面就暫停；
+// 160×72 格；物件都有深色描邊與三階明暗，白天是清爽的粉彩色。約每秒 10 格，切到背景或捲出畫面就暫停；
 // 系統開了「減少動態效果」就只每分鐘更新一次靜態畫面
-import { composeAvatar, drawAvatar, H as AVATAR_H, OUTLINE } from './avatar.js';
-import { drawPet, petSize } from './pets.js';
+import { composeAvatar, drawAvatar, W as AVATAR_W, H as AVATAR_H, OUTLINE } from './avatar.js';
+import { drawPet, petSize, BOWL } from './pets.js';
 
 export const W = 160;
 export const H = 72;
@@ -93,12 +93,12 @@ function moonPhase(d) {
 
 // ---------- 天空 ----------
 const PAL = {
-  night: ['#0d1330', '#17204a', '#26336a'],
-  dawn: ['#41407a', '#cc7b8e', '#f6c09a'],
-  morning: ['#5d9bd6', '#9dd0ee', '#f4e2c0'],
-  day: ['#5aa7dc', '#8ccbec', '#c8e9f7'],
-  golden: ['#6a96c9', '#eab07a', '#f9d898'],
-  dusk: ['#46407e', '#b9607f', '#f19a6a'],
+  night: ['#1b2350', '#283468', '#3a4782'],
+  dawn: ['#7a78b6', '#e3a3b8', '#fbd8bc'],
+  morning: ['#a6cdee', '#d2e8f4', '#fbefd8'],
+  day: ['#a3d5f2', '#c8e7f7', '#eef8f2'],
+  golden: ['#9dbbe0', '#f6c9a2', '#fde6ba'],
+  dusk: ['#76699f', '#e09ab2', '#f8c3a0'],
 };
 
 function skyAt(hour, sr, ss) {
@@ -150,10 +150,10 @@ function drawCloud(ctx, mask, x, y, base, light, shadow) {
 }
 
 const SEASON_COLORS = {
-  spring: { leaf: '#62b552', light: '#93d677', dark: '#3f8a3e', bloom: '#f7b6cb', grass: '#6cb553', grassDark: '#4f9a42', fore: '#58a046' },
-  summer: { leaf: '#3f9a42', light: '#66bd56', dark: '#2c7134', bloom: null, grass: '#5aab48', grassDark: '#428d3a', fore: '#4a953e' },
-  autumn: { leaf: '#df8a32', light: '#f3b25a', dark: '#b05a24', bloom: '#c84a30', grass: '#93a34a', grassDark: '#76863c', fore: '#84953f' },
-  winter: { leaf: '#5d7d58', light: '#7c9a74', dark: '#43603f', bloom: null, grass: '#7a9a66', grassDark: '#627f53', fore: '#6c8c5c' },
+  spring: { leaf: '#8fd07a', light: '#b8e8a2', dark: '#68b35c', bloom: '#ffbfd2', grass: '#bde6a2', grassDark: '#99d083', fore: '#acdc90' },
+  summer: { leaf: '#72c268', light: '#9edc8a', dark: '#52a352', bloom: null, grass: '#addd90', grassDark: '#88c874', fore: '#9bd481' },
+  autumn: { leaf: '#f2a65a', light: '#f9cb8c', dark: '#d8823e', bloom: '#e66a4a', grass: '#d3da9c', grassDark: '#b7c47e', fore: '#c5d18c' },
+  winter: { leaf: '#8fb79c', light: '#b4d3bb', dark: '#6e987d', bloom: null, grass: '#c8e0c4', grassDark: '#a9c8a6', fore: '#b9d6b5' },
 };
 
 // 今年標籤的小道具（含描邊）
@@ -247,7 +247,7 @@ export class Scene {
     if (st.pets !== prev.pets) {
       this.petActors = (st.pets || []).map((pet, i) => {
         const old = this.petActors[i];
-        return { ...pet, x: old && old.type === pet.type ? old.x : this.actor.x + (i ? 19 : -12), dir: 1, frame: 0, frameAt: 0 };
+        return { ...pet, x: old && old.type === pet.type ? old.x : this.actor.x + (i ? AVATAR_W - 1 : -13), dir: 1, frame: 0, frameAt: 0 };
       });
     }
     this.draw(performance.now());
@@ -292,7 +292,7 @@ export class Scene {
     const x = ((e.clientX - rect.left) / rect.width) * W;
     const y = ((e.clientY - rect.top) / rect.height) * H;
     const top = FEET - AVATAR_H + 2;
-    if (x >= this.actor.x - 2 && x <= this.actor.x + 18 && y >= top - 2 && y <= FEET + 2) {
+    if (x >= this.actor.x && x <= this.actor.x + AVATAR_W && y >= top - 2 && y <= FEET + 2) {
       this.jump(1);
       const list = this.state.messages();
       if (list.length) this.say(list[Math.floor(Math.random() * list.length)]);
@@ -311,7 +311,7 @@ export class Scene {
   celebrate({ star = false } = {}) {
     if (reduceMotion()) return;
     this.jump(2);
-    const cx = this.actor.x + 8;
+    const cx = this.actor.x + AVATAR_W / 2;
     const now = this.now || performance.now();
     for (let i = 0; i < 3; i++) {
       this.particles.push({ type: 'heart', x: cx - 7 + i * 5, y: FEET - AVATAR_H, vy: -6 - i, born: now + i * 200, life: 1600 });
@@ -331,7 +331,7 @@ export class Scene {
     const b = this.bubble;
     b.textContent = text;
     const rect = this.canvas.getBoundingClientRect();
-    const px = ((this.actor.x + 8) / W) * rect.width;
+    const px = ((this.actor.x + AVATAR_W / 2) / W) * rect.width;
     b.style.left = `${clamp(px, 70, rect.width - 70)}px`;
     b.style.bottom = `${((H - (FEET - AVATAR_H + 2)) / H) * rect.height + 4}px`;
     b.classList.add('show');
@@ -374,7 +374,7 @@ export class Scene {
     const side = this.companionSide();
     this.petActors.forEach((p, i) => {
       if (p.type === 'fish') { if (now > p.frameAt) { p.frame = 1 - p.frame; p.frameAt = now + 1500; } return; }
-      const target = a.x + (side === 0 ? (i === 0 ? -12 : 19) : side > 0 ? -12 - i * 13 : 19 + i * 13);
+      const target = a.x + (side === 0 ? (i === 0 ? -13 : AVATAR_W - 1) : side > 0 ? -13 - i * 14 : AVATAR_W - 1 + i * 14);
       const diff = target - p.x;
       if (Math.abs(diff) > 1) {
         p.x += Math.sign(diff) * Math.min(Math.abs(diff), 9 * dt);
@@ -561,7 +561,7 @@ export class Scene {
     }
 
     // ---- 遠景：淡淡的城市剪影＋山丘（越遠越淡） ----
-    const far = mix(dim(mix(bottom, '#7d93ab', 0.45), 0.5), bottom, 0.3);
+    const far = mix(dim(mix(bottom, '#b3c6dc', 0.45), 0.5), bottom, 0.3);
     const r2 = rng(7);
     for (let x = 0; x < 100;) {
       const bw = 4 + Math.floor(r2() * 6);
@@ -570,8 +570,8 @@ export class Scene {
       ctx.fillRect(x, HORIZON - bh, bw, bh);
       x += bw + Math.floor(r2() * 3);
     }
-    const hillFar = dim(this.season === 'autumn' ? '#a9b37c' : '#9ec88c', 0.7);
-    const hillNear = dim(this.season === 'autumn' ? '#8f9c5c' : '#7cae6c', 0.7);
+    const hillFar = dim(this.season === 'autumn' ? '#e2e2b2' : '#cdeab8', 0.7);
+    const hillNear = dim(this.season === 'autumn' ? '#d2d59c' : '#b6dfa2', 0.7);
     for (let x = 0; x < W; x++) {
       const h1 = 6 + Math.round(3 * Math.sin(x / 15) + 2 * Math.sin(x / 6 + 1));
       ctx.fillStyle = hillFar; ctx.fillRect(x, HORIZON - h1, 1, h1);
@@ -595,12 +595,12 @@ export class Scene {
       ctx.fillRect(x, y, 1, 1);
       if (i % 4 === 0) ctx.fillRect(x + 1, y - 1, 1, 1);
     }
-    ctx.fillStyle = dim(darken('#dcc9a0', 0.12)); ctx.fillRect(0, HORIZON + 5, W, 1);
-    ctx.fillStyle = dim('#dcc9a0'); ctx.fillRect(0, HORIZON + 6, W, 8);
-    ctx.fillStyle = dim(darken('#dcc9a0', 0.1));
+    ctx.fillStyle = dim(darken('#f6eedb', 0.1)); ctx.fillRect(0, HORIZON + 5, W, 1);
+    ctx.fillStyle = dim('#f6eedb'); ctx.fillRect(0, HORIZON + 6, W, 8);
+    ctx.fillStyle = dim(darken('#f6eedb', 0.06));
     for (let y = HORIZON + 7; y < HORIZON + 14; y += 3) for (let x = (y % 2) * 3; x < W; x += 7) ctx.fillRect(x, y, 3, 1);
     ctx.fillStyle = dim(sc.fore); ctx.fillRect(0, HORIZON + 14, W, H - HORIZON - 14);
-    ctx.fillStyle = dim(darken(sc.fore, 0.18)); ctx.fillRect(0, HORIZON + 14, W, 1);
+    ctx.fillStyle = dim(darken('#f6eedb', 0.1)); ctx.fillRect(0, HORIZON + 14, W, 1);
     for (let x = 2; x < W; x += 9) {
       ctx.fillStyle = dim(lighten(sc.fore, 0.2)); ctx.fillRect(x, HORIZON + 16, 1, 2); ctx.fillRect(x + 1, HORIZON + 15, 1, 2);
       if (this.season === 'spring' && x % 2) { ctx.fillStyle = dim(x % 4 === 1 ? '#f7b6cb' : '#ffe27a'); ctx.fillRect(x + 4, HORIZON + 17, 1, 1); }
@@ -640,7 +640,7 @@ export class Scene {
     // 寵物先畫（站在後面）
     for (const p of this.petActors) {
       const [pw, ph] = petSize(p.type);
-      if (p.type === 'fish') { drawPet(ctx, 'fish', p.color, 44, FEET - 6, p.frame); continue; }
+      if (p.type === 'fish') { drawPet(ctx, 'fish', p.color, 4, FEET + 2 - BOWL[1], p.frame, false, { bowl: true }); continue; } // 魚缸放在左邊，不擋到其他寵物
       shadow(Math.round(p.x) + 2, pw - 4);
       drawPet(ctx, p.type, p.color, Math.round(p.x), FEET + 2 - ph - (jumpY > 0 ? Math.ceil(jumpY / 2) : 0), p.frame, p.dir < 0);
     }
@@ -649,14 +649,14 @@ export class Scene {
       // 家人：站在旁邊一起走、一起跳
       const side = this.companionSide();
       this.companionActors.forEach((c, i) => {
-        const cx = clamp(Math.round(a.x) + side * 16 * (i + 1), 0, W - 16);
+        const cx = clamp(Math.round(a.x) + side * (AVATAR_W - 2) * (i + 1), 0, W - AVATAR_W);
         const cFrame = a.mode === 'walk' && !a.step ? c.step : (t + c.blinkOffset) % 4300 < 160 ? c.blink : c.base;
-        shadow(cx + 3, 10);
+        shadow(cx + 5, 10);
         drawAvatar(ctx, cFrame, cx, spriteTop - jumpY, { flip: a.dir < 0, breathe: a.mode === 'idle' && jumpY === 0 && Math.floor((t + i * 400) / 800) % 2 === 0 });
       });
       const frame = a.mode === 'walk' && a.step ? this.frames.step : t < a.blinkUntil ? this.frames.blink : this.frames.base;
       const breathe = a.mode === 'idle' && jumpY === 0 && Math.floor(t / 800) % 2 === 1;
-      shadow(Math.round(a.x) + 3, 10);
+      shadow(Math.round(a.x) + 5, 10);
       drawAvatar(ctx, frame, Math.round(a.x), spriteTop - jumpY, { flip: a.dir < 0, breathe });
     }
 
@@ -725,15 +725,15 @@ export class Scene {
     // 針葉樹（三層），四季都是綠的，下雪時頂上有雪
     const cx = 14;
     ctx.fillStyle = O; ctx.fillRect(cx - 2, 44, 5, HORIZON - 44 + 1);
-    ctx.fillStyle = dim('#7a4a2a'); ctx.fillRect(cx - 1, 44, 3, HORIZON - 44);
+    ctx.fillStyle = dim('#b08a6a'); ctx.fillRect(cx - 1, 44, 3, HORIZON - 44);
     [[24, 4, 5], [30, 6, 6], [36, 8, 7]].forEach(([y0, half, hgt], i) => {
       const off = i === 0 ? sway : 0;
       for (let dy = 0; dy < hgt; dy++) {
         const wdt = Math.round(1 + (half * (dy + 1)) / hgt);
         const x0 = cx - wdt + off;
         ctx.fillStyle = O; ctx.fillRect(x0 - 1, y0 + dy, wdt * 2 + 3, 1);
-        ctx.fillStyle = dim('#3f8a46'); ctx.fillRect(x0, y0 + dy, wdt * 2 + 1, 1);
-        ctx.fillStyle = dim('#5cab58'); ctx.fillRect(x0, y0 + dy, Math.max(1, wdt - 1), 1);
+        ctx.fillStyle = dim('#6cb67a'); ctx.fillRect(x0, y0 + dy, wdt * 2 + 1, 1);
+        ctx.fillStyle = dim('#93d39a'); ctx.fillRect(x0, y0 + dy, Math.max(1, wdt - 1), 1);
         if (snowy && dy < 2) { ctx.fillStyle = '#f4f6fa'; ctx.fillRect(x0, y0 + dy, wdt * 2 + 1, 1); }
       }
       ctx.fillStyle = O; ctx.fillRect(cx - half - 1 + off, y0 + hgt, half * 2 + 3, 1);
@@ -744,7 +744,7 @@ export class Scene {
     const rx = 36;
     const ry = 34;
     ctx.fillStyle = O; ctx.fillRect(rx - 2, ry + 6, 5, HORIZON - ry - 6 + 1);
-    ctx.fillStyle = dim('#7a4a2a'); ctx.fillRect(rx - 1, ry + 6, 3, HORIZON - ry - 6);
+    ctx.fillStyle = dim('#b08a6a'); ctx.fillRect(rx - 1, ry + 6, 3, HORIZON - ry - 6);
     const blobs = [[0, 0, 7], [-5, 2, 5], [5, 2, 5], [0, -4, 5]];
     const inside = (x, y) => blobs.some(([bx, by, r]) => (x - bx) ** 2 + (y - by) ** 2 <= r * r);
     for (let y = -10; y <= 8; y++) {
@@ -761,7 +761,7 @@ export class Scene {
       }
     }
     // 小樹叢
-    sprite(ctx, BUSH, 48, HORIZON - 3, { x: dim('#4f9a3c'), y: dim('#6cbf55'), o: O });
+    sprite(ctx, BUSH, 86, HORIZON - 3, { x: dim('#86c873'), y: dim('#aee09a'), o: O });
   }
 
   // 路燈：晚上會亮，地上有一圈光
@@ -770,8 +770,8 @@ export class Scene {
     const x = 96;
     const O = dim(OUTLINE, 0.3);
     ctx.fillStyle = O; ctx.fillRect(x - 1, 39, 3, HORIZON + 4 - 39);
-    ctx.fillStyle = dim('#4a5060'); ctx.fillRect(x, 40, 1, HORIZON + 3 - 40);
-    sprite(ctx, ['ooooo', 'oxxxo', 'oyyyo', '.ooo.'], x - 2, 35, { x: dim('#4a5060'), y: light < 0.4 ? '#ffe69a' : dim('#c9d3dc'), o: O });
+    ctx.fillStyle = dim('#7c8598'); ctx.fillRect(x, 40, 1, HORIZON + 3 - 40);
+    sprite(ctx, ['ooooo', 'oxxxo', 'oyyyo', '.ooo.'], x - 2, 35, { x: dim('#7c8598'), y: light < 0.4 ? '#ffe69a' : dim('#e4ecf2'), o: O });
     if (light < 0.4) {
       ctx.globalAlpha = 0.16 * (1 - light);
       ctx.fillStyle = '#ffe69a';
@@ -801,8 +801,8 @@ export class Scene {
     if (stageKey === 'baby' || stageKey === 'kinder') {
       // 兩層樓的家：紅瓦屋頂、煙囪、花台
       const x0 = 106;
-      const roof = '#c4513e';
-      R(x0 + 30, 18, 5, 10, O); R(x0 + 31, 19, 3, 8, dim('#9a6a5a'));
+      const roof = '#f39ab0';
+      R(x0 + 30, 18, 5, 10, O); R(x0 + 31, 19, 3, 8, dim('#d9b5a4'));
       for (let i = 0; i < 13; i++) {
         const y = 21 + i;
         const half = 6 + Math.round(i * 1.6);
@@ -810,28 +810,28 @@ export class Scene {
         R(x0 + 22 - half, y, half * 2, 1, dim(i % 3 === 2 ? darken(roof, 0.18) : i % 3 === 0 ? lighten(roof, 0.12) : roof));
       }
       this.roofLines = [[x0 + 2, x0 + 42, 34]];
-      box(x0 + 3, 34, 38, HORIZON - 34 + 1, dim('#f1e6cf'));
-      R(x0 + 4, 35, 36, 1, dim(darken('#f1e6cf', 0.12)));
+      box(x0 + 3, 34, 38, HORIZON - 34 + 1, dim('#fffaf2'));
+      R(x0 + 4, 35, 36, 1, dim(darken('#fffaf2', 0.1)));
       let i = 0;
       for (const wx of [x0 + 7, x0 + 19, x0 + 31]) windowAt(wx, 37, 6, 5, i++);
       windowAt(x0 + 7, 44, 6, 5, i++); windowAt(x0 + 31, 44, 6, 5, i++);
-      box(x0 + 19, 43, 6, HORIZON - 43 + 1, dim('#8a5a3a'));
+      box(x0 + 19, 43, 6, HORIZON - 43 + 1, dim('#c99a7a'));
       R(x0 + 23, 47, 1, 1, dim('#ffd36b'));
-      R(x0 + 6, 49, 8, 2, dim('#5aab48')); R(x0 + 7, 49, 1, 1, dim('#f7b6cb')); R(x0 + 11, 49, 1, 1, dim('#ffe27a'));
+      R(x0 + 6, 49, 8, 2, dim('#8fd07a')); R(x0 + 7, 49, 1, 1, dim('#f7b6cb')); R(x0 + 11, 49, 1, 1, dim('#ffe27a'));
       if (!night) { const k = Math.floor(t / 900) % 3; ctx.fillStyle = 'rgba(235,235,240,0.7)'; ctx.fillRect(x0 + 32 + (k % 2), 16 - k, 2, 1); }
     } else if (['elementary', 'junior', 'senior'].includes(stageKey)) {
       // 學校：鐘樓、兩排窗、大門、旗桿
       const x0 = 100;
       this.roofLines = [[x0, x0 + 53, 28], [x0 + 18, x0 + 31, 16]];
-      box(x0 + 18, 16, 14, 13, dim('#efe7d6'));
-      R(x0 + 17, 15, 16, 2, O); R(x0 + 18, 14, 14, 1, dim('#b0503e'));
+      box(x0 + 18, 16, 14, 13, dim('#fffaf2'));
+      R(x0 + 17, 15, 16, 2, O); R(x0 + 18, 14, 14, 1, dim('#7fb8e0'));
       disc(ctx, x0 + 25, 21, 3, O); disc(ctx, x0 + 25, 21, 2, dim('#ffffff'));
       R(x0 + 25, 19, 1, 2, OUTLINE); R(x0 + 25, 21, 2, 1, OUTLINE);
-      box(x0, 28, 54, HORIZON - 28 + 1, dim('#efe7d6'));
-      R(x0 + 1, 29, 52, 1, dim('#c9bba0'));
+      box(x0, 28, 54, HORIZON - 28 + 1, dim('#fffaf2'));
+      R(x0 + 1, 29, 52, 1, dim('#a8d3ee'));
       let i = 0;
       for (let c = 0; c < 7; c++) for (let r = 0; r < 2; r++) if (!(c === 3 && r === 1)) windowAt(x0 + 3 + c * 7, 32 + r * 8, 5, 5, i++);
-      box(x0 + 23, 41, 8, HORIZON - 41 + 1, dim('#7a5232'));
+      box(x0 + 23, 41, 8, HORIZON - 41 + 1, dim('#c99a7a'));
       R(x0 + 27, 42, 1, HORIZON - 42, O);
       R(x0 - 6, 18, 1, HORIZON - 18, dim('#8e939a'));
       const wave = Math.floor(t / 500) % 2;
@@ -841,32 +841,33 @@ export class Scene {
       const x0 = 102;
       this.roofLines = [[x0, x0 + 49, 24]];
       for (let i = 0; i < 8; i++) R(x0 + 24 - 3 * i - 1, 16 + i, 6 * i + 2, 1, O);
-      for (let i = 1; i < 8; i++) R(x0 + 24 - 3 * i, 16 + i, 6 * i, 1, dim('#e6d8c0'));
-      box(x0, 24, 50, HORIZON - 24 + 1, dim('#b5654a'));
-      for (let y = 26; y < HORIZON; y += 2) for (let x = x0 + 1 + (y % 4 === 0 ? 0 : 2); x < x0 + 49; x += 4) R(x, y, 1, 1, dim(darken('#b5654a', 0.15)));
+      for (let i = 1; i < 8; i++) R(x0 + 24 - 3 * i, 16 + i, 6 * i, 1, dim('#fffaf2'));
+      box(x0, 24, 50, HORIZON - 24 + 1, dim('#eaa98e'));
+      for (let y = 26; y < HORIZON; y += 2) for (let x = x0 + 1 + (y % 4 === 0 ? 0 : 2); x < x0 + 49; x += 4) R(x, y, 1, 1, dim(darken('#eaa98e', 0.1)));
       let i = 0;
       for (const wx of [x0 + 4, x0 + 12, x0 + 33, x0 + 41]) { windowAt(wx, 28, 5, 7, i++); windowAt(wx, 39, 5, 6, i++); }
-      for (const cx of [x0 + 19, x0 + 30]) box(cx, 26, 3, HORIZON - 26 + 1, dim('#efe7d6'));
-      box(x0 + 22, 38, 8, HORIZON - 38 + 1, dim('#4a3a2c')); R(x0 + 23, 37, 6, 1, O);
-      R(x0 - 1, HORIZON - 1, 52, 1, dim('#c9bba0'));
+      for (const cx of [x0 + 19, x0 + 30]) box(cx, 26, 3, HORIZON - 26 + 1, dim('#fffaf2'));
+      box(x0 + 22, 38, 8, HORIZON - 38 + 1, dim('#9a7460')); R(x0 + 23, 37, 6, 1, O);
+      R(x0 - 1, HORIZON - 1, 52, 1, dim('#e8dcc0'));
     } else {
       // 城市：幾棟大樓，屋頂有天線和水塔
       const towers = [[100, 26, 12], [113, 15, 13], [127, 30, 10], [138, 20, 12], [151, 32, 9]];
       this.roofLines = towers.map(([x, y, w]) => [x, x + w - 1, y]);
       let i = 0;
-      for (const [x, y, w] of towers) {
-        const wall = night ? '#2c3456' : '#8e9bb0';
+      const pastel = ['#c9d8ee', '#f4d3de', '#d2e9cf', '#f3e3bf', '#dad1f2'];
+      towers.forEach(([x, y, w], k) => {
+        const wall = night ? '#2c3456' : pastel[k];
         box(x, y, w, HORIZON - y + 1, dim(wall, 0.4));
         R(x + 1, y + 1, 1, HORIZON - y - 1, dim(lighten(wall, 0.15), 0.4));
         for (let wy = y + 3; wy < HORIZON - 2; wy += 4) {
           for (let wx = x + 2; wx < x + w - 2; wx += 3) {
             i++;
-            R(wx, wy, 2, 2, night ? ((i * 7 + slot * 3) % 5 !== 0 ? '#ffd36b' : '#3a4466') : dim((wx + wy) % 3 ? '#c8dcec' : '#a8c4dc', 0.4));
+            R(wx, wy, 2, 2, night ? ((i * 7 + slot * 3) % 5 !== 0 ? '#ffd36b' : '#3a4466') : dim((wx + wy) % 3 ? '#ffffff' : '#bfe3f2', 0.4));
           }
         }
         if (w >= 12) { R(x + 3, y - 3, 1, 3, O); R(x + 3, y - 4, 1, 1, night && Math.floor(t / 1000) % 2 ? '#ff6a5a' : O); }
-        if (w === 10) box(x + 3, y - 3, 4, 4, dim('#9aa3b2', 0.4));
-      }
+        if (w === 10) box(x + 3, y - 3, 4, 4, dim('#b9c2d0', 0.4));
+      });
     }
 
     // 聖誕節：屋頂上一串慢慢輪流亮的小燈

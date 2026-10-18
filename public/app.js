@@ -1394,7 +1394,7 @@ async function renderStorageStatus() {
 
 // ---------- 捏小人 ----------
 const AVATAR_TABS = [
-  ['body', '身體', [{ key: 'gender', label: '性別', choices: GENDERS, note: '只影響體型和學生制服，其他都能自由搭配' }, { key: 'skin', label: '膚色', colors: SKINS }]],
+  ['body', '身體', [{ key: 'gender', label: '性別', choices: GENDERS, note: '只影響學生制服（裙子或褲子），其他都能自由搭配' }, { key: 'skin', label: '膚色', colors: SKINS }]],
   ['hair', '頭髮', [{ key: 'hairStyle', label: '髮型', choices: HAIR_STYLES }, { key: 'hair', label: '髮色', colors: HAIRS, note: '50 歲以後會慢慢變淡，65 歲變白髮' }]],
   ['face', '臉', [{ key: 'eyes', label: '眼睛', choices: EYES }, { key: 'lashes', label: '睫毛', toggle: true }, { key: 'blush', label: '腮紅', toggle: true },
     { key: 'freckles', label: '雀斑', toggle: true }, { key: 'beard', label: '鬍子', choices: BEARDS, note: '18 歲以後才會出現' }]],
@@ -1431,7 +1431,7 @@ function drawAvatarPreview() {
   const blink = t % 3600 < 160;
   const { age } = ui.avatar;
   const sprite = composeAvatar(ui.avatar.draft, age, lifeStage(age).key, { blink });
-  drawAvatar(ctx, sprite, 3, 3, { breathe: Math.floor(t / 800) % 2 === 1 });
+  drawAvatar(ctx, sprite, 1, 2, { breathe: Math.floor(t / 800) % 2 === 1 });
 }
 
 function renderAvatarEditor() {
