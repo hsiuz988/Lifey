@@ -168,13 +168,11 @@ const MINI = {
     '.www...www.',
   ],
   fish: [
-    '...dd......',
-    '..xxxxx..d.',
-    '.xelxxxx.dd',
-    'xxeexxxxxdd',
-    '.xxxxxxx.dd',
-    '..xxxxx..d.',
-    '...dd......',
+    '..xxx....',
+    '.xelxx.dd',
+    'xxeexxxd.',
+    '.xxxxx.dd',
+    '..xxx....',
   ],
   bird: [
     '..xxx...',
@@ -244,17 +242,17 @@ function paint(ctx, g, x, y, flip) {
   }));
 }
 
-// 魚缸（場景用）：寬 17、高 13，魚在裡面左右游
-export const BOWL = [17, 13];
+// 魚缸（場景用）：寬 14、高 11，魚在裡面左右游
+export const BOWL = [14, 11];
 function drawBowl(ctx, colorIdx, x, y, frame) {
   const R = (rx, ry, rw, rh, c) => { ctx.fillStyle = c; ctx.fillRect(x + rx, y + ry, rw, rh); };
   // 圓圓的玻璃缸：描邊、水、缸口
-  const rows = [[3, 11], [1, 15], [0, 17], [0, 17], [0, 17], [0, 17], [0, 17], [0, 17], [1, 15], [1, 15], [2, 13], [3, 11]];
+  const rows = [[2, 10], [1, 12], [0, 14], [0, 14], [0, 14], [0, 14], [0, 14], [1, 12], [1, 12], [2, 10]];
   rows.forEach(([ox, w], i) => { R(ox, i + 1, w, 1, OUTLINE); if (w > 2) R(ox + 1, i + 1, w - 2, 1, i < 2 ? '#eaf6fb' : '#bfe3f2'); });
-  R(3, 0, 11, 1, OUTLINE);
-  R(2, 4, 1, 3, '#ffffff'); // 玻璃反光
-  R(3, 11, 11, 1, '#e8d9b8'); // 缸底的沙
-  paint(ctx, petGrid('fish', colorIdx, true), x + (frame ? 3 : 1), y + 2, !!frame);
+  R(2, 0, 10, 1, OUTLINE);
+  R(2, 4, 1, 2, '#ffffff'); // 玻璃反光
+  R(3, 9, 8, 1, '#e8d9b8'); // 缸底的沙
+  paint(ctx, petGrid('fish', colorIdx, true), x + (frame ? 2 : 1), y + 2, !!frame);
 }
 
 // 畫到場景（縮小版）：x, y 是左上角（含描邊），ctx 已縮放成 1 格 = 1 單位
