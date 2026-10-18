@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#15171c">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="人生紀錄">
+  <title>人生紀錄</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 第一次開啟：設定姓名與生日 -->
+  <section id="setup" class="setup" hidden>
+    <h1 class="brand">人生紀錄<span class="brand-dot">.</span></h1>
+    <p class="muted">只屬於你的一生。每個值得記住的時刻，都會被放進那一歲。</p>
+    <form id="setup-form" class="panel form">
+      <label>名字
+        <input name="name" required maxlength="40" autocomplete="name">
+      </label>
+      <label>生日
+        <input name="birthday" type="date" required>
+      </label>
+      <button class="btn primary" type="submit">開始記錄</button>
+      <p class="hint">資料只存在這支手機的瀏覽器裡，不會上傳到任何地方。</p>
+    </form>
+  </section>
+
+  <!-- 主畫面 -->
+  <main id="app" hidden>
+    <header class="top">
+      <div class="top-row">
+        <div class="brand small">人生紀錄<span class="brand-dot">.</span></div>
+        <div class="age"><span id="age-num">0</span><span class="age-unit">歲</span></div>
+        <button id="open-settings" class="icon-btn" aria-label="設定">⚙</button>
+      </div>
+      <div id="age-sub" class="age-sub"></div>
+      <div class="progress"><div id="age-progress"></div></div>
+    </header>
+
+    <div id="backup-banner" class="banner" hidden>
+      <span id="backup-text"></span>
+      <button id="banner-export" class="btn small">立即備份</button>
+    </div>
+
+    <section class="panel idcard">
+      <div class="idcard-head"><span>身分紀錄 · LIFE LOG</span><span id="id-year"></span></div>
+      <div class="idcard-body">
+        <img class="avatar" src="icons/icon-192.png" alt="">
+        <div>
+          <div id="id-name" class="id-name"></div>
+          <dl class="id-grid">
+            <dt>生日</dt><dd id="id-birth"></dd>
+            <dt>時刻</dt><dd id="id-count"></dd>
+            <dt>值得記住</dt><dd id="id-stars"></dd>
+            <dt>已記錄年歲</dt><dd id="id-ages"></dd>
+          </dl>
+        </div>
+      </div>
+      <div id="id-mrz" class="mrz"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>人生紀錄</h2>
+        <span class="muted small-text">最新的在前 · 點 ☆ 標記值得記住</span>
+      </div>
+      <div class="filters">
+        <input id="search" type="search" placeholder="搜尋紀錄…" autocomplete="off">
+        <div id="filter-chips" class="chips"></div>
+      </div>
+      <div id="timeline"></div>
+    </section>
+
+    <button id="add-btn" class="fab" aria-label="記一筆">＋ 記一筆</button>
+  </main>
+
+  <!-- 新增／編輯時刻 -->
+  <dialog id="moment-dialog" class="sheet">
+    <form id="moment-form" method="dialog">
+      <h3 id="moment-title">記一筆</h3>
+      <label>日期
+        <input name="date" type="date" required>
+      </label>
+      <div id="moment-age" class="age-hint"></div>
+      <label>發生了什麼？
+        <textarea name="text" rows="4" maxlength="500" required placeholder="一句話就好"></textarea>
+      </label>
+      <div class="field">
+        <span class="field-label">心情（選填）</span>
+        <div id="mood-picker" class="mood-picker"></div>
+      </div>
+      <div class="field">
+        <span class="field-label">標籤（選填）</span>
+        <div id="tag-picker" class="chips"></div>
+      </div>
+      <label class="switch">
+        <input name="starred" type="checkbox">
+        <span>☆ 值得記住的時刻</span>
+      </label>
+      <div class="sheet-actions">
+        <button id="moment-delete" class="btn danger" type="button" hidden>刪除</button>
+        <span class="spacer"></span>
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn primary" type="submit" value="save">儲存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 設定 -->
+  <dialog id="settings-dialog" class="sheet">
+    <form id="profile-form" method="dialog">
+      <h3>設定</h3>
+      <label>名字
+        <input name="name" required maxlength="40">
+      </label>
+      <label>生日
+        <input name="birthday" type="date" required>
+      </label>
+      <button class="btn primary" type="submit" value="save">儲存個人資料</button>
+    </form>
+    <hr>
+    <h4>備份</h4>
+    <p class="hint">資料只存在這個瀏覽器。換手機、清除網站資料前，記得先匯出備份檔。</p>
+    <p id="backup-status" class="hint"></p>
+    <div class="row">
+      <button id="export-btn" class="btn" type="button">匯出備份（JSON）</button>
+      <label class="btn" for="import-file">匯入備份</label>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </div>
+    <p id="persist-status" class="hint"></p>
+    <hr>
+    <div class="row">
+      <button id="reset-btn" class="btn danger" type="button">清除所有資料</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>關閉</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
