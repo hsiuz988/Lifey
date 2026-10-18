@@ -39,15 +39,18 @@ const SCHEMA = [
     created_at TEXT NOT NULL,
     PRIMARY KEY (user_id, id)
   )`,
+  // 連結的家人：雙向各一列；person_id 是 user_id 這一方用來對應的人物卡
   `CREATE TABLE IF NOT EXISTS links (
     user_id TEXT NOT NULL,
     partner_id TEXT NOT NULL,
+    person_id TEXT,
     created_at TEXT NOT NULL,
     PRIMARY KEY (user_id, partner_id)
   )`,
   `CREATE TABLE IF NOT EXISTS invites (
     code TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
+    person_id TEXT,
     expires_at TEXT NOT NULL
   )`,
   'CREATE INDEX IF NOT EXISTS idx_credentials_user ON credentials (user_id)',

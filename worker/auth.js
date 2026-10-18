@@ -52,18 +52,25 @@ export async function requireUser(request, env) {
   return user;
 }
 
-async function findInvite(env, code) {
+export async function findInvite(env, code) {
   if (!code) return null;
-  const row = await env.DB.prepare('SELECT code, user_id FROM invites WHERE code = ? AND expires_at > ?').bind(String(code), nowIso()).first();
+  const row = await env.DB.prepare('SELECT code, user_id, person_id FROM invites WHERE code = ? AND expires_at > ?').bind(String(code), nowIso()).first();
   return row || null;
 }
 
-export async function linkPartners(env, a, b) {
+const MAX_LINKS = 30;
+
+// 邀請人那一方直接對上發邀請時選的人物卡；被邀請的人之後可以自己選
+export async function linkUsers(env, inviter, invitee, inviterPersonId) {
+  if (inviter === invitee) throw new HttpError(400, '這是你自己發出的邀請');
+  const { count } = await env.DB.prepare('SELECT COUNT(*) AS count FROM links WHERE user_id = ?').bind(inviter).first();
+  if (count >= MAX_LINKS) throw new HttpError(409, '連結的人數已經到上限了');
   const now = nowIso();
   await env.DB.batch([
-    env.DB.prepare('DELETE FROM links WHERE user_id IN (?, ?) OR partner_id IN (?, ?)').bind(a, b, a, b),
-    env.DB.prepare('INSERT INTO links (user_id, partner_id, created_at) VALUES (?, ?, ?)').bind(a, b, now),
-    env.DB.prepare('INSERT INTO links (user_id, partner_id, created_at) VALUES (?, ?, ?)').bind(b, a, now),
+    env.DB.prepare('INSERT INTO links (user_id, partner_id, person_id, created_at) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, partner_id) DO UPDATE SET person_id = COALESCE(excluded.person_id, links.person_id)')
+      .bind(inviter, invitee, inviterPersonId || null, now),
+    env.DB.prepare('INSERT INTO links (user_id, partner_id, person_id, created_at) VALUES (?, ?, NULL, ?) ON CONFLICT (user_id, partner_id) DO NOTHING')
+      .bind(invitee, inviter, now),
   ]);
 }
 
@@ -119,7 +126,7 @@ export async function registerVerify(request, env) {
       .bind(credential.id, data.userId, b64url(credential.publicKey), credential.counter, JSON.stringify(credential.transports || []), now),
   ]);
   if (invite) {
-    await linkPartners(env, invite.user_id, data.userId);
+    await linkUsers(env, invite.user_id, data.userId, invite.person_id);
     await env.DB.prepare('DELETE FROM invites WHERE code = ?').bind(invite.code).run();
   }
   const cookie = await createSession(env, data.userId);

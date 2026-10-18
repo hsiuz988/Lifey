@@ -1,6 +1,6 @@
 // 同步（整份文字資料＋照片）與另一半的唯讀檢視
 import { HttpError, json, readJson, nowIso, addSeconds, randomToken, isValidId } from './util.js';
-import { linkPartners } from './auth.js';
+import { linkUsers, findInvite } from './auth.js';
 
 const MAX_DOC_BYTES = 1_800_000; // D1 單筆上限約 2MB
 const MAX_PHOTO_BYTES = 8_000_000;
@@ -86,37 +86,56 @@ export async function getPhoto(request, user, env, id) {
   return streamPhoto(env, user.id, id, kindOf(request.url), true);
 }
 
-// ---------- 另一半 ----------
-async function partnerOf(env, userId) {
-  return env.DB.prepare('SELECT u.id, u.name FROM links l JOIN users u ON u.id = l.partner_id WHERE l.user_id = ?').bind(userId).first();
+// ---------- 連結的家人 ----------
+async function linksOf(env, userId) {
+  const { results } = await env.DB.prepare(`SELECT u.id, u.name, l.person_id AS personId FROM links l JOIN users u ON u.id = l.partner_id
+    WHERE l.user_id = ? ORDER BY l.created_at`).bind(userId).all();
+  return results;
+}
+
+async function isLinked(env, userId, otherId) {
+  return !!(await env.DB.prepare('SELECT 1 FROM links WHERE user_id = ? AND partner_id = ?').bind(userId, otherId).first());
 }
 
 export async function me(user, env) {
-  return json({ user, partner: (await partnerOf(env, user.id)) || null });
+  return json({ user, links: await linksOf(env, user.id) });
 }
 
-export async function createInvite(user, env) {
-  if (await partnerOf(env, user.id)) throw new HttpError(409, '已經連結另一半了');
-  await env.DB.prepare('DELETE FROM invites WHERE user_id = ? OR expires_at < ?').bind(user.id, nowIso()).run();
+// 可以先選好是哪張人物卡（例如「媽媽」），對方加入後就自動對上
+export async function createInvite(request, user, env) {
+  const body = await readJson(request);
+  const personId = isValidId(body.personId) ? body.personId : null;
+  await env.DB.prepare('DELETE FROM invites WHERE expires_at < ?').bind(nowIso()).run();
+  if (personId) await env.DB.prepare('DELETE FROM invites WHERE user_id = ? AND person_id = ?').bind(user.id, personId).run();
   const code = randomToken(12);
-  await env.DB.prepare('INSERT INTO invites (code, user_id, expires_at) VALUES (?, ?, ?)').bind(code, user.id, addSeconds(INVITE_DAYS * 86400)).run();
+  await env.DB.prepare('INSERT INTO invites (code, user_id, person_id, expires_at) VALUES (?, ?, ?, ?)')
+    .bind(code, user.id, personId, addSeconds(INVITE_DAYS * 86400)).run();
   return json({ code, days: INVITE_DAYS });
 }
 
 // 已經有帳號的人收到邀請
 export async function acceptInvite(request, user, env) {
   const { code } = await readJson(request);
-  const invite = await env.DB.prepare('SELECT user_id FROM invites WHERE code = ? AND expires_at > ?').bind(String(code || ''), nowIso()).first();
+  const invite = await findInvite(env, code);
   if (!invite) throw new HttpError(400, '邀請連結已失效');
-  if (invite.user_id === user.id) throw new HttpError(400, '這是你自己發出的邀請');
-  await linkPartners(env, invite.user_id, user.id);
-  await env.DB.prepare('DELETE FROM invites WHERE code = ?').bind(String(code)).run();
+  await linkUsers(env, invite.user_id, user.id, invite.person_id);
+  await env.DB.prepare('DELETE FROM invites WHERE code = ?').bind(invite.code).run();
   return me(user, env);
 }
 
-export async function unlinkPartner(user, env) {
-  await env.DB.prepare('DELETE FROM links WHERE user_id = ? OR partner_id = ?').bind(user.id, user.id).run();
-  return json({ ok: true });
+export async function unlink(user, env, otherId) {
+  await env.DB.prepare('DELETE FROM links WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)')
+    .bind(user.id, otherId, otherId, user.id).run();
+  return me(user, env);
+}
+
+// 把連結的人對到自己的某張人物卡
+export async function bindPerson(request, user, env, otherId) {
+  const { personId } = await readJson(request);
+  if (personId != null && !isValidId(personId)) throw new HttpError(400, '人物卡編號錯誤');
+  const r = await env.DB.prepare('UPDATE links SET person_id = ? WHERE user_id = ? AND partner_id = ?').bind(personId || null, user.id, otherId).run();
+  if (!r.meta.changes) throw new HttpError(404, '還沒有和這個人連結');
+  return me(user, env);
 }
 
 // 只給對方標成「分享」的紀錄，私人的一律不出現
@@ -133,18 +152,16 @@ function sharedView(doc) {
   return { profile: { name: profile.name, birthday: profile.birthday, avatar: profile.avatar }, moments, years };
 }
 
-export async function getPartner(user, env) {
-  const partner = await partnerOf(env, user.id);
-  if (!partner) throw new HttpError(404, '還沒有連結另一半');
-  const { doc } = await loadDoc(env, partner.id);
-  return json({ partner, view: doc ? sharedView(doc) : null });
+export async function getMember(user, env, otherId) {
+  if (!(await isLinked(env, user.id, otherId))) throw new HttpError(404, '還沒有和這個人連結');
+  const { doc } = await loadDoc(env, otherId);
+  return json({ view: doc ? sharedView(doc) : null });
 }
 
-export async function getPartnerPhoto(request, user, env, id) {
-  const partner = await partnerOf(env, user.id);
-  if (!partner || !isValidId(id)) throw new HttpError(404, '找不到照片');
-  const { doc } = await loadDoc(env, partner.id);
+export async function getMemberPhoto(request, user, env, otherId, id) {
+  if (!isValidId(id) || !(await isLinked(env, user.id, otherId))) throw new HttpError(404, '找不到照片');
+  const { doc } = await loadDoc(env, otherId);
   const allowed = doc && sharedView(doc).moments.some((m) => (m.photoIds || []).includes(id));
   if (!allowed) throw new HttpError(404, '找不到照片');
-  return streamPhoto(env, partner.id, id, kindOf(request.url), false);
+  return streamPhoto(env, otherId, id, kindOf(request.url), false);
 }

@@ -27,23 +27,26 @@ async function route(request, env) {
   // 沒登入時回傳 user: null（不用 401，免得瀏覽器在主控台記錯誤）
   if (method === 'GET' && pathname === '/api/me') {
     const me = await auth.currentUser(request, env);
-    return me ? data.me(me, env) : json({ user: null, partner: null });
+    return me ? data.me(me, env) : json({ user: null, links: [] });
   }
 
   const user = await auth.requireUser(request, env);
   if (method === 'GET' && pathname === '/api/sync') return data.getSync(user, env);
   if (method === 'PUT' && pathname === '/api/sync') return data.putSync(request, user, env);
   if (method === 'GET' && pathname === '/api/photos') return data.listPhotos(user, env);
-  if (method === 'POST' && pathname === '/api/invite') return data.createInvite(user, env);
+  if (method === 'POST' && pathname === '/api/invite') return data.createInvite(request, user, env);
   if (method === 'POST' && pathname === '/api/invite/accept') return data.acceptInvite(request, user, env);
-  if (method === 'GET' && pathname === '/api/partner') return data.getPartner(user, env);
-  if (method === 'DELETE' && pathname === '/api/partner') return data.unlinkPartner(user, env);
 
   let m = pathname.match(/^\/api\/photos\/([^/]+)$/);
   if (m && method === 'PUT') return data.putPhoto(request, user, env, m[1]);
   if (m && method === 'GET') return data.getPhoto(request, user, env, m[1]);
-  m = pathname.match(/^\/api\/partner\/photos\/([^/]+)$/);
-  if (m && method === 'GET') return data.getPartnerPhoto(request, user, env, m[1]);
+  m = pathname.match(/^\/api\/links\/([^/]+)$/);
+  if (m && method === 'DELETE') return data.unlink(user, env, m[1]);
+  if (m && method === 'PUT') return data.bindPerson(request, user, env, m[1]);
+  m = pathname.match(/^\/api\/members\/([^/]+)$/);
+  if (m && method === 'GET') return data.getMember(user, env, m[1]);
+  m = pathname.match(/^\/api\/members\/([^/]+)\/photos\/([^/]+)$/);
+  if (m && method === 'GET') return data.getMemberPhoto(request, user, env, m[1], m[2]);
 
   throw new HttpError(404, '找不到這個 API');
 }

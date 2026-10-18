@@ -134,8 +134,17 @@ export function mergeStates(local, remote) {
     for (const [id, t] of Object.entries(remote.achievements)) if (!achievements[id] || t < achievements[id]) achievements[id] = t;
   }
 
+  // 人物：同一個人保留較新的版本，刪掉的（墓碑比較新）不再出現
+  const peopleById = new Map();
+  for (const p of [...(remote.people || []), ...(local.people || [])]) {
+    const cur = peopleById.get(p.id);
+    if (!cur || (p.updatedAt || '') > (cur.updatedAt || '')) peopleById.set(p.id, p);
+  }
+  const people = [...peopleById.values()].filter((p) => !(deleted[p.id] && deleted[p.id] >= (p.updatedAt || '')));
+
+  const prefs = { ...(remote.prefs || {}), ...(local.prefs || {}) };
   const lastExportAt = [local.lastExportAt, remote.lastExportAt].filter(Boolean).sort().pop() || null;
-  return { ...local, profile, moments, years, deleted, achievements, lastExportAt };
+  return { ...local, profile, moments, years, people, prefs, deleted, achievements, lastExportAt };
 }
 
 // 只送需要同步的欄位（回憶模式進度是各裝置自己的）
@@ -189,19 +198,23 @@ export async function syncNow(getLocal, apply, onProgress = () => {}) {
   throw new ApiError(409, '同步衝突，請稍後再試');
 }
 
-// ---------- 另一半 ----------
-export const createInvite = () => apiJson('/api/invite', { method: 'POST', body: {} });
+// ---------- 連結的家人 ----------
+export const createInvite = (personId) => apiJson('/api/invite', { method: 'POST', body: { personId: personId || null } });
 export const acceptInvite = (code) => apiJson('/api/invite/accept', { method: 'POST', body: { code } });
-export const unlinkPartner = () => apiJson('/api/partner', { method: 'DELETE' });
-export const partnerView = () => apiJson('/api/partner');
+export const unlink = (userId) => apiJson(`/api/links/${userId}`, { method: 'DELETE' });
+export const bindPerson = (userId, personId) => apiJson(`/api/links/${userId}`, { method: 'PUT', body: { personId } });
+export const memberView = (userId) => apiJson(`/api/members/${userId}`);
 
-const partnerUrls = new Map();
-export function partnerPhotoUrl(id, kind = 'thumb') {
-  const key = `${id}:${kind}`;
-  if (!partnerUrls.has(key)) {
-    partnerUrls.set(key, api(`/api/partner/photos/${id}?kind=${kind}`).then((r) => r.blob()).then((b) => URL.createObjectURL(b)).catch(() => null));
+const memberUrls = new Map();
+export function memberPhotoUrl(userId, id, kind = 'thumb') {
+  const key = `${userId}:${id}:${kind}`;
+  if (!memberUrls.has(key)) {
+    memberUrls.set(key, api(`/api/members/${userId}/photos/${id}?kind=${kind}`).then((r) => r.blob()).then((b) => URL.createObjectURL(b)).catch(() => {
+      memberUrls.delete(key);
+      return null;
+    }));
   }
-  return partnerUrls.get(key);
+  return memberUrls.get(key);
 }
 
 export const fetchRemote = () => apiJson('/api/sync');
