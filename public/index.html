@@ -52,7 +52,14 @@
     </div>
 
     <section class="panel now-panel">
-      <div id="scene" class="scene"></div>
+      <div id="scene" class="scene">
+        <canvas id="scene-canvas" aria-label="今年的場景，點小人會說話"></canvas>
+        <div id="scene-bubble" class="scene-bubble" role="status"></div>
+      </div>
+      <div id="avatar-banner" class="avatar-banner" hidden>
+        <span>🎨 小人可以自己捏了！性別、髮型、衣服、配件都能選</span>
+        <button id="avatar-banner-btn" class="btn small" type="button">來捏</button>
+      </div>
       <div class="panel-head">
         <h2>今年的狀態</h2>
         <span class="muted small-text">0–100</span>
@@ -235,6 +242,24 @@
     </div>
   </dialog>
 
+  <!-- 捏小人 -->
+  <dialog id="avatar-dialog" class="sheet avatar-dialog">
+    <h3>捏你的小人</h3>
+    <div class="avatar-stage"><canvas id="avatar-canvas" aria-label="小人預覽"></canvas></div>
+    <label class="age-preview">
+      <span>預覽年紀：<b id="avatar-age-label"></b></span>
+      <input id="avatar-age" type="range" min="0" max="90" step="1">
+    </label>
+    <div id="avatar-tabs" class="chips avatar-tabs"></div>
+    <div id="avatar-options" class="avatar-options"></div>
+    <div class="sheet-actions">
+      <button id="avatar-random" class="btn" type="button">🎲 隨機</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>取消</button>
+      <button id="avatar-save" class="btn primary" type="button">完成</button>
+    </div>
+  </dialog>
+
   <!-- 看大圖 -->
   <dialog id="lightbox" class="lightbox" aria-label="照片">
     <img id="lightbox-img" alt="">
@@ -256,17 +281,14 @@
       <button class="btn primary" type="submit" value="save">儲存個人資料</button>
     </form>
     <hr>
-    <h4>像素頭像</h4>
-    <div class="avatar-editor">
-      <div id="avatar-preview" class="avatar-preview"></div>
-      <div class="avatar-options">
-        <div class="field"><span class="field-label">膚色</span><div id="opt-skin" class="swatches"></div></div>
-        <div class="field"><span class="field-label">髮色</span><div id="opt-hair" class="swatches"></div></div>
-        <div class="field"><span class="field-label">髮型</span><div id="opt-style" class="chips"></div></div>
-        <label class="switch"><input id="opt-glasses" type="checkbox"><span>戴眼鏡</span></label>
-      </div>
+    <h4>我的小人</h4>
+    <div class="row">
+      <div id="settings-avatar" class="avatar small-avatar"></div>
+      <button id="settings-avatar-btn" class="btn" type="button">✏️ 編輯小人</button>
     </div>
-    <p class="hint">頭像會隨年紀從嬰兒、小孩長成大人。</p>
+    <hr>
+    <h4>真實天氣</h4>
+    <div id="weather-section" class="cloud-section"></div>
     <hr>
     <h4>備份</h4>
     <p class="hint">資料（含照片）只存在這支手機。換手機、清除網站資料前，記得先匯出備份。備份檔是 ZIP，可以存到 iCloud 雲碟。</p>

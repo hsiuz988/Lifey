@@ -383,3 +383,38 @@ body.ptr-pulling .ptr { transition: none; } /* 拉的時候跟著手指，不要
 .ptr.loading .ptr-icon { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ptr.loading .ptr-icon { animation: none; } }
+
+/* ---------- 會動的場景 ---------- */
+.scene { position: relative; }
+.scene canvas { width: 100%; height: auto; aspect-ratio: 120 / 50; display: block; image-rendering: pixelated; cursor: pointer; }
+.scene-bubble {
+  position: absolute; transform: translateX(-50%) translateY(6px); max-width: 220px; padding: 6px 12px;
+  background: #fffaf0; color: #2b2b33; border-radius: 12px; font-size: 13px; line-height: 1.4; text-align: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .3); opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+}
+.scene-bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px;
+  border: 6px solid transparent; border-top-color: #fffaf0; border-bottom: 0;
+}
+.scene-bubble.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.avatar-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding: 8px 12px;
+  border: 1px dashed var(--accent); border-radius: var(--radius); font-size: 13px;
+}
+#id-avatar { cursor: pointer; }
+
+/* ---------- 捏小人 ---------- */
+dialog.avatar-dialog { display: none; flex-direction: column; gap: 12px; }
+dialog.avatar-dialog[open] { display: flex; }
+.avatar-stage {
+  display: flex; justify-content: center; padding: 8px 0;
+  background: radial-gradient(circle at 50% 40%, #2c3550, #1c1f26 70%); border: 1px solid var(--line); border-radius: var(--radius);
+}
+#avatar-canvas { width: 132px; height: 144px; image-rendering: pixelated; }
+.age-preview { gap: 4px; }
+.age-preview b { color: var(--text); font-weight: 500; }
+.age-preview input { width: 100%; accent-color: var(--accent); }
+.avatar-tabs { position: sticky; top: -20px; background: var(--panel); padding: 6px 0; z-index: 1; }
+.avatar-options { display: flex; flex-direction: column; gap: 14px; min-height: 160px; }
+.avatar-options .hint { margin: 0; font-size: 12px; }
+.small-avatar { width: 48px; height: 48px; border: 1px solid var(--line); }
