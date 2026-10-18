@@ -164,6 +164,8 @@ function setYearField(age, field, value) {
 }
 
 const myAvatar = () => normalizeAvatar(state.profile.avatar);
+// 有沒有在捏人畫面存過（沒存過時 myAvatar() 也會給預設造型）
+const avatarSaved = () => !!(state.profile.avatar && state.profile.avatar.v === 2);
 
 // ---------- 人物 ----------
 const personById = (id) => state.people.find((p) => p.id === id) || null;
@@ -313,7 +315,7 @@ function renderNow() {
   const w = ui.weather;
   $('#now-caption').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : `大約是${stage.label}`} · 今年記了 ${list.length} 則`
     + (w ? ` · ${w.icon} ${w.temp}° ${w.label}` : '');
-  $('#avatar-banner').hidden = myAvatar().v === 2;
+  $('#avatar-banner').hidden = avatarSaved();
   renderStatBars($('#stat-bars'), statsFor(list), focus);
 
   $('#focus-chips').replaceChildren(...STATS.map((s) => h('button', {
