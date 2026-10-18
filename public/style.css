@@ -464,3 +464,95 @@ dialog.person-dialog > div { display: flex; flex-direction: column; gap: 12px; }
   border-bottom: 1px solid var(--line); cursor: pointer; color: var(--text);
 }
 .person-moments .moment-date { width: 48px; }
+
+/* ---------- 底部固定列：主要按鈕永遠在最下面，不跟著內容捲走 ---------- */
+@media (max-width: 699px) {
+  dialog.sheet { margin-bottom: var(--kb, 0px); max-height: calc(92vh - var(--kb, 0px)); max-height: calc(92dvh - var(--kb, 0px)); }
+}
+.sheet-actions {
+  position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom)); z-index: 3;
+  margin: 8px -16px calc(-20px - env(safe-area-inset-bottom));
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--panel); border-top: 1px solid var(--line);
+}
+.sheet-actions { gap: 6px; }
+.sheet-actions .btn { white-space: nowrap; flex-shrink: 0; }
+.sheet-actions .btn.primary { min-width: 96px; padding-top: 11px; padding-bottom: 11px; text-align: center; }
+.recall-nav { margin-top: auto; }
+.sheet-top { display: flex; align-items: center; gap: 8px; }
+.sheet-top h3 { margin: 0; }
+.danger-zone { margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.danger-zone h4 { margin: 0 0 4px; font-size: 14px; color: var(--accent); }
+
+/* 右上角「⋯」選單（刪除放這裡，不跟儲存擺在一起） */
+.more-menu { position: relative; }
+.icon-btn.small-icon { width: 36px; height: 36px; font-size: 18px; line-height: 1; }
+.more-list {
+  position: absolute; right: 0; top: 42px; z-index: 5; min-width: 140px; padding: 6px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+}
+.more-list button { display: block; width: 100%; text-align: left; padding: 10px 12px; background: none; border: 0; border-radius: 6px; cursor: pointer; font-size: 15px; }
+.danger-item { color: var(--accent); }
+
+/* ---------- 記一筆 ---------- */
+.quick-events { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+.quick-events::-webkit-scrollbar { display: none; }
+.quick-events .chip { flex-shrink: 0; white-space: nowrap; }
+.more-chip { border-color: var(--yellow); color: var(--text); }
+.event-row:has(.event-badge[hidden]) { display: none; }
+.opt-bar { display: flex; flex-wrap: wrap; gap: 6px; }
+.opt {
+  padding: 6px 12px; font-size: 14px; cursor: pointer; white-space: nowrap;
+  background: transparent; border: 1px solid var(--line); border-radius: 999px; color: var(--muted);
+}
+.opt.filled { color: var(--text); border-color: var(--teal); background: rgba(63, 184, 168, .12); }
+.opt.open { color: var(--text); border-color: var(--text); }
+#star-toggle.filled { border-color: var(--yellow); background: rgba(230, 184, 79, .14); }
+.opt-sec { padding: 12px; background: var(--panel-2); border-radius: var(--radius); }
+#event-search { width: 100%; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); font-size: 16px; }
+
+/* ---------- 寵物毛色：直接看小圖選 ---------- */
+.coat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.coat-btn, .pic-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; cursor: pointer; font-size: 12px; color: var(--muted);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.coat-btn.on, .pic-btn.on { border: 2px solid var(--accent); color: var(--text); background: var(--accent-soft); }
+.coat-pic { width: 48px; height: 48px; image-rendering: pixelated; }
+.coat-pic svg, .opt-pic svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- 捏小人：預覽固定在上方、選項用小圖 ---------- */
+.avatar-dialog .avatar-stage { position: sticky; top: -20px; z-index: 2; margin-top: -4px; }
+.avatar-age-note { margin: 0; }
+.pic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.opt-pic { display: block; image-rendering: pixelated; }
+.opt-pic.head { width: 56px; height: 40px; }
+.opt-pic.body { width: 48px; height: 48px; }
+
+/* ---------- 設定：個人卡＋清單 ---------- */
+.settings-page { display: flex; flex-direction: column; gap: 14px; }
+.settings-page[hidden] { display: none; }
+.settings-page > form { gap: 14px; }
+.profile-card { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; }
+.profile-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.profile-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.profile-text b { font-size: 17px; }
+.profile-text .hint { margin: 0; }
+.chev { color: var(--muted); font-size: 20px; margin-left: auto; }
+.menu { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px; cursor: pointer; text-align: left; font-size: 16px;
+  background: var(--panel); border: 0; border-bottom: 1px solid var(--line);
+}
+.menu-item:last-child { border-bottom: 0; }
+.menu-sub { margin-left: auto; color: var(--muted); font-size: 13px; }
+.menu-sub + .chev { margin-left: 4px; }
+.back-btn { background: none; border: 0; color: var(--text); font-size: 28px; line-height: 1; padding: 0 8px 4px 0; cursor: pointer; }
+.person-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.person-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; cursor: pointer; text-align: left;
+  background: var(--panel); border: 0; border-bottom: 1px solid var(--line);
+}
+.person-row:last-child { border-bottom: 0; }
+.person-row .person-avatar { width: 44px; height: 44px; }
+dialog.person-dialog > div { gap: 14px; }

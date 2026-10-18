@@ -140,50 +140,63 @@
     <button id="add-btn" class="fab" aria-label="記一筆">＋ 記一筆</button>
   </main>
 
-  <!-- 新增／編輯時刻 -->
+  <!-- 新增／編輯時刻：內容放第一個，選填的項目收成一排按鈕，點了才展開 -->
   <dialog id="moment-dialog" class="sheet">
     <form id="moment-form" method="dialog">
-      <h3 id="moment-title">記一筆</h3>
+      <div class="sheet-top">
+        <h3 id="moment-title">記一筆</h3>
+        <span class="spacer"></span>
+        <div id="moment-menu" class="more-menu" hidden>
+          <button id="moment-menu-btn" class="icon-btn small-icon" type="button" aria-label="更多" aria-expanded="false">⋯</button>
+          <div id="moment-menu-list" class="more-list" hidden>
+            <button id="moment-delete" class="danger-item" type="button">刪除這則</button>
+          </div>
+        </div>
+      </div>
+      <div class="quick-events" id="quick-events"></div>
       <div class="event-row">
-        <button id="event-open" class="btn small" type="button">⭐ 人生大事</button>
         <span id="event-badge" class="event-badge" hidden></span>
       </div>
-      <label>日期
-        <input name="date" type="date" required>
-      </label>
-      <div id="moment-age" class="age-hint"></div>
-      <label class="switch small-switch">
-        <input name="approx" type="checkbox">
-        <span>不確定日期，只記得是這一歲</span>
-      </label>
-      <label>發生了什麼？
-        <textarea name="text" rows="4" maxlength="500" required placeholder="一句話就好"></textarea>
-      </label>
-      <div class="field">
-        <span id="people-label" class="field-label">和誰（選填）</span>
+      <textarea name="text" rows="4" maxlength="500" required placeholder="發生了什麼？一句話就好" aria-label="發生了什麼？"></textarea>
+      <div class="opt-bar" id="opt-bar">
+        <button type="button" class="opt" data-sec="date" aria-expanded="false">📅 <span id="date-btn-label">今天</span></button>
+        <button type="button" class="opt" data-sec="people" aria-expanded="false">👥 <span>和誰</span></button>
+        <button type="button" class="opt" data-sec="photos" aria-expanded="false">📷 <span>照片</span></button>
+        <button type="button" class="opt" data-sec="mood" aria-expanded="false">😊 <span>心情</span></button>
+        <button type="button" class="opt" data-sec="tags" aria-expanded="false">🏷 <span>標籤</span></button>
+        <button type="button" class="opt" id="star-toggle" aria-pressed="false">☆ <span>值得記住</span></button>
+      </div>
+      <input name="starred" type="checkbox" hidden>
+      <div class="opt-sec field" data-sec="date" hidden>
+        <label>日期
+          <input name="date" type="date" required>
+        </label>
+        <div id="moment-age" class="age-hint"></div>
+        <label class="switch small-switch">
+          <input name="approx" type="checkbox">
+          <span>不確定日期，只記得是這一歲</span>
+        </label>
+      </div>
+      <div class="opt-sec field" data-sec="people" hidden>
+        <span id="people-label" class="field-label">和誰</span>
         <div id="people-picker" class="chips"></div>
       </div>
-      <div class="field">
-        <span class="field-label">照片（選填，最多 4 張）</span>
+      <div class="opt-sec field" data-sec="photos" hidden>
+        <span class="field-label">照片（最多 4 張）</span>
         <div id="photo-picker" class="photo-picker"></div>
         <input id="photo-input" type="file" accept="image/*" multiple hidden>
       </div>
-      <div class="field">
-        <span class="field-label">心情（選填）</span>
+      <div class="opt-sec field" data-sec="mood" hidden>
+        <span class="field-label">心情</span>
         <div id="mood-picker" class="mood-picker"></div>
       </div>
-      <div class="field">
-        <span class="field-label">標籤（選填）</span>
+      <div class="opt-sec field" data-sec="tags" hidden>
+        <span class="field-label">標籤</span>
         <div id="tag-picker" class="chips"></div>
       </div>
-      <label class="switch">
-        <input name="starred" type="checkbox">
-        <span>☆ 值得記住的時刻</span>
-      </label>
       <div class="sheet-actions">
-        <button id="moment-delete" class="btn danger" type="button" hidden>刪除</button>
-        <span class="spacer"></span>
         <button class="btn" type="button" data-close>取消</button>
+        <span class="spacer"></span>
         <button id="moment-save" class="btn primary" type="submit" value="save">儲存</button>
       </div>
     </form>
@@ -257,14 +270,12 @@
   <dialog id="avatar-dialog" class="sheet avatar-dialog">
     <h3>捏你的小人</h3>
     <div class="avatar-stage"><canvas id="avatar-canvas" aria-label="小人預覽"></canvas></div>
-    <label class="age-preview">
-      <span>預覽年紀：<b id="avatar-age-label"></b></span>
-      <input id="avatar-age" type="range" min="0" max="90" step="1">
-    </label>
+    <p id="avatar-age-label" class="hint avatar-age-note"></p>
     <div id="avatar-tabs" class="chips avatar-tabs"></div>
     <div id="avatar-options" class="avatar-options"></div>
     <div class="sheet-actions">
       <button id="avatar-random" class="btn" type="button">🎲 隨機</button>
+      <button id="avatar-undo" class="btn" type="button" disabled>↺ 復原</button>
       <span class="spacer"></span>
       <button class="btn" type="button" data-close>取消</button>
       <button id="avatar-save" class="btn primary" type="button">完成</button>
@@ -274,6 +285,7 @@
   <!-- 人生大事 -->
   <dialog id="event-dialog" class="sheet event-dialog">
     <h3>人生大事</h3>
+    <input id="event-search" type="search" placeholder="搜尋，例如：搬家、畢業" aria-label="搜尋人生大事" autocomplete="off">
     <div id="event-cats" class="chips"></div>
     <div id="event-grid" class="event-grid"></div>
     <div class="sheet-actions">
@@ -295,50 +307,97 @@
     <div id="lb-count" class="lb-count"></div>
   </dialog>
 
-  <!-- 設定 -->
-  <dialog id="settings-dialog" class="sheet">
-    <form id="profile-form" method="dialog">
+  <!-- 設定：首頁是個人卡＋清單，點進去才是各個子頁 -->
+  <dialog id="settings-dialog" class="sheet settings">
+    <section class="settings-page" data-page="home">
       <h3>設定</h3>
-      <label>名字
-        <input name="name" required maxlength="40">
-      </label>
-      <label>生日
-        <input name="birthday" type="date" required>
-      </label>
-      <button class="btn primary" type="submit" value="save">儲存個人資料</button>
-    </form>
-    <hr>
-    <h4>我的人物</h4>
-    <div id="people-section" class="cloud-section"></div>
-    <hr>
-    <h4>我的小人</h4>
-    <div class="row">
-      <div id="settings-avatar" class="avatar small-avatar"></div>
-      <button id="settings-avatar-btn" class="btn" type="button">✏️ 編輯小人</button>
-    </div>
-    <hr>
-    <h4>真實天氣</h4>
-    <div id="weather-section" class="cloud-section"></div>
-    <hr>
-    <h4>成就</h4>
-    <label class="switch"><input id="pref-achievements" type="checkbox"><span>顯示成就（關閉時照樣在背後記錄）</span></label>
-    <hr>
-    <h4>備份</h4>
-    <p class="hint">資料（含照片）只存在這支手機。換手機、清除網站資料前，記得先匯出備份。備份檔是 ZIP，可以存到 iCloud 雲碟。</p>
-    <p id="backup-status" class="hint"></p>
-    <div class="row">
-      <button id="export-btn" class="btn" type="button">匯出備份</button>
-      <label class="btn" for="import-file">匯入備份</label>
-      <input id="import-file" type="file" accept=".zip,.json,application/zip,application/json" hidden>
-    </div>
-    <p id="storage-status" class="hint pre"></p>
-    <p id="app-version" class="hint"></p>
-    <hr>
-    <div class="row">
-      <button id="reset-btn" class="btn danger" type="button">清除所有資料</button>
-      <span class="spacer"></span>
-      <button class="btn" type="button" data-close>關閉</button>
-    </div>
+      <div class="profile-card">
+        <button id="profile-card" class="profile-main" type="button" aria-label="編輯個人資料">
+          <span id="settings-avatar" class="avatar small-avatar"></span>
+          <span class="profile-text"><b id="profile-card-name"></b><span id="profile-card-sub" class="hint"></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button id="settings-avatar-btn" class="btn small" type="button">✏️ 捏小人</button>
+      </div>
+      <div class="menu">
+        <button class="menu-item" type="button" data-go="people"><span>👨‍👩‍👧 人物與寵物</span><span id="menu-people" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="weather"><span>🌤 真實天氣</span><span id="menu-weather" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="backup"><span>💾 備份與資料</span><span id="menu-backup" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="other"><span>⚙️ 其他</span><span class="menu-sub"></span><span class="chev">›</span></button>
+      </div>
+      <div class="sheet-actions">
+        <span class="spacer"></span>
+        <button class="btn primary" type="button" data-close>完成</button>
+      </div>
+    </section>
+
+    <section class="settings-page" data-page="profile" hidden>
+      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>個人資料</h3></div>
+      <form id="profile-form" method="dialog">
+        <label>名字
+          <input name="name" required maxlength="40">
+        </label>
+        <label>生日
+          <input name="birthday" type="date" required>
+        </label>
+        <div class="sheet-actions">
+          <button class="btn" type="button" data-back>返回</button>
+          <span class="spacer"></span>
+          <button class="btn primary" type="submit" value="save">儲存</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="settings-page" data-page="people" hidden>
+      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>人物與寵物</h3></div>
+      <div id="people-section"></div>
+      <div class="sheet-actions">
+        <button id="add-pet-btn" class="btn" type="button">＋ 新增寵物</button>
+        <span class="spacer"></span>
+        <button id="add-person-btn" class="btn primary" type="button">＋ 新增人物</button>
+      </div>
+    </section>
+
+    <section class="settings-page" data-page="weather" hidden>
+      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>真實天氣</h3></div>
+      <div id="weather-section"></div>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-back>返回</button>
+        <span class="spacer"></span>
+        <button id="weather-toggle" class="btn primary" type="button"></button>
+      </div>
+    </section>
+
+    <section class="settings-page" data-page="backup" hidden>
+      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>備份與資料</h3></div>
+      <p class="hint">資料（含照片）只存在這支手機。換手機、清除網站資料前，記得先匯出備份。備份檔是 ZIP，可以存到 iCloud 雲碟。</p>
+      <p id="backup-status" class="hint"></p>
+      <div class="row">
+        <label class="btn" for="import-file">匯入備份</label>
+        <input id="import-file" type="file" accept=".zip,.json,application/zip,application/json" hidden>
+      </div>
+      <p id="storage-status" class="hint pre"></p>
+      <div class="danger-zone">
+        <h4>危險區域</h4>
+        <p class="hint">清除後所有紀錄和照片都會消失，無法復原。</p>
+        <button id="reset-btn" class="btn danger" type="button">清除所有資料</button>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" type="button" data-back>返回</button>
+        <span class="spacer"></span>
+        <button id="export-btn" class="btn primary" type="button">匯出備份</button>
+      </div>
+    </section>
+
+    <section class="settings-page" data-page="other" hidden>
+      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>其他</h3></div>
+      <label class="switch"><input id="pref-achievements" type="checkbox"><span>顯示成就（關閉時照樣在背後記錄）</span></label>
+      <p id="app-version" class="hint"></p>
+      <div class="sheet-actions">
+        <span class="spacer"></span>
+        <button class="btn primary" type="button" data-back>返回</button>
+      </div>
+    </section>
   </dialog>
 
   <div id="toast" class="toast" hidden></div>

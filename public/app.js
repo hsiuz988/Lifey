@@ -41,7 +41,7 @@ const ui = {
   editingId: null, mood: null, tags: new Set(), photos: [], busy: false,
   yearAge: null, preparedExport: null, recall: { age: 0, q: 0 }, recallDone: false,
   lightbox: { ids: [], index: 0, url: null },
-  people: new Set(), event: null, eventCat: 'school', eventFor: 'moment', person: null,
+  people: new Set(), event: null, eventCat: 'school', eventFor: 'moment', person: null, openSecs: null, momentSnapshot: null,
 };
 const thumbUrls = new Map(); // photoId -> Promise<objectURL|null>
 let scene = null;
@@ -170,7 +170,16 @@ const avatarSaved = () => !!(state.profile.avatar && state.profile.avatar.v === 
 // ---------- 人物 ----------
 const personById = (id) => state.people.find((p) => p.id === id) || null;
 const personIcon = (p) => (p.kind === 'pet' ? PET_ICONS[p.petType] || '🐾' : '👤');
-const personLabel = (p) => `${personIcon(p)} ${p.name}`;
+// 名字可以不填：人物先用關係（例如「媽媽」），寵物用毛色（例如「橘白貓」）
+function personName(p) {
+  if (p.name) return p.name;
+  if (p.kind === 'pet') {
+    const coat = (PET_COLORS[p.petType] || [])[p.petColor || 0];
+    return coat ? coat.label : (PET_TYPES.find(([k]) => k === p.petType) || [, '寵物'])[1];
+  }
+  return p.relation || '人物';
+}
+const personLabel = (p) => `${personIcon(p)} ${personName(p)}`;
 // 寵物有沒有去彩虹橋，由「寵物去了彩虹橋」那則紀錄決定（刪掉那則就會回來）
 const petGoneMoment = (pet) => state.moments.find((m) => m.event === 'pet-farewell' && m.people.includes(pet.id)) || null;
 
@@ -182,7 +191,7 @@ function peopleByUse() {
 
 function personAvatarHtml(p) {
   if (p.kind === 'pet') return petSvg(p.petType, p.petColor || 0);
-  return `<span class="person-initial">${(p.name || '?').slice(0, 1)}</span>`;
+  return `<span class="person-initial">${personName(p).slice(0, 1)}</span>`;
 }
 
 // ---------- DOM 工具 ----------
@@ -339,7 +348,7 @@ let lastPetsKey = '';
 let lastPets = [];
 function scenePets() {
   const pets = state.people.filter((p) => p.kind === 'pet' && p.inScene !== false && !petGoneMoment(p))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 2).map((p) => ({ type: p.petType, color: p.petColor || 0, name: p.name }));
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 2).map((p) => ({ type: p.petType, color: p.petColor || 0, name: personName(p) }));
   const key = JSON.stringify(pets);
   if (key !== lastPetsKey) { lastPetsKey = key; lastPets = pets; } // 沒變就沿用同一個陣列，場景才不會重來
   return lastPets;
@@ -375,7 +384,7 @@ function sceneMessages() {
   const last = new Map();
   for (const m of state.moments) for (const id of m.people) if (!last.has(id) || m.date > last.get(id)) last.set(id, m.date);
   const quiet = state.people.filter((p) => p.kind === 'person' && last.has(p.id) && daysBetween(parseDate(last.get(p.id)), new Date()) > 60);
-  if (quiet.length) out.push(`好久沒記到 ${quiet[Math.floor(Math.random() * quiet.length)].name} 了，最近好嗎？`);
+  if (quiet.length) out.push(`好久沒記到 ${personName(quiet[Math.floor(Math.random() * quiet.length)])} 了，最近好嗎？`);
   return out;
 }
 
@@ -595,16 +604,87 @@ async function openMoment(id = null, preset = {}) {
   form.text.value = m ? m.text : '';
   form.starred.checked = m ? !!m.starred : false;
   form.approx.checked = m ? m.approx : !!preset.approx;
-  $('#moment-delete').hidden = !m;
+  $('#moment-menu').hidden = !m;
+  $('#moment-menu-list').hidden = true;
+  // 編輯舊的紀錄時，有填的項目直接展開；新的一筆只展開不是今天的日期
+  ui.openSecs = new Set();
+  if (m) {
+    if (m.people.length) ui.openSecs.add('people');
+    if (m.photoIds.length) ui.openSecs.add('photos');
+    if (m.mood) ui.openSecs.add('mood');
+    if (m.tags.length) ui.openSecs.add('tags');
+  } else if (preset.date) ui.openSecs.add('date');
   renderMoodPicker();
   renderTagPicker();
   renderPhotoPicker();
   renderPeoplePicker();
   renderEventBadge();
+  renderQuickEvents();
   updateAgeHint();
   $('#moment-dialog').showModal();
   if (!m && preset.event) applyEvent(eventById(preset.event));
   else if (!m) form.text.focus();
+  ui.momentSnapshot = momentSnapshot();
+}
+
+// 用來判斷有沒有改過，關閉時才知道要不要問「放棄這筆嗎？」
+function momentSnapshot() {
+  const form = $('#moment-form');
+  return JSON.stringify([form.text.value, form.date.value, form.approx.checked, form.starred.checked, ui.mood, [...ui.tags], [...ui.people], ui.event, ui.photos.map((p) => p.id)]);
+}
+const momentDirty = () => $('#moment-dialog').open && ui.momentSnapshot != null && momentSnapshot() !== ui.momentSnapshot;
+
+// 選填項目那一排：有填的會亮起來，點了展開或收起
+function renderOptBar() {
+  const form = $('#moment-form');
+  const filled = {
+    date: form.date.value !== todayStr() || form.approx.checked,
+    people: ui.people.size > 0, photos: ui.photos.length > 0, mood: !!ui.mood, tags: ui.tags.size > 0,
+  };
+  const counts = { people: ui.people.size, photos: ui.photos.length, tags: ui.tags.size };
+  document.querySelectorAll('#opt-bar .opt[data-sec]').forEach((btn) => {
+    const sec = btn.dataset.sec;
+    const open = ui.openSecs.has(sec);
+    btn.classList.toggle('filled', filled[sec]);
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    if (sec !== 'date') btn.lastElementChild.textContent = { people: '和誰', photos: '照片', mood: '心情', tags: '標籤' }[sec] + (counts[sec] ? ` ${counts[sec]}` : '');
+    if (sec === 'mood' && ui.mood) btn.firstChild.textContent = `${MOODS[ui.mood - 1]} `;
+    else if (sec === 'mood') btn.firstChild.textContent = '😊 ';
+  });
+  document.querySelectorAll('#moment-form .opt-sec').forEach((el) => { el.hidden = !ui.openSecs.has(el.dataset.sec); });
+  const date = form.date.value;
+  let label = '今天';
+  if (isValidDateStr(date) && date !== todayStr()) {
+    const age = ageAt(state.profile.birthday, date);
+    label = form.approx.checked ? `${age} 歲時（日期不確定）` : `${fmtDate(parseDate(date))} · ${age} 歲`;
+  }
+  $('#date-btn-label').textContent = label;
+  const star = $('#star-toggle');
+  star.classList.toggle('filled', form.starred.checked);
+  star.setAttribute('aria-pressed', String(form.starred.checked));
+  star.firstChild.textContent = form.starred.checked ? '★ ' : '☆ ';
+}
+
+function toggleSec(sec, force) {
+  const open = force ?? !ui.openSecs.has(sec);
+  if (open) ui.openSecs.add(sec); else ui.openSecs.delete(sec);
+  renderOptBar();
+  if (open) {
+    const el = document.querySelector(`#moment-form .opt-sec[data-sec="${sec}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// 常用的人生大事：最近用過的排前面，再補常見的
+const QUICK_EVENTS = ['dating', 'graduate', 'first-job', 'move', 'pet', 'first-abroad', 'wedding', 'baby'];
+function renderQuickEvents() {
+  const used = [...state.moments].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).map((m) => m.event).filter(Boolean);
+  const ids = [...new Set([...used.slice(0, 3), ...QUICK_EVENTS])].slice(0, 8);
+  const more = h('button', { type: 'button', id: 'event-open', class: 'chip more-chip', onclick: () => openEventPicker('moment') }, '⭐ 人生大事');
+  $('#quick-events').replaceChildren(more, ...ids.map(eventById).filter(Boolean).map((ev) => h('button', {
+    type: 'button', class: `chip${ui.event === ev.id ? ' on' : ''}`, onclick: () => applyEvent(ev),
+  }, `${ev.icon} ${ev.label}`)));
 }
 
 function renderEventBadge() {
@@ -613,7 +693,7 @@ function renderEventBadge() {
   badge.hidden = !ev;
   if (!ev) return;
   badge.replaceChildren(`${ev.icon} ${ev.label} `, h('button', {
-    type: 'button', class: 'badge-x', 'aria-label': '取消人生大事', onclick: () => { ui.event = null; renderEventBadge(); renderPeoplePicker(); },
+    type: 'button', class: 'badge-x', 'aria-label': '取消人生大事', onclick: () => { ui.event = null; renderEventBadge(); renderPeoplePicker(); renderQuickEvents(); },
   }, '×'));
 }
 
@@ -621,7 +701,7 @@ function renderPeoplePicker() {
   const ev = eventById(ui.event);
   const ask = ev && ev.ask;
   const label = $('#people-label');
-  label.textContent = ask === 'pet' || ask === 'petGone' ? '是哪一隻？' : ask === 'child' ? '寶寶是誰？' : ask === 'people' ? '和誰？' : '和誰（選填）';
+  label.textContent = ask === 'pet' || ask === 'petGone' ? '是哪一隻？' : ask === 'child' ? '寶寶是誰？' : ask === 'people' ? '和誰？' : '和誰';
   label.classList.toggle('ask', !!ask && ui.people.size === 0);
   let list = peopleByUse();
   if (ask === 'pet' || ask === 'petGone') list = list.filter((p) => p.kind === 'pet');
@@ -638,6 +718,7 @@ function renderPeoplePicker() {
     }),
   }, addKind === 'pet' ? '＋ 新增寵物' : '＋ 新增人物'));
   $('#people-picker').replaceChildren(...chips);
+  if (ui.openSecs) renderOptBar();
 }
 
 // 選了人生大事：帶入文字、標籤、☆；需要時接著問「和誰」
@@ -652,7 +733,9 @@ function applyEvent(ev) {
   if (!ui.editingId) form.starred.checked = !ev.sad;
   renderEventBadge();
   renderTagPicker();
+  if (ev.ask) ui.openSecs.add('people'); // 需要「和誰」的大事，直接展開讓你選
   renderPeoplePicker();
+  renderQuickEvents();
   if (ev.ask === 'pet' && !state.people.some((p) => p.kind === 'pet' && !petGoneMoment(p))) {
     openPersonEditor(null, { kind: 'pet', onSaved: (person) => { ui.people.add(person.id); renderPeoplePicker(); } });
   } else if (ev.ask === 'child' && !ui.people.size) {
@@ -662,15 +745,20 @@ function applyEvent(ev) {
 
 function openEventPicker(forWhat = 'moment') {
   ui.eventFor = forWhat;
+  $('#event-search').value = '';
   renderEventPicker();
   $('#event-dialog').showModal();
 }
 
 function renderEventPicker() {
+  const q = ($('#event-search').value || '').trim();
+  $('#event-cats').hidden = !!q;
   $('#event-cats').replaceChildren(...EVENT_CATS.map(([key, label]) => h('button', {
     type: 'button', class: `chip${ui.eventCat === key ? ' on' : ''}`, onclick: () => { ui.eventCat = key; renderEventPicker(); },
   }, label)));
-  $('#event-grid').replaceChildren(...LIFE_EVENTS.filter((e) => e.cat === ui.eventCat).map((e) => h('button', {
+  const list = q ? LIFE_EVENTS.filter((e) => e.label.includes(q) || e.text.includes(q)) : LIFE_EVENTS.filter((e) => e.cat === ui.eventCat);
+  if (!list.length) { $('#event-grid').replaceChildren(h('p', { class: 'hint' }, '找不到，可以直接在「發生了什麼」寫下來。')); return; }
+  $('#event-grid').replaceChildren(...list.map((e) => h('button', {
     type: 'button', class: `event-btn${e.sad ? ' sad' : ''}`, onclick: () => chooseEvent(e),
   }, h('span', { class: 'event-btn-icon' }, e.icon), h('span', {}, e.label))));
 }
@@ -694,6 +782,7 @@ function updateAgeHint() {
   if (!isValidDateStr(date)) { el.textContent = ''; return; }
   const age = ageAt(state.profile.birthday, date);
   el.textContent = age < 0 ? '這一天你還沒出生喔' : `這是你 ${age} 歲的時候`;
+  if (ui.openSecs) renderOptBar();
 }
 
 function renderMoodPicker() {
@@ -702,6 +791,7 @@ function renderMoodPicker() {
       type: 'button', class: `mood${ui.mood === i + 1 ? ' on' : ''}`, 'aria-label': `心情 ${i + 1}`,
       onclick: () => { ui.mood = ui.mood === i + 1 ? null : i + 1; renderMoodPicker(); },
     }, emoji)));
+  if (ui.openSecs) renderOptBar();
 }
 
 function renderTagPicker() {
@@ -710,6 +800,7 @@ function renderTagPicker() {
       type: 'button', class: `chip${ui.tags.has(t) ? ' on' : ''}`,
       onclick: () => { ui.tags.has(t) ? ui.tags.delete(t) : ui.tags.add(t); renderTagPicker(); },
     }, t)));
+  if (ui.openSecs) renderOptBar();
 }
 
 function renderPhotoPicker() {
@@ -722,6 +813,7 @@ function renderPhotoPicker() {
   if (ui.busy) items.push(h('div', { class: 'photo-item busy' }, '處理中…'));
   else if (ui.photos.length < MAX_PHOTOS) items.push(h('label', { class: 'photo-add', for: 'photo-input' }, '＋', h('span', {}, '加照片')));
   $('#photo-picker').replaceChildren(...items);
+  if (ui.openSecs) renderOptBar();
 }
 
 function removePendingPhoto(i) {
@@ -798,6 +890,7 @@ async function saveMoment(e) {
       removed.forEach(forgetThumb);
     }
     ui.collapsed.delete(ageAt(state.profile.birthday, date));
+    ui.momentSnapshot = null;
     $('#moment-dialog').close();
     const ev = eventById(fields.event);
     // 難過的大事不慶祝，用溫和的語氣
@@ -816,6 +909,7 @@ async function deleteMoment() {
   if (!(await saveState())) return;
   await db.deletePhotos(m.photoIds).catch(() => {});
   m.photoIds.forEach(forgetThumb);
+  ui.momentSnapshot = null;
   $('#moment-dialog').close();
   toast('已刪除');
   render();
@@ -861,7 +955,7 @@ function renderPersonDialog() {
     body.replaceChildren(
       h('div', { class: 'person-head' },
         (() => { const a = h('div', { class: `person-avatar${p.kind === 'pet' ? ' pet' : ''}` }); a.innerHTML = personAvatarHtml(p); return a; })(),
-        h('div', {}, h('h3', {}, p.name), h('div', { class: 'hint' }, sub.join(' · ')))),
+        h('div', {}, h('h3', {}, personName(p)), h('div', { class: 'hint' }, sub.join(' · ')))),
       h('p', { class: 'person-facts' }, facts.join(' · ')),
       p.kind === 'person' ? h('p', { class: 'hint' }, '對方用邀請連結加入、自己捏好小人之後，就會和這張人物卡連起來，出現在你的場景裡（需要雲端同步上線）。') : null,
       list.length ? h('ul', { class: 'person-moments' }, list.map((m) => h('li', {},
@@ -869,16 +963,16 @@ function renderPersonDialog() {
           h('span', { class: 'moment-date' }, `${ageAt(birthday, m.date)} 歲`),
           h('span', {}, eventById(m.event) ? `${eventById(m.event).icon} ` : '', m.text))))) : h('p', { class: 'hint' }, '還沒有一起的紀錄。記一筆時在「和誰」點選就會出現在這裡。'),
       h('div', { class: 'sheet-actions' },
-        h('button', { type: 'button', class: 'btn', onclick: () => { ui.filter = `person:${p.id}`; $('#person-dialog').close(); $('#settings-dialog').close(); renderFilters(); renderTimeline(); document.getElementById('timeline').scrollIntoView({ behavior: 'smooth' }); } }, '在時間軸篩選'),
+        h('button', { type: 'button', class: 'btn', onclick: () => $('#person-dialog').close() }, '關閉'),
+        h('button', { type: 'button', class: 'btn', onclick: () => { ui.filter = `person:${p.id}`; $('#person-dialog').close(); $('#settings-dialog').close(); renderFilters(); renderTimeline(); document.getElementById('timeline').scrollIntoView({ behavior: 'smooth' }); } }, '篩選紀錄'),
         h('span', { class: 'spacer' }),
-        h('button', { type: 'button', class: 'btn', onclick: () => openPersonEditor(p.id) }, '編輯'),
-        h('button', { type: 'button', class: 'btn primary', onclick: () => $('#person-dialog').close() }, '關閉')));
+        h('button', { type: 'button', class: 'btn primary', onclick: () => openPersonEditor(p.id) }, '編輯')));
     return;
   }
 
   const d = ui.person.draft;
   const isPet = d.kind === 'pet';
-  const name = h('input', { value: d.name, maxlength: '20', placeholder: isPet ? '寵物的名字' : '名字或暱稱', 'aria-label': '名字' });
+  const name = h('input', { value: d.name, maxlength: '20', placeholder: isPet ? '沒填就顯示毛色，例如「橘白貓」' : '沒填就顯示關係，例如「媽媽」', 'aria-label': '名字' });
   name.addEventListener('input', () => { d.name = name.value; });
   const birthday = h('input', { type: 'date', value: d.birthday || '', max: todayStr(), 'aria-label': '生日' });
   birthday.addEventListener('input', () => { d.birthday = birthday.value; });
@@ -892,44 +986,46 @@ function renderPersonDialog() {
       type: 'button', class: `chip${d.relation === r ? ' on' : ''}`, onclick: () => { d.relation = r; renderPersonDialog(); },
     }, r)))));
   } else {
-    const preview = h('div', { class: 'person-avatar pet' });
-    preview.innerHTML = petSvg(d.petType, d.petColor);
+    const coatBtn = (c, i) => {
+      const b = h('button', {
+        type: 'button', class: `coat-btn${d.petColor === i ? ' on' : ''}`, 'aria-label': c.label, 'aria-pressed': String(d.petColor === i),
+        onclick: () => { d.petColor = i; renderPersonDialog(); },
+      }, h('span', { class: 'coat-pic' }), h('span', {}, c.label));
+      b.firstChild.innerHTML = petSvg(d.petType, i);
+      return b;
+    };
     fields.push(
       h('div', { class: 'field' }, h('span', { class: 'field-label' }, '種類'), h('div', { class: 'chips' }, PET_TYPES.map(([k, label]) => h('button', {
         type: 'button', class: `chip${d.petType === k ? ' on' : ''}`, onclick: () => { d.petType = k; d.petColor = 0; renderPersonDialog(); },
       }, `${PET_ICONS[k]} ${label}`)))),
-      h('div', { class: 'field' }, h('span', { class: 'field-label' }, '毛色'), h('div', { class: 'row' }, preview, h('div', { class: 'swatches' },
-        PET_COLORS[d.petType].map((c, i) => h('button', {
-          type: 'button', class: `swatch-btn${d.petColor === i ? ' on' : ''}`, style: petSwatchStyle(d.petType, i), title: c.label, 'aria-label': c.label,
-          onclick: () => { d.petColor = i; renderPersonDialog(); },
-        }))))),
+      h('div', { class: 'field' }, h('span', { class: 'field-label' }, '毛色'), h('div', { class: 'coat-grid' }, PET_COLORS[d.petType].map(coatBtn))),
     );
     const inScene = h('input', { type: 'checkbox' });
     inScene.checked = d.inScene !== false;
     inScene.addEventListener('change', () => { d.inScene = inScene.checked; });
-    fields.push(h('label', { class: 'switch' }, inScene, h('span', {}, '在場景裡陪著我')));
+    fields.push(h('label', { class: 'switch' }, inScene, h('span', {}, '在場景裡陪著我')),
+      h('p', { class: 'hint' }, '場景裡最多 2 隻，超過時會出現最新加入的 2 隻；不想出現的可以關掉。'));
   }
 
   const save = h('button', { type: 'button', class: 'btn primary' }, '儲存');
   save.addEventListener('click', () => savePerson());
   body.replaceChildren(
-    h('h3', {}, id ? `編輯 ${personById(id).name}` : isPet ? '新增寵物' : '新增人物'),
+    h('div', { class: 'sheet-top' }, h('h3', {}, id ? `編輯 ${personName(personById(id))}` : isPet ? '新增寵物' : '新增人物')),
     kindChips,
-    h('label', {}, '名字', name),
-    ...fields,
+    ...(isPet ? fields : []),
+    h('label', {}, '名字（選填）', name),
+    ...(isPet ? [] : fields),
     h('label', {}, isPet ? '生日或到家的日子（選填）' : '生日（選填）', birthday),
+    id ? h('div', { class: 'danger-zone' }, h('button', { type: 'button', class: 'btn danger', onclick: () => deletePerson(id) }, `刪除${isPet ? '這隻寵物' : '這個人物'}`)) : null,
     h('div', { class: 'sheet-actions' },
-      id ? h('button', { type: 'button', class: 'btn danger', onclick: () => deletePerson(id) }, '刪除') : null,
-      h('span', { class: 'spacer' }),
       h('button', { type: 'button', class: 'btn', onclick: () => (id ? openPerson(id) : $('#person-dialog').close()) }, '取消'),
+      h('span', { class: 'spacer' }),
       save));
-  if (!id) name.focus();
 }
 
 async function savePerson() {
   const { id, draft, onSaved } = ui.person;
   const name = (draft.name || '').trim();
-  if (!name) { toast('請輸入名字'); return; }
   if (draft.kind === 'person' && !draft.relation) { toast('請選擇關係'); return; }
   const now = new Date().toISOString();
   const clean = {
@@ -948,7 +1044,7 @@ async function savePerson() {
 
 async function deletePerson(id) {
   const p = personById(id);
-  if (!p || !confirm(`確定要刪除「${p.name}」嗎？紀錄會留著，只是不再標記這個人。`)) return;
+  if (!p || !confirm(`確定要刪除「${personName(p)}」嗎？紀錄會留著，只是不再標記這個人。`)) return;
   const now = new Date().toISOString();
   state.people = state.people.filter((x) => x.id !== id);
   for (const m of state.moments) {
@@ -966,12 +1062,20 @@ function renderPeopleSection() {
   const root = $('#people-section');
   if (!root || !state.profile) return;
   const list = peopleByUse();
+  const count = new Map();
+  for (const m of state.moments) for (const id of m.people) count.set(id, (count.get(id) || 0) + 1);
   root.replaceChildren(
     h('p', { class: 'hint' }, '家人、朋友、寵物。記一筆時可以點選「和誰」，寵物會在場景裡陪著你。'),
-    list.length ? h('div', { class: 'chips' }, list.map((p) => h('button', { type: 'button', class: 'chip', onclick: () => openPerson(p.id) }, personLabel(p)))) : null,
-    h('div', { class: 'row' },
-      h('button', { type: 'button', class: 'btn', onclick: () => openPersonEditor(null, { kind: 'person' }) }, '＋ 新增人物'),
-      h('button', { type: 'button', class: 'btn', onclick: () => openPersonEditor(null, { kind: 'pet' }) }, '＋ 新增寵物')));
+    list.length ? h('div', { class: 'person-list' }, list.map((p) => {
+      const pic = h('span', { class: `person-avatar${p.kind === 'pet' ? ' pet' : ''}` });
+      pic.innerHTML = personAvatarHtml(p);
+      const sub = [p.kind === 'pet' ? ((PET_COLORS[p.petType] || [])[p.petColor || 0] || {}).label || '寵物' : p.relation || '人物', `${count.get(p.id) || 0} 則`];
+      if (p.kind === 'pet' && petGoneMoment(p)) sub.push('🌈');
+      else if (p.kind === 'pet' && p.inScene !== false) sub.push('在場景裡');
+      return h('button', { type: 'button', class: 'person-row', onclick: () => openPerson(p.id) },
+        pic, h('span', { class: 'profile-text' }, h('b', {}, personName(p)), h('span', { class: 'hint' }, sub.join(' · '))), h('span', { class: 'chev' }, '›'));
+    })) : h('p', { class: 'empty hint' }, '還沒有人物。用下面的按鈕新增家人、朋友或寵物。'));
+  if ($('#settings-dialog').open) renderSettingsMenu();
 }
 
 // ---------- 年歲 ----------
@@ -1214,7 +1318,6 @@ function resetExportButton() {
   ui.preparedExport = null;
   const btn = $('#export-btn');
   btn.textContent = '匯出備份';
-  btn.classList.remove('primary');
 }
 
 async function onExportClick() {
@@ -1393,23 +1496,23 @@ async function renderStorageStatus() {
 }
 
 // ---------- 捏小人 ----------
+// pic：選項用小圖顯示（head 只看頭、body 看全身）；toggle 加 pic 就是可以開關的小圖卡
 const AVATAR_TABS = [
   ['body', '身體', [{ key: 'gender', label: '性別', choices: GENDERS, note: '只影響學生制服（裙子或褲子），其他都能自由搭配' }, { key: 'skin', label: '膚色', colors: SKINS }]],
-  ['hair', '頭髮', [{ key: 'hairStyle', label: '髮型', choices: HAIR_STYLES }, { key: 'hair', label: '髮色', colors: HAIRS, note: '50 歲以後會慢慢變淡，65 歲變白髮' }]],
-  ['face', '臉', [{ key: 'eyes', label: '眼睛', choices: EYES }, { key: 'lashes', label: '睫毛', toggle: true }, { key: 'blush', label: '腮紅', toggle: true },
-    { key: 'freckles', label: '雀斑', toggle: true }, { key: 'beard', label: '鬍子', choices: BEARDS, note: '18 歲以後才會出現' }]],
-  ['outfit', '衣服', [{ key: 'outfit', label: '款式', choices: OUTFITS }, { key: 'outfitColor', label: '顏色', colors: OUTFIT_COLORS },
+  ['hair', '頭髮', [{ key: 'hairStyle', label: '髮型', choices: HAIR_STYLES, pic: 'head' }, { key: 'hair', label: '髮色', colors: HAIRS, note: '50 歲以後會慢慢變淡，65 歲變白髮' }]],
+  ['face', '臉', [{ key: 'eyes', label: '眼睛', choices: EYES, pic: 'head' }, { key: 'beard', label: '鬍子', choices: BEARDS, pic: 'head', note: '18 歲以後才會出現' },
+    { label: '細節', toggles: ['lashes', 'blush', 'freckles'], pic: 'head' }]],
+  ['outfit', '衣服', [{ key: 'outfit', label: '款式', choices: OUTFITS, pic: 'body' }, { key: 'outfitColor', label: '顏色', colors: OUTFIT_COLORS },
     { key: 'uniform', label: '國小到高中穿制服', toggle: true }]],
-  ['acc', '配件', [{ key: 'glasses', label: '眼鏡', toggle: true }, { key: 'hat', label: '帽子', toggle: true },
-    { key: 'headphones', label: '耳機', toggle: true }, { key: 'hairclip', label: '髮夾', toggle: true }]],
+  ['acc', '配件', [{ label: '配件（可以同時戴好幾個）', toggles: ['glasses', 'hat', 'headphones', 'hairclip'], pic: 'head' }]],
 ];
+const TOGGLE_LABELS = { lashes: '睫毛', blush: '腮紅', freckles: '雀斑', glasses: '眼鏡', hat: '帽子', headphones: '耳機', hairclip: '髮夾' };
 
 function openAvatarEditor() {
   const age = ageAt(state.profile.birthday, todayStr());
-  ui.avatar = { draft: { ...myAvatar(), v: 2 }, tab: 'body', age };
-  const slider = $('#avatar-age');
-  slider.max = String(Math.max(90, age));
-  slider.value = String(age);
+  ui.avatar = { draft: { ...myAvatar(), v: 2 }, tab: 'body', age, history: [] };
+  const stage = lifeStage(age);
+  $('#avatar-age-label').textContent = `${age} 歲的你${stage.key === 'adult' ? '' : `（${stage.label}）`}。小人會跟著你的年紀長大，上學時會穿制服。`;
   renderAvatarEditor();
   $('#avatar-dialog').showModal();
   drawAvatarPreview(); // 先畫一次，不要等計時器
@@ -1434,17 +1537,38 @@ function drawAvatarPreview() {
   drawAvatar(ctx, sprite, 1, 2, { breathe: Math.floor(t / 800) % 2 === 1 });
 }
 
+// 每一次修改前先記下來，「↺ 復原」可以一步一步退回去
+function setAvatar(patch) {
+  ui.avatar.history.push({ ...ui.avatar.draft });
+  Object.assign(ui.avatar.draft, patch);
+  renderAvatarEditor();
+  drawAvatarPreview();
+}
+
+// 選項小圖：把這個選項套到目前的小人上畫出來
+function avatarPic(patch, kind) {
+  const { draft, age } = ui.avatar;
+  const span = h('span', { class: `opt-pic ${kind}` });
+  span.innerHTML = avatarSvg({ ...draft, ...patch }, age, lifeStage(age).key, { crop: kind });
+  return span;
+}
+
 function renderAvatarEditor() {
-  const { draft, tab, age } = ui.avatar;
-  const stage = lifeStage(age);
-  $('#avatar-age-label').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : stage.label}`;
+  const { draft, tab } = ui.avatar;
+  $('#avatar-undo').disabled = !ui.avatar.history.length;
   $('#avatar-tabs').replaceChildren(...AVATAR_TABS.map(([key, label]) => h('button', {
     type: 'button', class: `chip${tab === key ? ' on' : ''}`, onclick: () => { ui.avatar.tab = key; renderAvatarEditor(); },
   }, label)));
-  const set = (patch) => { Object.assign(ui.avatar.draft, patch); renderAvatarEditor(); drawAvatarPreview(); };
+  const set = setAvatar;
   const groups = AVATAR_TABS.find(([key]) => key === tab)[2];
   $('#avatar-options').replaceChildren(...groups.map((g) => {
     let control;
+    if (g.toggles) {
+      control = h('div', { class: 'pic-grid' }, g.toggles.map((k) => h('button', {
+        type: 'button', class: `pic-btn${draft[k] ? ' on' : ''}`, 'aria-pressed': String(!!draft[k]), onclick: () => set({ [k]: !draft[k] }),
+      }, avatarPic({ [k]: true }, g.pic), h('span', {}, TOGGLE_LABELS[k]))));
+      return h('div', { class: 'field' }, h('span', { class: 'field-label' }, g.label), control);
+    }
     if (g.toggle) {
       const box = h('input', { type: 'checkbox' });
       box.checked = !!draft[g.key];
@@ -1456,6 +1580,10 @@ function renderAvatarEditor() {
         type: 'button', class: `swatch-btn${draft[g.key] === i ? ' on' : ''}`, style: `--c:${c}`, 'aria-label': `${g.label} ${i + 1}`,
         onclick: () => set({ [g.key]: i }),
       })));
+    } else if (g.pic) {
+      control = h('div', { class: 'pic-grid' }, g.choices.map(([v, label]) => h('button', {
+        type: 'button', class: `pic-btn${draft[g.key] === v ? ' on' : ''}`, 'aria-pressed': String(draft[g.key] === v), onclick: () => set({ [g.key]: v }),
+      }, avatarPic({ [g.key]: v }, g.pic), h('span', {}, label))));
     } else {
       control = h('div', { class: 'chips' }, g.choices.map(([v, label]) => h('button', {
         type: 'button', class: `chip${draft[g.key] === v ? ' on' : ''}`, onclick: () => set({ [g.key]: v }),
@@ -1468,6 +1596,7 @@ function renderAvatarEditor() {
 async function saveAvatar() {
   state.profile = { ...state.profile, avatar: { ...ui.avatar.draft, v: 2 } };
   if (await saveState()) {
+    ui.avatar.history = [];
     $('#avatar-dialog').close();
     toast('小人更新好了');
     render();
@@ -1487,8 +1616,10 @@ function renderWeatherSection() {
   const root = $('#weather-section');
   const on = weather.weatherEnabled();
   const w = ui.weather;
-  const toggle = h('button', { type: 'button', class: `btn${on ? '' : ' primary'}` }, on ? '關閉真實天氣' : '開啟真實天氣');
-  toggle.addEventListener('click', async () => {
+  const toggle = $('#weather-toggle');
+  toggle.textContent = on ? '關閉真實天氣' : '開啟真實天氣';
+  toggle.classList.toggle('primary', !on);
+  toggle.onclick = async () => {
     toggle.disabled = true;
     try {
       if (on) { weather.disableWeather(); ui.weather = null; render(); }
@@ -1496,12 +1627,13 @@ function renderWeatherSection() {
     } catch (e) { toast(e.message); }
     toggle.disabled = false;
     renderWeatherSection();
-  });
+    renderSettingsMenu();
+  };
   const items = [
     h('p', { class: 'hint' }, on
       ? (w ? `目前：${w.icon} ${w.temp}° ${w.label}（每 30 分鐘更新）` : '正在取得天氣…')
       : '開啟後，場景會跟著你那裡的真實天氣下雨、起霧、轉陰，日出日落也會更準。'),
-    h('div', { class: 'row' }, toggle),
+    h('div', { class: 'row' }),
   ];
   if (on) {
     const relocate = h('button', { type: 'button', class: 'btn' }, '重新定位');
@@ -1517,19 +1649,38 @@ function renderWeatherSection() {
   root.replaceChildren(...items);
 }
 
-function openSettings() {
+function openSettings(page = 'home') {
   const form = $('#profile-form');
   form.name.value = state.profile.name;
   form.birthday.value = state.profile.birthday;
   form.birthday.max = todayStr();
   resetExportButton();
-  $('#settings-avatar').innerHTML = avatarSvg(myAvatar(), ageAt(state.profile.birthday, todayStr()), lifeStage(ageAt(state.profile.birthday, todayStr())).key);
+  renderSettingsMenu();
   renderWeatherSection();
   renderPeopleSection();
   $('#pref-achievements').checked = !!state.prefs.showAchievements;
   renderSettingsStatus();
   renderStorageStatus();
-  $('#settings-dialog').showModal();
+  settingsGo(page);
+  if (!$('#settings-dialog').open) $('#settings-dialog').showModal();
+}
+
+// 設定首頁：個人卡和每一項的摘要
+function renderSettingsMenu() {
+  const age = ageAt(state.profile.birthday, todayStr());
+  $('#settings-avatar').innerHTML = avatarSvg(myAvatar(), age, lifeStage(age).key);
+  $('#profile-card-name').textContent = state.profile.name;
+  $('#profile-card-sub').textContent = `${fmtDate(parseDate(state.profile.birthday))} · ${age} 歲`;
+  const pets = state.people.filter((p) => p.kind === 'pet').length;
+  $('#menu-people').textContent = state.people.length ? `${state.people.length - pets} 位 · ${pets} 隻` : '還沒有';
+  $('#menu-weather').textContent = weather.weatherEnabled() ? '已開啟' : '關閉';
+  const days = state.lastExportAt ? daysBetween(new Date(state.lastExportAt), new Date()) : null;
+  $('#menu-backup').textContent = days == null ? '還沒備份' : days < 1 ? '今天備份過' : `${days} 天前備份`;
+}
+
+function settingsGo(page) {
+  document.querySelectorAll('#settings-dialog .settings-page').forEach((el) => { el.hidden = el.dataset.page !== page; });
+  $('#settings-dialog').scrollTop = 0;
 }
 
 // ---------- 綁定事件 ----------
@@ -1547,7 +1698,16 @@ function bind() {
   $('#add-btn').addEventListener('click', () => openMoment());
   $('#moment-form').addEventListener('submit', saveMoment);
   $('#moment-form').date.addEventListener('input', updateAgeHint);
+  $('#moment-form').approx.addEventListener('change', renderOptBar);
   $('#moment-delete').addEventListener('click', deleteMoment);
+  $('#moment-menu-btn').addEventListener('click', () => {
+    const list = $('#moment-menu-list');
+    list.hidden = !list.hidden;
+    $('#moment-menu-btn').setAttribute('aria-expanded', String(!list.hidden));
+  });
+  document.querySelectorAll('#opt-bar .opt[data-sec]').forEach((btn) => btn.addEventListener('click', () => toggleSec(btn.dataset.sec)));
+  $('#star-toggle').addEventListener('click', () => { const box = $('#moment-form').starred; box.checked = !box.checked; renderOptBar(); });
+  $('#event-search').addEventListener('input', renderEventPicker);
   $('#photo-input').addEventListener('change', (e) => {
     const files = [...e.target.files];
     e.target.value = '';
@@ -1595,9 +1755,13 @@ function bind() {
     if (Math.abs(dx) > 50) { e.preventDefault(); stepLightbox(dx < 0 ? 1 : -1); }
   });
 
-  $('#open-settings').addEventListener('click', openSettings);
+  $('#open-settings').addEventListener('click', () => openSettings());
   $('#avatar-banner-btn').addEventListener('click', openAvatarEditor);
-  $('#event-open').addEventListener('click', () => openEventPicker('moment'));
+  document.querySelectorAll('#settings-dialog [data-go]').forEach((btn) => btn.addEventListener('click', () => settingsGo(btn.dataset.go)));
+  document.querySelectorAll('#settings-dialog [data-back]').forEach((btn) => btn.addEventListener('click', () => { renderSettingsMenu(); settingsGo('home'); }));
+  $('#profile-card').addEventListener('click', () => settingsGo('profile'));
+  $('#add-person-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
+  $('#add-pet-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
   $('#recall-event').addEventListener('click', () => openEventPicker('recall'));
   $('#pref-achievements').addEventListener('change', async (e) => {
     state.prefs = { ...state.prefs, showAchievements: e.target.checked };
@@ -1607,28 +1771,29 @@ function bind() {
   $('#id-avatar').addEventListener('click', openAvatarEditor);
   $('#settings-avatar-btn').addEventListener('click', () => { $('#settings-dialog').close(); openAvatarEditor(); });
   $('#avatar-save').addEventListener('click', saveAvatar);
-  $('#avatar-random').addEventListener('click', () => {
-    ui.avatar.draft = { ...randomAvatar(), v: 2 };
+  $('#avatar-random').addEventListener('click', () => setAvatar({ ...randomAvatar(), v: 2 }));
+  $('#avatar-undo').addEventListener('click', () => {
+    if (!ui.avatar.history.length) return;
+    ui.avatar.draft = ui.avatar.history.pop();
     renderAvatarEditor();
     drawAvatarPreview();
   });
-  $('#avatar-age').addEventListener('input', (e) => { ui.avatar.age = Number(e.target.value); renderAvatarEditor(); drawAvatarPreview(); });
   $('#avatar-dialog').addEventListener('close', () => { clearInterval(ui.avatar && ui.avatar.timer); });
   $('#profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (await saveProfile(e.target)) { toast('已儲存'); render(); }
+    if (await saveProfile(e.target)) { toast('已儲存'); render(); renderSettingsMenu(); settingsGo('home'); }
   });
   $('#export-btn').addEventListener('click', onExportClick);
-  $('#banner-export').addEventListener('click', () => { openSettings(); onExportClick(); });
-  $('#settings-dialog').addEventListener('close', resetExportButton);
+  $('#banner-export').addEventListener('click', () => { openSettings('backup'); onExportClick(); });
+  $('#settings-dialog').addEventListener('close', () => { resetExportButton(); settingsGo('home'); });
   $('#import-file').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (file) importData(file);
   });
   $('#reset-btn').addEventListener('click', async () => {
-    if (!confirm('確定要清除所有資料（包含照片）嗎？建議先匯出備份。')) return;
-    if (!confirm('真的要清除嗎？這個動作無法復原。')) return;
+    const typed = prompt('清除後所有紀錄和照片都會消失，無法復原。建議先匯出備份。\n\n確定要清除的話，請輸入「清除」：');
+    if ((typed || '').trim() !== '清除') { if (typed !== null) toast('沒有清除'); return; }
     await db.clearAll();
     try {
       localStorage.removeItem(LEGACY_KEY);
@@ -1642,11 +1807,28 @@ function bind() {
 
   $('#search').addEventListener('input', (e) => { ui.query = e.target.value.trim(); renderTimeline(); });
 
+  // 有沒存的內容時，關閉前先問一下（取消、點遮罩、返回鍵都一樣）
+  const guards = {
+    'moment-dialog': () => !momentDirty() || confirm('這筆還沒存，要放棄嗎？'),
+    'avatar-dialog': () => !(ui.avatar && ui.avatar.history.length) || confirm('小人的修改還沒存，要放棄嗎？'),
+  };
+  const tryClose = (dlg) => { const g = guards[dlg.id]; if (!g || g()) dlg.close(); };
   document.querySelectorAll('[data-close]').forEach((btn) =>
-    btn.addEventListener('click', () => btn.closest('dialog').close()));
+    btn.addEventListener('click', () => tryClose(btn.closest('dialog'))));
   // 點對話框外的遮罩也可以關閉
-  document.querySelectorAll('dialog.sheet').forEach((dlg) =>
-    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); }));
+  document.querySelectorAll('dialog.sheet').forEach((dlg) => {
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) tryClose(dlg); });
+    dlg.addEventListener('cancel', (e) => { const g = guards[dlg.id]; if (g && !g()) e.preventDefault(); });
+  });
+  // 鍵盤打開時，把底部固定列墊高到鍵盤上方
+  if (window.visualViewport) {
+    const onViewport = () => {
+      const kb = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+      document.documentElement.style.setProperty('--kb', `${Math.round(kb)}px`);
+    };
+    window.visualViewport.addEventListener('resize', onViewport);
+    window.visualViewport.addEventListener('scroll', onViewport);
+  }
 
   // 跨日或從背景回來時更新年齡與進度
   document.addEventListener('visibilitychange', () => {

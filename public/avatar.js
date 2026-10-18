@@ -271,13 +271,20 @@ export function drawAvatar(ctx, sprite, x, y, { flip = false, breathe = false } 
   }
 }
 
-// 靜態圖（身分卡、另一半的頭像）：裁掉上方空白，畫成正方形
-export function avatarSvg(avatar, age, stageKey) {
-  const { grid } = composeAvatar(avatar, age, stageKey);
+// 靜態圖（身分卡、另一半的頭像）：裁掉上方空白，畫成正方形；crop: 'head' 只看頭（捏人的選項小圖）
+export function avatarSvg(avatar, age, stageKey, { crop = 'body' } = {}) {
+  const { grid, waist } = composeAvatar(avatar, age, stageKey);
   let rects = '';
   let top = H;
   grid.forEach((r, y) => r.forEach((c, x) => { if (c) { rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; top = Math.min(top, y); } }));
-  const ch = H - top; // 內容的高度
-  const size = Math.max(W, ch) + 2;
-  return `<svg viewBox="${(W - size) / 2} ${top - (size - ch) / 2} ${size} ${size}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${rects}</svg>`;
+  let box;
+  if (crop === 'head') {
+    const hgt = waist - top + 1; // 到衣領為止
+    box = `${(W - Math.max(W, hgt)) / 2} ${top - 1} ${Math.max(W, hgt)} ${hgt + 1}`;
+  } else {
+    const ch = H - top; // 內容的高度
+    const size = Math.max(W, ch) + 2;
+    box = `${(W - size) / 2} ${top - (size - ch) / 2} ${size} ${size}`;
+  }
+  return `<svg viewBox="${box}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${rects}</svg>`;
 }
