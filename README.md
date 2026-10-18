@@ -17,17 +17,21 @@
 ## 本機試用
 
 ```bash
+cd public
 python3 -m http.server 8000
 # 打開 http://localhost:8000
 ```
 
 ## 部署（Cloudflare）
 
-連結這個 repo，不需要建置指令，發布目錄就是 repo 根目錄。每次推到 `main` 會自動重新發布。
+網站檔案都在 `public/`，不需要建置。每次推到 `main` 會自動重新發布。
+
+- **Workers 流程**（Cloudflare 現在的預設）：專案名稱填 `lifey`，Build command 留空，Deploy command 用預設的 `npx wrangler deploy`，會讀 `wrangler.jsonc`
+- **Pages 流程**：Framework preset 選 None，Build command 留空，Build output directory 填 `public`
 
 ## 更新程式後
 
-修改任何檔案後，把 `sw.js` 裡的 `CACHE` 版本號 +1（例如 `lifelog-v2`），手機開兩次就會換成新版。
+修改任何檔案後，把 `public/sw.js` 裡的 `CACHE` 版本號 +1（例如 `lifelog-v2`），手機開兩次就會換成新版。
 
 ## 規劃
 
