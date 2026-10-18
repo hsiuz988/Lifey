@@ -1,10 +1,13 @@
 import * as db from './db.js';
 import { createZip, readZip } from './zip.js';
 import { processPhoto, makeThumb } from './photos.js';
+import { STATS, statsFor, countsToward, ACHIEVEMENTS, unlockedNow } from './game.js';
 import {
-  STATS, statsFor, countsToward, ACHIEVEMENTS, unlockedNow,
-  SKINS, HAIRS, STYLES, DEFAULT_AVATAR, avatarSvg, avatarRects, sceneSvg, propsForTags,
-} from './game.js';
+  SKINS, HAIRS, OUTFIT_COLORS, GENDERS, HAIR_STYLES, EYES, BEARDS, OUTFITS,
+  normalizeAvatar, randomAvatar, composeAvatar, drawAvatar, avatarSvg,
+} from './avatar.js';
+import { Scene, propsForTags, festivalOf } from './scene.js';
+import * as weather from './weather.js';
 import * as cloudApi from './cloud.js';
 
 // ---------- 常數 ----------
@@ -40,6 +43,7 @@ const ui = {
 };
 const thumbUrls = new Map(); // photoId -> Promise<objectURL|null>
 const cloud = { me: null, status: 'off', message: '', lastSync: null, timer: null, running: false, again: false, invite: null, inviter: null, inviteLink: null, partnerTab: 'timeline' };
+let scene = null;
 
 function emptyState() {
   return { version: DATA_VERSION, profile: null, moments: [], years: {}, deleted: {}, lastExportAt: null, achievements: {} };
@@ -158,7 +162,7 @@ function setYearField(age, field, value) {
   state.years[key] = { ...entry, updatedAt: new Date().toISOString() };
 }
 
-const avatarOpts = (age) => ({ ...DEFAULT_AVATAR, ...(state.profile.avatar || {}), age, stageKey: lifeStage(age).key });
+const myAvatar = () => normalizeAvatar(state.profile.avatar);
 
 // ---------- DOM 工具 ----------
 const $ = (sel) => document.querySelector(sel);
@@ -256,7 +260,8 @@ function renderIdCard() {
   const stars = state.moments.filter((m) => m.starred).length;
   const photos = state.moments.reduce((n, m) => n + m.photoIds.length, 0);
   $('#id-year').textContent = new Date().getFullYear();
-  $('#id-avatar').innerHTML = avatarSvg(avatarOpts(ageAt(birthday, today)));
+  const myAge = ageAt(birthday, today);
+  $('#id-avatar').innerHTML = avatarSvg(myAvatar(), myAge, lifeStage(myAge).key);
   $('#id-name').textContent = name;
   $('#id-birth').textContent = fmtDate(parseDate(birthday));
   $('#id-count').textContent = `${state.moments.length} 則 · 照片 ${photos} 張`;
@@ -284,13 +289,16 @@ function renderNow() {
   const stage = lifeStage(age);
   const list = state.moments.filter((m) => ageAt(birthday, m.date) === age);
   const focus = yearFocus(age);
-  const now = new Date();
-
-  $('#scene').innerHTML = sceneSvg({
-    hour: now.getHours(), stageKey: stage.key, avatar: avatarRects(avatarOpts(age)),
-    props: propsForTags(new Set(list.flatMap((m) => m.tags))), seed: Number(today.replace(/-/g, '')),
-  });
-  $('#now-caption').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : `大約是${stage.label}`} · 今年記了 ${list.length} 則`;
+  if (scene) {
+    scene.update({
+      stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday,
+      props: propsForTags(new Set(list.flatMap((m) => m.tags))), weather: ui.weather, messages: sceneMessages,
+    });
+  }
+  const w = ui.weather;
+  $('#now-caption').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : `大約是${stage.label}`} · 今年記了 ${list.length} 則`
+    + (w ? ` · ${w.icon} ${w.temp}° ${w.label}` : '');
+  $('#avatar-banner').hidden = myAvatar().v === 2;
   renderStatBars($('#stat-bars'), statsFor(list), focus);
 
   $('#focus-chips').replaceChildren(...STATS.map((s) => h('button', {
@@ -307,6 +315,34 @@ function renderNow() {
       ? `今年已經記了 ${n} 則跟「${stat.label}」有關的事，繼續加油！`
       : `記下${how}，「${stat.label}」就會成長。`;
   }
+}
+
+// 點小人時冒出來的話：節日、天氣、時間、今年的重心
+function sceneMessages() {
+  const { birthday } = state.profile;
+  const now = new Date();
+  const hour = now.getHours();
+  const age = ageAt(birthday, todayStr());
+  const out = ['今天有什麼值得記住的嗎？', '要記一筆嗎？✏️', `你已經記了 ${state.moments.length} 則回憶了`];
+  const fest = {
+    birthday: '生日快樂！🎂 又長大一歲了', lny: '新年快樂！🧧', midautumn: '中秋節快樂 🥮', christmas: '聖誕快樂 🎄', newyear: '新年快樂！🎆',
+  }[festivalOf(now, birthday)];
+  if (fest) out.push(fest, fest, fest);
+  const w = ui.weather;
+  if (w) {
+    const say = {
+      rain: '下雨了，出門記得帶傘 ☔', heavyrain: '雨好大，待在室內也不錯', thunder: '打雷了，注意安全 ⚡', drizzle: '飄著毛毛雨～',
+      fog: '起霧了，慢慢來', snow: '下雪了！好冷 ❄️', clear: hour >= 6 && hour < 18 ? '天氣真好 ☀️' : '今晚天空很清楚 ✨',
+    }[w.kind];
+    if (say) out.push(say, say);
+    if (w.temp >= 32) out.push('好熱，記得多喝水 💧');
+    if (w.temp <= 14) out.push('有點冷，多穿一件 🧣');
+  }
+  if (hour >= 23 || hour < 5) out.push('這麼晚了，早點休息 🌙');
+  else if (hour < 10) out.push('早安！今天想做什麼？');
+  const stat = STATS.find((s) => s.key === yearFocus(age));
+  if (stat) out.push(`今年的重心是「${stat.label}」，一起加油！`);
+  return out;
 }
 
 function achievementContext() {
@@ -341,6 +377,7 @@ function checkAchievements() {
   renderAchievements();
   const first = ACHIEVEMENTS.find((a) => a.id === fresh[0]);
   toast(`🏅 解鎖成就：${first.icon} ${first.name}${fresh.length > 1 ? ` 等 ${fresh.length} 個` : ''}`, 3500);
+  if (scene) scene.celebrate({ star: true });
 }
 
 function renderAchievements() {
@@ -634,6 +671,7 @@ async function saveMoment(e) {
     $('#moment-dialog').close();
     toast(prev ? '已更新' : '記下來了');
     render();
+    if (!prev && scene) scene.celebrate({ star: fields.starred });
   } finally {
     saveBtn.disabled = false;
   }
@@ -1069,29 +1107,129 @@ async function renderStorageStatus() {
   $('#storage-status').textContent = text;
 }
 
-function renderAvatarEditor() {
-  const av = { ...DEFAULT_AVATAR, ...(state.profile.avatar || {}) };
+// ---------- 捏小人 ----------
+const AVATAR_TABS = [
+  ['body', '身體', [{ key: 'gender', label: '性別', choices: GENDERS, note: '只影響體型和學生制服，其他都能自由搭配' }, { key: 'skin', label: '膚色', colors: SKINS }]],
+  ['hair', '頭髮', [{ key: 'hairStyle', label: '髮型', choices: HAIR_STYLES }, { key: 'hair', label: '髮色', colors: HAIRS, note: '50 歲以後會慢慢變淡，65 歲變白髮' }]],
+  ['face', '臉', [{ key: 'eyes', label: '眼睛', choices: EYES }, { key: 'lashes', label: '睫毛', toggle: true }, { key: 'blush', label: '腮紅', toggle: true },
+    { key: 'freckles', label: '雀斑', toggle: true }, { key: 'beard', label: '鬍子', choices: BEARDS, note: '18 歲以後才會出現' }]],
+  ['outfit', '衣服', [{ key: 'outfit', label: '款式', choices: OUTFITS }, { key: 'outfitColor', label: '顏色', colors: OUTFIT_COLORS },
+    { key: 'uniform', label: '國小到高中穿制服', toggle: true }]],
+  ['acc', '配件', [{ key: 'glasses', label: '眼鏡', toggle: true }, { key: 'hat', label: '帽子', toggle: true },
+    { key: 'headphones', label: '耳機', toggle: true }, { key: 'hairclip', label: '髮夾', toggle: true }]],
+];
+
+function openAvatarEditor() {
   const age = ageAt(state.profile.birthday, todayStr());
-  $('#avatar-preview').innerHTML = avatarSvg(avatarOpts(age));
-  const update = async (patch) => {
-    state.profile.avatar = { ...av, ...patch };
-    state.profile.updatedAt = new Date().toISOString();
-    await saveState();
-    renderAvatarEditor();
-    render();
-  };
-  const swatches = (colors, key) => colors.map((c, i) => h('button', {
-    type: 'button', class: `swatch-btn${av[key] === i ? ' on' : ''}`, style: `--c:${c}`, 'aria-label': `${key} ${i + 1}`,
-    onclick: () => update({ [key]: i }),
-  }));
-  $('#opt-skin').replaceChildren(...swatches(SKINS, 'skin'));
-  $('#opt-hair').replaceChildren(...swatches(HAIRS, 'hair'));
-  $('#opt-style').replaceChildren(...STYLES.map(([v, label]) => h('button', {
-    type: 'button', class: `chip${av.style === v ? ' on' : ''}`, onclick: () => update({ style: v }),
+  ui.avatar = { draft: { ...myAvatar(), v: 2 }, tab: 'body', age };
+  const slider = $('#avatar-age');
+  slider.max = String(Math.max(90, age));
+  slider.value = String(age);
+  renderAvatarEditor();
+  $('#avatar-dialog').showModal();
+  drawAvatarPreview(); // 先畫一次，不要等計時器
+  clearInterval(ui.avatar.timer);
+  ui.avatar.timer = setInterval(drawAvatarPreview, 120);
+}
+
+function drawAvatarPreview() {
+  if (!ui.avatar) return;
+  const canvas = $('#avatar-canvas');
+  const ctx = canvas.getContext('2d');
+  const scale = 8;
+  if (canvas.width !== 22 * scale) { canvas.width = 22 * scale; canvas.height = 24 * scale; }
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.clearRect(0, 0, 22, 24);
+  ctx.fillStyle = '#2a3040'; ctx.fillRect(0, 22, 22, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(6, 22, 10, 1);
+  const t = performance.now();
+  const blink = t % 3600 < 160;
+  const { age } = ui.avatar;
+  const sprite = composeAvatar(ui.avatar.draft, age, lifeStage(age).key, { blink });
+  drawAvatar(ctx, sprite, 3, 2, { breathe: Math.floor(t / 800) % 2 === 1 });
+}
+
+function renderAvatarEditor() {
+  const { draft, tab, age } = ui.avatar;
+  const stage = lifeStage(age);
+  $('#avatar-age-label').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : stage.label}`;
+  $('#avatar-tabs').replaceChildren(...AVATAR_TABS.map(([key, label]) => h('button', {
+    type: 'button', class: `chip${tab === key ? ' on' : ''}`, onclick: () => { ui.avatar.tab = key; renderAvatarEditor(); },
   }, label)));
-  const glasses = $('#opt-glasses');
-  glasses.checked = !!av.glasses;
-  glasses.onchange = () => update({ glasses: glasses.checked });
+  const set = (patch) => { Object.assign(ui.avatar.draft, patch); renderAvatarEditor(); drawAvatarPreview(); };
+  const groups = AVATAR_TABS.find(([key]) => key === tab)[2];
+  $('#avatar-options').replaceChildren(...groups.map((g) => {
+    let control;
+    if (g.toggle) {
+      const box = h('input', { type: 'checkbox' });
+      box.checked = !!draft[g.key];
+      box.addEventListener('change', () => set({ [g.key]: box.checked }));
+      return h('label', { class: 'switch' }, box, h('span', {}, g.label));
+    }
+    if (g.colors) {
+      control = h('div', { class: 'swatches' }, g.colors.map((c, i) => h('button', {
+        type: 'button', class: `swatch-btn${draft[g.key] === i ? ' on' : ''}`, style: `--c:${c}`, 'aria-label': `${g.label} ${i + 1}`,
+        onclick: () => set({ [g.key]: i }),
+      })));
+    } else {
+      control = h('div', { class: 'chips' }, g.choices.map(([v, label]) => h('button', {
+        type: 'button', class: `chip${draft[g.key] === v ? ' on' : ''}`, onclick: () => set({ [g.key]: v }),
+      }, label)));
+    }
+    return h('div', { class: 'field' }, h('span', { class: 'field-label' }, g.label), control, g.note ? h('span', { class: 'hint' }, g.note) : null);
+  }));
+}
+
+async function saveAvatar() {
+  state.profile = { ...state.profile, avatar: { ...ui.avatar.draft, v: 2 }, updatedAt: new Date().toISOString() };
+  if (await saveState()) {
+    $('#avatar-dialog').close();
+    toast('小人更新好了');
+    render();
+    if (scene) scene.celebrate();
+  }
+}
+
+// ---------- 真實天氣 ----------
+async function loadWeather(force = false) {
+  if (!weather.weatherEnabled()) { ui.weather = null; return; }
+  const w = await weather.refreshWeather(force);
+  ui.weather = w;
+  if (state.profile) renderNow();
+}
+
+function renderWeatherSection() {
+  const root = $('#weather-section');
+  const on = weather.weatherEnabled();
+  const w = ui.weather;
+  const toggle = h('button', { type: 'button', class: `btn${on ? '' : ' primary'}` }, on ? '關閉真實天氣' : '開啟真實天氣');
+  toggle.addEventListener('click', async () => {
+    toggle.disabled = true;
+    try {
+      if (on) { weather.disableWeather(); ui.weather = null; render(); }
+      else { ui.weather = await weather.enableWeather(); toast(ui.weather ? `${ui.weather.icon} ${ui.weather.temp}° ${ui.weather.label}` : '暫時抓不到天氣，稍後會自動再試'); render(); }
+    } catch (e) { toast(e.message); }
+    toggle.disabled = false;
+    renderWeatherSection();
+  });
+  const items = [
+    h('p', { class: 'hint' }, on
+      ? (w ? `目前：${w.icon} ${w.temp}° ${w.label}（每 30 分鐘更新）` : '正在取得天氣…')
+      : '開啟後，場景會跟著你那裡的真實天氣下雨、起霧、轉陰，日出日落也會更準。'),
+    h('div', { class: 'row' }, toggle),
+  ];
+  if (on) {
+    const relocate = h('button', { type: 'button', class: 'btn' }, '重新定位');
+    relocate.addEventListener('click', async () => {
+      relocate.disabled = true;
+      try { ui.weather = await weather.enableWeather(); toast('已更新位置'); render(); } catch (e) { toast(e.message); }
+      relocate.disabled = false;
+      renderWeatherSection();
+    });
+    items[1].append(relocate);
+  }
+  items.push(h('p', { class: 'hint' }, '位置只在按下按鈕時取得一次，約略到 1 公里，只存在這支手機，用來向免費的 Open-Meteo 查天氣。'));
+  root.replaceChildren(...items);
 }
 
 function openSettings() {
@@ -1100,7 +1238,8 @@ function openSettings() {
   form.birthday.value = state.profile.birthday;
   form.birthday.max = todayStr();
   resetExportButton();
-  renderAvatarEditor();
+  $('#settings-avatar').innerHTML = avatarSvg(myAvatar(), ageAt(state.profile.birthday, todayStr()), lifeStage(ageAt(state.profile.birthday, todayStr())).key);
+  renderWeatherSection();
   renderCloudSection();
   renderSettingsStatus();
   renderStorageStatus();
@@ -1254,6 +1393,7 @@ async function renderCloudSection() {
       if (!confirm(`確定要和 ${partner.name} 解除連結嗎？之後彼此都看不到分享的紀錄。`)) return;
       await cloudApi.unlinkPartner();
       cloud.me = await cloudApi.fetchMe();
+      setCompanion(null);
       setCloudStatus(cloud.status, cloud.message);
       renderCloudSection();
     }));
@@ -1321,6 +1461,19 @@ async function handleInvite() {
 // ---------- 另一半的人生 ----------
 let partnerData = null;
 
+// 場景裡站在你旁邊的另一半
+function setCompanion(view) {
+  if (!scene) return;
+  if (!view || !view.profile || !view.profile.birthday) { scene.update({ companion: null }); return; }
+  const age = ageAt(view.profile.birthday, todayStr());
+  scene.update({ companion: { avatar: view.profile.avatar || null, age, stageKey: lifeStageFor(view.profile.birthday, age).key } });
+}
+
+async function loadCompanion() {
+  if (!cloud.me || !cloud.me.partner) { setCompanion(null); return; }
+  try { setCompanion((await cloudApi.partnerView()).view); } catch (e) { /* 離線：下次再試 */ }
+}
+
 async function openPartner() {
   if (!cloud.me || !cloud.me.partner) return;
   const dlg = $('#partner-dialog');
@@ -1350,7 +1503,8 @@ function renderPartner() {
   }
   const pAge = ageAt(view.profile.birthday, todayStr());
   const pStage = lifeStageFor(view.profile.birthday, pAge);
-  $('#partner-avatar').innerHTML = avatarSvg({ ...DEFAULT_AVATAR, ...(view.profile.avatar || {}), age: pAge, stageKey: pStage.key });
+  $('#partner-avatar').innerHTML = avatarSvg(normalizeAvatar(view.profile.avatar), pAge, pStage.key);
+  setCompanion(view);
   $('#partner-sub').textContent = `${pAge} 歲 · 分享了 ${view.moments.length} 則`;
 
   const pByAge = new Map();
@@ -1417,6 +1571,7 @@ function bind() {
       requestPersist();
       render();
       if (cloud.invite) openSettings(); // 被邀請的人：接著建立帳號
+      else openAvatarEditor(); // 第一次使用：接著捏自己的小人
     }
   });
 
@@ -1475,6 +1630,17 @@ function bind() {
   $('#sync-btn').addEventListener('click', openSettings);
   $('#partner-btn').addEventListener('click', openPartner);
   $('#setup-login').addEventListener('click', (e) => withBusy(e.target, async () => afterLogin(await cloudApi.login())));
+  $('#avatar-banner-btn').addEventListener('click', openAvatarEditor);
+  $('#id-avatar').addEventListener('click', openAvatarEditor);
+  $('#settings-avatar-btn').addEventListener('click', () => { $('#settings-dialog').close(); openAvatarEditor(); });
+  $('#avatar-save').addEventListener('click', saveAvatar);
+  $('#avatar-random').addEventListener('click', () => {
+    ui.avatar.draft = { ...randomAvatar(), v: 2 };
+    renderAvatarEditor();
+    drawAvatarPreview();
+  });
+  $('#avatar-age').addEventListener('input', (e) => { ui.avatar.age = Number(e.target.value); renderAvatarEditor(); drawAvatarPreview(); });
+  $('#avatar-dialog').addEventListener('close', () => { clearInterval(ui.avatar && ui.avatar.timer); });
   $('#profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (await saveProfile(e.target)) { toast('已儲存'); render(); }
@@ -1514,7 +1680,7 @@ function bind() {
 
   // 跨日或從背景回來時更新年齡與進度
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && state.profile) { render(); scheduleSync(300); }
+    if (!document.hidden && state.profile) { render(); loadWeather(); scheduleSync(300); }
   });
   window.addEventListener('online', () => scheduleSync(300));
 }
@@ -1527,15 +1693,20 @@ async function init() {
     document.body.prepend(h('p', { class: 'fatal' }, '無法開啟資料庫。請確認不是在無痕模式，或重新開啟 App。'));
     return;
   }
+  scene = new Scene($('#scene-canvas'), $('#scene-bubble'));
+  ui.weather = weather.weatherEnabled() ? weather.cachedWeather() : null;
   render();
+  scene.start();
   cleanupOrphanPhotos().catch(() => {});
+  loadWeather();
+  setInterval(() => { if (!document.hidden) loadWeather(); }, 10 * 60 * 1000);
   if (!cloudApi.passkeySupported()) $('#setup-login').hidden = true;
   try {
     cloud.me = await cloudApi.fetchMe();
   } catch (e) { /* 離線：照樣可以用，之後再同步 */ }
   setCloudStatus(cloud.me ? 'ok' : 'off', '');
   await handleInvite();
-  if (cloud.me) runSync();
+  if (cloud.me) { runSync(); loadCompanion(); }
 }
 
 init();
@@ -1545,6 +1716,15 @@ init();
 // 下拉時直接向伺服器檢查新版，有就裝好、立刻換上。
 const PTR_TRIGGER = 70; // 拉超過這個距離（px）放開才會更新
 const PTR_MAX = 110;
+
+// 開著 App 時，背景可能已經裝好新版（但畫面還是舊的）；記下來，下拉時直接重新載入
+let updatedSinceLoad = false;
+if ('serviceWorker' in navigator) {
+  const bootController = navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (bootController) updatedSinceLoad = true; // 第一次安裝時的接管不算更新
+  });
+}
 
 // 等新版生效；新版可能在 update() 還沒結束前就已經裝好生效，所以也比對生效中的版本有沒有換
 function waitForNewVersion(reg, oldActive, ms) {
@@ -1566,6 +1746,11 @@ async function refreshApp() {
   setPtr(PTR_TRIGGER, 'loading', '檢查新版本…');
   try {
     const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (updatedSinceLoad) {
+      setPtr(PTR_TRIGGER, 'loading', '更新完成，重新載入…');
+      location.reload();
+      return;
+    }
     if (reg) {
       const oldActive = reg.active;
       await reg.update();
