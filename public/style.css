@@ -365,3 +365,21 @@ dialog.recall[open] { display: flex; }
 .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
 .swatch-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--c); border: 2px solid transparent; cursor: pointer; padding: 0; }
 .swatch-btn.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
+
+/* ---------- 下拉重新整理 ---------- */
+.ptr {
+  position: fixed; top: env(safe-area-inset-top); left: 50%; z-index: 20;
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; margin-left: -80px; width: 160px; justify-content: center;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 4px 14px rgba(0, 0, 0, .4);
+  font-size: 13px; color: var(--muted); transform: translateY(-60px); opacity: 0; pointer-events: none;
+  transition: transform .2s, opacity .2s;
+}
+.ptr.show { opacity: 1; }
+body.ptr-pulling .ptr { transition: none; } /* 拉的時候跟著手指，不要延遲 */
+.ptr-icon { display: inline-block; font-size: 16px; transition: transform .2s; }
+.ptr.ready { color: var(--text); border-color: var(--accent); }
+.ptr.ready .ptr-icon { transform: rotate(180deg); }
+.ptr.loading { color: var(--text); }
+.ptr.loading .ptr-icon { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ptr.loading .ptr-icon { animation: none; } }
