@@ -322,3 +322,46 @@ dialog.recall[open] { display: flex; }
 .recall-nav { position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom)); background: var(--panel); padding: 12px 0 calc(4px + env(safe-area-inset-bottom)); margin-top: auto; }
 .small-switch { font-size: 13px; color: var(--muted); margin-top: -6px; }
 .btn:disabled { opacity: .4; cursor: default; }
+
+/* ---------- 今年的狀態 ---------- */
+.scene { margin: -16px -16px 12px; border-bottom: 1px solid var(--line); line-height: 0; overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; }
+.scene > svg { width: 100%; height: auto; display: block; }
+.stat-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.stat { display: grid; grid-template-columns: 80px 1fr 32px; align-items: center; gap: 10px; }
+.stat-label { font-size: 15px; }
+.stat.focus .stat-label { color: var(--yellow); font-weight: 600; }
+.stat-track { height: 10px; background: var(--line); }
+.stat-fill { display: block; height: 100%; transition: width .4s; }
+.stat-num { text-align: right; font-family: var(--mono); font-size: 14px; }
+.stat-bars.compact { gap: 6px; margin-top: 0; }
+.stat-bars.compact .stat { grid-template-columns: 70px 1fr 28px; }
+.stat-bars.compact .stat-label { font-size: 13px; color: var(--muted); }
+.stat-bars.compact .stat-track { height: 6px; }
+.focus-field { margin-top: 16px; }
+.stat-help { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.stat-help summary { cursor: pointer; }
+.stat-help ul { padding-left: 20px; margin: 6px 0; }
+.stat-help b { color: var(--text); font-weight: 500; }
+
+.avatar { overflow: hidden; background: #232731; }
+.avatar svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- 成就 ---------- */
+.achievements { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 12px; }
+.badge {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px;
+  padding: 10px 6px; border: 1px solid var(--line); border-radius: var(--radius); opacity: .45;
+}
+.badge.on { opacity: 1; border-color: rgba(230, 184, 79, .5); background: rgba(230, 184, 79, .06); }
+.badge-icon { font-size: 24px; line-height: 1.2; }
+.badge-name { font-size: 13px; font-weight: 600; }
+.badge-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+/* ---------- 頭像編輯 ---------- */
+.avatar-editor { display: flex; gap: 16px; align-items: flex-start; margin-top: 10px; }
+.avatar-preview { width: 96px; height: 96px; flex-shrink: 0; background: #232731; border: 1px solid var(--line); }
+.avatar-preview svg { width: 100%; height: 100%; display: block; }
+.avatar-options { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--c); border: 2px solid transparent; cursor: pointer; padding: 0; }
+.swatch-btn.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--accent); }

@@ -49,10 +49,36 @@
       <button id="banner-export" class="btn small">立即備份</button>
     </div>
 
+    <section class="panel now-panel">
+      <div id="scene" class="scene"></div>
+      <div class="panel-head">
+        <h2>今年的狀態</h2>
+        <span class="muted small-text">0–100</span>
+      </div>
+      <div id="now-caption" class="hint"></div>
+      <div id="stat-bars" class="stat-bars"></div>
+      <div class="field focus-field">
+        <span class="field-label">今年的重心</span>
+        <div id="focus-chips" class="chips"></div>
+        <div id="focus-note" class="hint"></div>
+      </div>
+      <details class="stat-help">
+        <summary>這些狀態代表什麼？</summary>
+        <p>狀態不用自己打分數，是從你這一歲記下的事累積出來的，每一歲重新計算：</p>
+        <ul>
+          <li><b>健康</b>：標籤「健康」「運動」</li>
+          <li><b>幸福</b>：這一歲的平均心情，加上「旅行」「興趣」「里程碑」</li>
+          <li><b>知識</b>：標籤「學習」「工作」</li>
+          <li><b>人際關係</b>：標籤「家人」「朋友」「愛情」</li>
+        </ul>
+        <p>☆ 值得記住的事算兩倍。記得越多越接近 100，但越往上越難漲。點人生地圖的格子，可以看過去每一歲的狀態。</p>
+      </details>
+    </section>
+
     <section class="panel idcard">
       <div class="idcard-head"><span>身分紀錄 · LIFE LOG</span><span id="id-year"></span></div>
       <div class="idcard-body">
-        <img class="avatar" src="icons/icon-192.png" alt="">
+        <div id="id-avatar" class="avatar"></div>
         <div>
           <div id="id-name" class="id-name"></div>
           <dl class="id-grid">
@@ -92,6 +118,14 @@
         <div id="filter-chips" class="chips"></div>
       </div>
       <div id="timeline"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>成就</h2>
+        <span id="ach-count" class="muted small-text"></span>
+      </div>
+      <div id="achievements" class="achievements"></div>
     </section>
 
     <button id="add-btn" class="fab" aria-label="記一筆">＋ 記一筆</button>
@@ -143,6 +177,7 @@
     <form id="year-form" method="dialog">
       <h3 id="year-heading"></h3>
       <div id="year-range" class="hint"></div>
+      <div id="year-stats" class="stat-bars compact"></div>
       <label>這一歲的一句話
         <input name="summary" maxlength="40" placeholder="例如：離家上大學的一年">
       </label>
@@ -218,6 +253,18 @@
       </label>
       <button class="btn primary" type="submit" value="save">儲存個人資料</button>
     </form>
+    <hr>
+    <h4>像素頭像</h4>
+    <div class="avatar-editor">
+      <div id="avatar-preview" class="avatar-preview"></div>
+      <div class="avatar-options">
+        <div class="field"><span class="field-label">膚色</span><div id="opt-skin" class="swatches"></div></div>
+        <div class="field"><span class="field-label">髮色</span><div id="opt-hair" class="swatches"></div></div>
+        <div class="field"><span class="field-label">髮型</span><div id="opt-style" class="chips"></div></div>
+        <label class="switch"><input id="opt-glasses" type="checkbox"><span>戴眼鏡</span></label>
+      </div>
+    </div>
+    <p class="hint">頭像會隨年紀從嬰兒、小孩長成大人。</p>
     <hr>
     <h4>備份</h4>
     <p class="hint">資料（含照片）只存在這支手機。換手機、清除網站資料前，記得先匯出備份。備份檔是 ZIP，可以存到 iCloud 雲碟。</p>

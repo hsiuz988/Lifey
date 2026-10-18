@@ -1,13 +1,17 @@
 import * as db from './db.js';
 import { createZip, readZip } from './zip.js';
 import { processPhoto, makeThumb } from './photos.js';
+import {
+  STATS, statsFor, countsToward, ACHIEVEMENTS, unlockedNow,
+  SKINS, HAIRS, STYLES, DEFAULT_AVATAR, avatarSvg, avatarRects, sceneSvg, propsForTags,
+} from './game.js';
 
 // ---------- 常數 ----------
 const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
 const DATA_VERSION = 2;
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄']; // 對應 1–5
 const MOOD_COLORS = ['#56608f', '#4f86a6', '#3fa89a', '#7fbf6a', '#e6b84f'];
-const DEFAULT_TAGS = ['家人', '朋友', '愛情', '工作', '學習', '健康', '旅行', '興趣', '里程碑'];
+const DEFAULT_TAGS = ['家人', '朋友', '愛情', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
 const BACKUP_REMIND_DAYS = 30;
 const MAP_YEARS = 90;
 const MAX_PHOTOS = 4;
@@ -36,13 +40,15 @@ const ui = {
 const thumbUrls = new Map(); // photoId -> Promise<objectURL|null>
 
 function emptyState() {
-  return { version: DATA_VERSION, profile: null, moments: [], years: {}, lastExportAt: null };
+  return { version: DATA_VERSION, profile: null, moments: [], years: {}, lastExportAt: null, achievements: {} };
 }
 
 // 升級舊版資料並補齊欄位
 function normalize(data) {
   const out = { ...emptyState(), ...data, version: DATA_VERSION };
   out.years = data.years && typeof data.years === 'object' ? data.years : {};
+  // 舊資料沒有成就紀錄：設成 null，第一次檢查時安靜補上，不會一次跳一堆通知
+  out.achievements = data.achievements && typeof data.achievements === 'object' ? data.achievements : null;
   out.moments = data.moments.map((m) => ({
     ...m,
     tags: Array.isArray(m.tags) ? m.tags : [],
@@ -134,6 +140,19 @@ function lifeStage(age) {
 }
 
 const yearTitle = (age) => (state.years[String(age)] || {}).title || '';
+const yearFocus = (age) => (state.years[String(age)] || {}).focus || null;
+
+function setYearField(age, field, value) {
+  const key = String(age);
+  const entry = { ...(state.years[key] || {}) };
+  if (value) entry[field] = value;
+  else delete entry[field];
+  delete entry.updatedAt;
+  if (Object.keys(entry).length) state.years[key] = { ...entry, updatedAt: new Date().toISOString() };
+  else delete state.years[key];
+}
+
+const avatarOpts = (age) => ({ ...DEFAULT_AVATAR, ...(state.profile.avatar || {}), age, stageKey: lifeStage(age).key });
 
 // ---------- DOM 工具 ----------
 const $ = (sel) => document.querySelector(sel);
@@ -197,11 +216,14 @@ function render() {
   $('#app').hidden = !hasProfile;
   if (!hasProfile) return;
   renderHeader();
+  renderNow();
   renderIdCard();
   renderBackupBanner();
   renderLifeMap();
   renderFilters();
   renderTimeline();
+  renderAchievements();
+  checkAchievements();
 }
 
 function renderHeader() {
@@ -224,6 +246,7 @@ function renderIdCard() {
   const stars = state.moments.filter((m) => m.starred).length;
   const photos = state.moments.reduce((n, m) => n + m.photoIds.length, 0);
   $('#id-year').textContent = new Date().getFullYear();
+  $('#id-avatar').innerHTML = avatarSvg(avatarOpts(ageAt(birthday, today)));
   $('#id-name').textContent = name;
   $('#id-birth').textContent = fmtDate(parseDate(birthday));
   $('#id-count').textContent = `${state.moments.length} 則 · 照片 ${photos} 張`;
@@ -235,6 +258,92 @@ function renderIdCard() {
   const line1 = `L<LOG${latin}`.padEnd(30, '<').slice(0, 30);
   const line2 = `${birthday.replace(/-/g, '').slice(2)}<${String(state.moments.length).padStart(4, '0')}<${String(stars).padStart(3, '0')}`.padEnd(30, '<');
   $('#id-mrz').textContent = `${line1}\n${line2}`;
+}
+
+function renderStatBars(el, stats, focus) {
+  el.replaceChildren(...STATS.map((s) => h('div', { class: `stat${focus === s.key ? ' focus' : ''}` },
+    h('span', { class: 'stat-label' }, s.label, focus === s.key ? ' ★' : ''),
+    h('span', { class: 'stat-track' }, h('span', { class: 'stat-fill', style: `width:${stats[s.key]}%;background:${s.color}` })),
+    h('span', { class: 'stat-num' }, stats[s.key]))));
+}
+
+function renderNow() {
+  const { birthday } = state.profile;
+  const today = todayStr();
+  const age = ageAt(birthday, today);
+  const stage = lifeStage(age);
+  const list = state.moments.filter((m) => ageAt(birthday, m.date) === age);
+  const focus = yearFocus(age);
+  const now = new Date();
+
+  $('#scene').innerHTML = sceneSvg({
+    hour: now.getHours(), stageKey: stage.key, avatar: avatarRects(avatarOpts(age)),
+    props: propsForTags(new Set(list.flatMap((m) => m.tags))), seed: Number(today.replace(/-/g, '')),
+  });
+  $('#now-caption').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : `大約是${stage.label}`} · 今年記了 ${list.length} 則`;
+  renderStatBars($('#stat-bars'), statsFor(list), focus);
+
+  $('#focus-chips').replaceChildren(...STATS.map((s) => h('button', {
+    type: 'button', class: `chip${focus === s.key ? ' on' : ''}`,
+    onclick: async () => { setYearField(age, 'focus', focus === s.key ? null : s.key); await saveState(); render(); },
+  }, s.label)));
+  const stat = STATS.find((s) => s.key === focus);
+  if (!stat) {
+    $('#focus-note').textContent = '選一項今年想多投入的方向，記下相關的事，它就會成長。';
+  } else {
+    const n = list.filter((m) => countsToward(stat, m)).length;
+    const how = stat.key === 'happy' ? '心情 🙂 以上的事' : `標籤是「${stat.tags.join('／')}」的事`;
+    $('#focus-note').textContent = n
+      ? `今年已經記了 ${n} 則跟「${stat.label}」有關的事，繼續加油！`
+      : `記下${how}，「${stat.label}」就會成長。`;
+  }
+}
+
+function achievementContext() {
+  const { birthday } = state.profile;
+  const byAge = groupByAge(state.moments);
+  const recorded = new Set(byAge.keys());
+  Object.keys(state.years).forEach((k) => { if (state.years[k].title) recorded.add(Number(k)); });
+  return {
+    moments: state.moments, byAge, recorded,
+    current: ageAt(birthday, todayStr()),
+    photos: state.moments.reduce((n, m) => n + m.photoIds.length, 0),
+    titles: Object.values(state.years).filter((y) => y.title).length,
+    focusSet: Object.values(state.years).some((y) => y.focus),
+    backedUp: !!state.lastExportAt,
+  };
+}
+
+// 成就一旦解鎖就保留（之後刪掉紀錄也不會收回），像遊戲一樣
+function checkAchievements() {
+  const now = new Date().toISOString();
+  const ids = unlockedNow(achievementContext());
+  if (!state.achievements) {
+    state.achievements = Object.fromEntries(ids.map((id) => [id, now]));
+    saveState();
+    renderAchievements();
+    return;
+  }
+  const fresh = ids.filter((id) => !state.achievements[id]);
+  if (!fresh.length) return;
+  fresh.forEach((id) => { state.achievements[id] = now; });
+  saveState();
+  renderAchievements();
+  const first = ACHIEVEMENTS.find((a) => a.id === fresh[0]);
+  toast(`🏅 解鎖成就：${first.icon} ${first.name}${fresh.length > 1 ? ` 等 ${fresh.length} 個` : ''}`, 3500);
+}
+
+function renderAchievements() {
+  const got = state.achievements || {};
+  const count = ACHIEVEMENTS.filter((a) => got[a.id]).length;
+  $('#ach-count').textContent = `已解鎖 ${count} / ${ACHIEVEMENTS.length}`;
+  $('#achievements').replaceChildren(...ACHIEVEMENTS.map((a) => {
+    const at = got[a.id];
+    return h('div', { class: `badge${at ? ' on' : ''}`, title: at ? `${fmtDate(new Date(at))} 解鎖` : '尚未解鎖' },
+      h('span', { class: 'badge-icon' }, at ? a.icon : '🔒'),
+      h('span', { class: 'badge-name' }, a.name),
+      h('span', { class: 'badge-desc' }, a.desc));
+  }));
 }
 
 function renderBackupBanner() {
@@ -281,7 +390,7 @@ function renderLifeMap() {
   $('#life-map').replaceChildren(...cells);
   const resume = state.recall && state.recall.age > 0 && state.recall.age <= current;
   $('#recall-btn').textContent = resume ? `🕰 繼續回憶（${state.recall.age} 歲）` : '🕰 回憶模式';
-  const recorded = new Set([...byAge.keys(), ...Object.keys(state.years).map(Number)]).size;
+  const recorded = new Set([...byAge.keys(), ...Object.keys(state.years).filter((k) => state.years[k].title).map(Number)]).size;
   $('#map-summary').textContent = `已記錄 ${recorded} / ${current + 1} 個年歲${happiest ? ` · 最幸福的一歲：${happiest.age} 歲` : ''}`;
 }
 
@@ -539,6 +648,7 @@ function openYear(age) {
   $('#year-range').textContent = `${fmtDate(start)} – ${fmtDate(end)} · ${list.length} 則${stars ? ` · ☆${stars}` : ''}`;
   $('#year-form').summary.value = yearTitle(age);
   $('#year-view').hidden = list.length === 0;
+  renderStatBars($('#year-stats'), statsFor(list), yearFocus(age));
   $('#year-dialog').showModal();
 }
 
@@ -546,8 +656,7 @@ async function saveYear(e) {
   e.preventDefault();
   const title = e.target.summary.value.trim();
   const key = String(ui.yearAge);
-  if (title) state.years[key] = { title, updatedAt: new Date().toISOString() };
-  else delete state.years[key];
+  setYearField(key, 'title', title);
   if (await saveState()) {
     $('#year-dialog').close();
     toast('已儲存');
@@ -652,10 +761,7 @@ async function commitRecall() {
   let added = false;
 
   const summary = $('#recall-summary').value.trim();
-  if (summary !== yearTitle(age)) {
-    if (summary) state.years[String(age)] = { title: summary, updatedAt: now };
-    else delete state.years[String(age)];
-  }
+  if (summary !== yearTitle(age)) setYearField(age, 'title', summary);
 
   const text = $('#recall-text').value.trim();
   if (text) {
@@ -760,7 +866,7 @@ async function saveProfile(form) {
   if (birthday > todayStr()) { toast('生日不能在未來'); return false; }
   const early = state.moments.filter((m) => m.date < birthday).length;
   if (early && !confirm(`有 ${early} 則紀錄早於這個生日，仍要儲存嗎？`)) return false;
-  state.profile = { name, birthday };
+  state.profile = { ...state.profile, name, birthday };
   return saveState();
 }
 
@@ -938,12 +1044,37 @@ async function renderStorageStatus() {
   $('#storage-status').textContent = text;
 }
 
+function renderAvatarEditor() {
+  const av = { ...DEFAULT_AVATAR, ...(state.profile.avatar || {}) };
+  const age = ageAt(state.profile.birthday, todayStr());
+  $('#avatar-preview').innerHTML = avatarSvg(avatarOpts(age));
+  const update = async (patch) => {
+    state.profile.avatar = { ...av, ...patch };
+    await saveState();
+    renderAvatarEditor();
+    render();
+  };
+  const swatches = (colors, key) => colors.map((c, i) => h('button', {
+    type: 'button', class: `swatch-btn${av[key] === i ? ' on' : ''}`, style: `--c:${c}`, 'aria-label': `${key} ${i + 1}`,
+    onclick: () => update({ [key]: i }),
+  }));
+  $('#opt-skin').replaceChildren(...swatches(SKINS, 'skin'));
+  $('#opt-hair').replaceChildren(...swatches(HAIRS, 'hair'));
+  $('#opt-style').replaceChildren(...STYLES.map(([v, label]) => h('button', {
+    type: 'button', class: `chip${av.style === v ? ' on' : ''}`, onclick: () => update({ style: v }),
+  }, label)));
+  const glasses = $('#opt-glasses');
+  glasses.checked = !!av.glasses;
+  glasses.onchange = () => update({ glasses: glasses.checked });
+}
+
 function openSettings() {
   const form = $('#profile-form');
   form.name.value = state.profile.name;
   form.birthday.value = state.profile.birthday;
   form.birthday.max = todayStr();
   resetExportButton();
+  renderAvatarEditor();
   renderSettingsStatus();
   renderStorageStatus();
   $('#settings-dialog').showModal();
