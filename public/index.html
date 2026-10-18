@@ -20,6 +20,7 @@
   <section id="setup" class="setup" hidden>
     <h1 class="brand">人生紀錄<span class="brand-dot">.</span></h1>
     <p class="muted">只屬於你的一生。每個值得記住的時刻，都會被放進那一歲。</p>
+    <p id="setup-invite" class="invite-note"></p>
     <form id="setup-form" class="panel form">
       <label>名字
         <input name="name" required maxlength="40" autocomplete="name">
@@ -28,8 +29,12 @@
         <input name="birthday" type="date" required>
       </label>
       <button class="btn primary" type="submit">開始記錄</button>
-      <p class="hint">資料只存在這支手機的瀏覽器裡，不會上傳到任何地方。</p>
+      <p class="hint">資料先存在這支手機裡；之後可以在設定裡用 Face ID 登入，同步到雲端。</p>
     </form>
+    <div class="setup-login">
+      <span class="muted">已經有帳號了？</span>
+      <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
+    </div>
   </section>
 
   <!-- 主畫面 -->
@@ -38,6 +43,8 @@
       <div class="top-row">
         <div class="brand small">人生紀錄<span class="brand-dot">.</span></div>
         <div class="age"><span id="age-num">0</span><span class="age-unit">歲</span></div>
+        <button id="partner-btn" class="icon-btn" type="button" aria-label="另一半" hidden>💞</button>
+        <button id="sync-btn" class="icon-btn sync-btn" type="button" aria-label="同步狀態" hidden>☁︎</button>
         <button id="open-settings" class="icon-btn" aria-label="設定">⚙</button>
       </div>
       <div id="age-sub" class="age-sub"></div>
@@ -163,6 +170,10 @@
         <input name="starred" type="checkbox">
         <span>☆ 值得記住的時刻</span>
       </label>
+      <label id="share-row" class="switch" hidden>
+        <input name="shared" type="checkbox">
+        <span id="share-label">💞 分享給另一半</span>
+      </label>
       <div class="sheet-actions">
         <button id="moment-delete" class="btn danger" type="button" hidden>刪除</button>
         <span class="spacer"></span>
@@ -233,6 +244,23 @@
     </div>
   </dialog>
 
+  <!-- 另一半 -->
+  <dialog id="partner-dialog" class="sheet partner">
+    <div class="partner-head">
+      <div id="partner-avatar" class="avatar"></div>
+      <div>
+        <h3 id="partner-name"></h3>
+        <div id="partner-sub" class="hint"></div>
+      </div>
+    </div>
+    <div id="partner-tabs" class="chips"></div>
+    <div id="partner-body"></div>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>關閉</button>
+    </div>
+  </dialog>
+
   <!-- 看大圖 -->
   <dialog id="lightbox" class="lightbox" aria-label="照片">
     <img id="lightbox-img" alt="">
@@ -253,6 +281,9 @@
       </label>
       <button class="btn primary" type="submit" value="save">儲存個人資料</button>
     </form>
+    <hr>
+    <h4>雲端同步</h4>
+    <div id="cloud-section" class="cloud-section"></div>
     <hr>
     <h4>像素頭像</h4>
     <div class="avatar-editor">

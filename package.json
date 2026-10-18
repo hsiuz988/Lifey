@@ -1,0 +1,15 @@
+{
+  "name": "lifey",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@simplewebauthn/server": "^13.1.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}

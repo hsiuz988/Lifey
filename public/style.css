@@ -62,11 +62,12 @@ main { max-width: 640px; margin: 0 auto; padding: 0 16px 120px; }
 
 /* ---------- 頂部年齡 ---------- */
 .top { padding-top: 16px; }
-.top-row { display: flex; align-items: center; gap: 12px; }
+.top-row { display: flex; align-items: center; gap: 8px; }
 .age { display: flex; align-items: baseline; margin-left: 4px; }
 #age-num { font-family: var(--serif); font-size: 40px; line-height: 1; }
 .age-unit { font-family: var(--serif); font-size: 18px; margin-left: 2px; }
-.top-row .icon-btn { margin-left: auto; }
+.top-row .age { margin-right: auto; }
+.top-row .icon-btn { flex-shrink: 0; }
 .age-sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
 .progress { height: 3px; background: var(--line); margin-top: 8px; }
 #age-progress { height: 100%; background: var(--accent); width: 0; transition: width .4s; }
@@ -365,3 +366,32 @@ dialog.recall[open] { display: flex; }
 .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
 .swatch-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--c); border: 2px solid transparent; cursor: pointer; padding: 0; }
 .swatch-btn.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
+
+/* ---------- 雲端與另一半 ---------- */
+.sync-btn.syncing { animation: spin 1.2s linear infinite; }
+.sync-btn.error { color: var(--yellow); border-color: rgba(224, 176, 80, .5); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sync-btn.syncing { animation: none; } }
+.cloud-section { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.cloud-section p { margin: 0; }
+.cloud-section input[readonly] { font-size: 13px; }
+.sub-h { margin: 8px 0 0; font-size: 15px; }
+.invite-note:empty { display: none; }
+.invite-note { padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); color: var(--text); font-size: 14px; }
+.setup-login { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px; }
+.shared-mark { font-size: 12px; }
+
+dialog.partner { display: none; flex-direction: column; gap: 12px; }
+dialog.partner[open] { display: flex; }
+.partner-head { display: flex; gap: 12px; align-items: center; }
+.partner-head .avatar { width: 56px; height: 56px; border: 1px solid var(--line); flex-shrink: 0; }
+.age-head.static { cursor: default; }
+.age-head.static::before { content: none; }
+.compare-row { border-top: 1px solid var(--line); padding: 10px 0; }
+.compare-row .age-label { font-size: 18px; }
+.compare-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+.compare-col { min-width: 0; font-size: 14px; }
+.compare-who { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.compare-title { font-family: var(--serif); margin-bottom: 4px; }
+.compare-list { margin: 0; padding-left: 16px; }
+.compare-list li { word-break: break-word; }

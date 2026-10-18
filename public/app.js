@@ -5,6 +5,7 @@ import {
   STATS, statsFor, countsToward, ACHIEVEMENTS, unlockedNow,
   SKINS, HAIRS, STYLES, DEFAULT_AVATAR, avatarSvg, avatarRects, sceneSvg, propsForTags,
 } from './game.js';
+import * as cloudApi from './cloud.js';
 
 // ---------- 常數 ----------
 const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
@@ -38,15 +39,17 @@ const ui = {
   lightbox: { ids: [], index: 0, url: null },
 };
 const thumbUrls = new Map(); // photoId -> Promise<objectURL|null>
+const cloud = { me: null, status: 'off', message: '', lastSync: null, timer: null, running: false, again: false, invite: null, inviter: null, inviteLink: null, partnerTab: 'timeline' };
 
 function emptyState() {
-  return { version: DATA_VERSION, profile: null, moments: [], years: {}, lastExportAt: null, achievements: {} };
+  return { version: DATA_VERSION, profile: null, moments: [], years: {}, deleted: {}, lastExportAt: null, achievements: {} };
 }
 
 // 升級舊版資料並補齊欄位
 function normalize(data) {
   const out = { ...emptyState(), ...data, version: DATA_VERSION };
   out.years = data.years && typeof data.years === 'object' ? data.years : {};
+  out.deleted = data.deleted && typeof data.deleted === 'object' ? data.deleted : {};
   // 舊資料沒有成就紀錄：設成 null，第一次檢查時安靜補上，不會一次跳一堆通知
   out.achievements = data.achievements && typeof data.achievements === 'object' ? data.achievements : null;
   out.moments = data.moments.map((m) => ({
@@ -54,6 +57,7 @@ function normalize(data) {
     tags: Array.isArray(m.tags) ? m.tags : [],
     photoIds: Array.isArray(m.photoIds) ? m.photoIds : [],
     approx: !!m.approx,
+    shared: !!m.shared,
     createdAt: m.createdAt || m.updatedAt || new Date().toISOString(),
   }));
   delete out.photos;
@@ -78,9 +82,10 @@ async function loadState() {
   return emptyState();
 }
 
-async function saveState() {
+async function saveState({ fromSync = false } = {}) {
   try {
     await db.putMeta('state', state);
+    if (!fromSync) scheduleSync();
     return true;
   } catch (e) {
     toast('儲存失敗：手機空間不足或瀏覽器封鎖，請先匯出備份');
@@ -125,8 +130,10 @@ function groupByAge(moments) {
   return groups;
 }
 
-function lifeStage(age) {
-  const [by, bm, bd] = state.profile.birthday.split('-').map(Number);
+const lifeStage = (age) => lifeStageFor(state.profile.birthday, age);
+
+function lifeStageFor(birthday, age) {
+  const [by, bm, bd] = birthday.split('-').map(Number);
   const mid = new Date(by + age, bm - 1 + 6, 1); // 用這一歲的年中判斷
   const schoolYear = mid.getMonth() >= 8 ? mid.getFullYear() : mid.getFullYear() - 1;
   const late = bm > 9 || (bm === 9 && bd > 1);
@@ -148,8 +155,7 @@ function setYearField(age, field, value) {
   if (value) entry[field] = value;
   else delete entry[field];
   delete entry.updatedAt;
-  if (Object.keys(entry).length) state.years[key] = { ...entry, updatedAt: new Date().toISOString() };
-  else delete state.years[key];
+  state.years[key] = { ...entry, updatedAt: new Date().toISOString() };
 }
 
 const avatarOpts = (age) => ({ ...DEFAULT_AVATAR, ...(state.profile.avatar || {}), age, stageKey: lifeStage(age).key });
@@ -190,7 +196,11 @@ function requestPersist() {
 // ---------- 照片網址快取 ----------
 function thumbUrl(id) {
   if (!thumbUrls.has(id)) {
-    thumbUrls.set(id, db.getPhoto(id).then((p) => (p ? URL.createObjectURL(p.thumb) : null)).catch(() => null));
+    // 找不到（例如還在從雲端下載）就不要快取，下次再試
+    thumbUrls.set(id, db.getPhoto(id).then((p) => {
+      if (!p) thumbUrls.delete(id);
+      return p ? URL.createObjectURL(p.thumb) : null;
+    }).catch(() => { thumbUrls.delete(id); return null; }));
   }
   return thumbUrls.get(id);
 }
@@ -348,7 +358,8 @@ function renderAchievements() {
 
 function renderBackupBanner() {
   const banner = $('#backup-banner');
-  if (state.moments.length === 0) { banner.hidden = true; return; }
+  // 登入雲端後，雲端就是備份
+  if (state.moments.length === 0 || cloud.me) { banner.hidden = true; return; }
   if (!state.lastExportAt) {
     $('#backup-text').textContent = '還沒備份過。資料只存在這支手機裡。';
     banner.hidden = false;
@@ -466,7 +477,7 @@ function renderMoment(m) {
     h('span', { class: 'moment-date' }, m.approx ? '這一年' : `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`),
     h('div', { class: 'moment-main' },
       h('button', { class: 'moment-body', type: 'button', onclick: () => openMoment(m.id) },
-        h('span', { class: 'moment-text' }, m.mood ? `${MOODS[m.mood - 1]} ` : '', m.text),
+        h('span', { class: 'moment-text' }, m.mood ? `${MOODS[m.mood - 1]} ` : '', m.text, m.shared ? h('span', { class: 'shared-mark', title: '已分享' }, ' 💞') : null),
         m.tags.length ? h('span', { class: 'moment-tags' }, m.tags.map((t) => h('span', { class: 'tag' }, t))) : null),
       m.photoIds.length ? h('div', { class: 'moment-photos' }, m.photoIds.map((id, i) =>
         h('button', { type: 'button', class: 'thumb', 'aria-label': '看大圖', onclick: () => openLightbox(m.photoIds, i) },
@@ -501,6 +512,9 @@ async function openMoment(id = null, preset = {}) {
   form.text.value = m ? m.text : '';
   form.starred.checked = m ? !!m.starred : false;
   form.approx.checked = m ? m.approx : !!preset.approx;
+  form.shared.checked = m ? m.shared : false;
+  $('#share-row').hidden = !(cloud.me && cloud.me.partner);
+  if (cloud.me && cloud.me.partner) $('#share-label').textContent = `💞 分享給 ${cloud.me.partner.name}`;
   $('#moment-delete').hidden = !m;
   renderMoodPicker();
   renderTagPicker();
@@ -606,7 +620,7 @@ async function saveMoment(e) {
       }
     }
 
-    const fields = { date, text, mood: ui.mood, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, approx: form.approx.checked, updatedAt: now };
+    const fields = { date, text, mood: ui.mood, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, approx: form.approx.checked, shared: form.shared.checked, updatedAt: now };
     if (prev) Object.assign(prev, fields);
     else state.moments.push({ id: momentId, createdAt: now, ...fields });
     if (!(await saveState())) return;
@@ -629,6 +643,7 @@ async function deleteMoment() {
   if (!ui.editingId || !confirm('確定要刪除這則紀錄嗎？照片也會一起刪除。')) return;
   const m = state.moments.find((x) => x.id === ui.editingId);
   state.moments = state.moments.filter((x) => x.id !== ui.editingId);
+  state.deleted[m.id] = new Date().toISOString(); // 讓其他裝置同步時也刪掉
   if (!(await saveState())) return;
   await db.deletePhotos(m.photoIds).catch(() => {});
   m.photoIds.forEach(forgetThumb);
@@ -829,9 +844,10 @@ async function recallMore() {
 }
 
 // ---------- 大圖 ----------
-function openLightbox(ids, index) {
+function openLightbox(ids, index, loader = null) {
   ui.lightbox.ids = ids;
   ui.lightbox.index = index;
+  ui.lightbox.loader = loader;
   $('#lightbox').showModal();
   showLightboxPhoto();
 }
@@ -843,6 +859,12 @@ async function showLightboxPhoto() {
   $('#lb-prev').hidden = index === 0;
   $('#lb-next').hidden = index === ids.length - 1;
   const img = $('#lightbox-img');
+  if (ui.lightbox.loader) {
+    img.src = (await ui.lightbox.loader(id, 'thumb')) || '';
+    const full = await ui.lightbox.loader(id, 'full');
+    if (full && ui.lightbox.ids[ui.lightbox.index] === id) img.src = full;
+    return;
+  }
   img.src = (await thumbUrl(id)) || ''; // 先放縮圖，大圖讀好再換
   const photo = await db.getPhoto(id).catch(() => null);
   if (!photo || ui.lightbox.ids[ui.lightbox.index] !== id || !$('#lightbox').open) return;
@@ -866,7 +888,7 @@ async function saveProfile(form) {
   if (birthday > todayStr()) { toast('生日不能在未來'); return false; }
   const early = state.moments.filter((m) => m.date < birthday).length;
   if (early && !confirm(`有 ${early} 則紀錄早於這個生日，仍要儲存嗎？`)) return false;
-  state.profile = { ...state.profile, name, birthday };
+  state.profile = { ...state.profile, name, birthday, updatedAt: new Date().toISOString() };
   return saveState();
 }
 
@@ -988,6 +1010,9 @@ async function importData(file) {
     if (replace) {
       const records = await loadImportPhotos(zip, incoming.moments, photoMeta, []);
       await db.putPhotos(records);
+      const now = new Date().toISOString();
+      const keep = new Set(incoming.moments.map((m) => m.id));
+      state.moments.filter((m) => !keep.has(m.id)).forEach((m) => { incoming.deleted[m.id] = now; });
       state = incoming;
     } else {
       const byId = new Map(state.moments.map((m) => [m.id, m]));
@@ -1050,6 +1075,7 @@ function renderAvatarEditor() {
   $('#avatar-preview').innerHTML = avatarSvg(avatarOpts(age));
   const update = async (patch) => {
     state.profile.avatar = { ...av, ...patch };
+    state.profile.updatedAt = new Date().toISOString();
     await saveState();
     renderAvatarEditor();
     render();
@@ -1075,9 +1101,311 @@ function openSettings() {
   form.birthday.max = todayStr();
   resetExportButton();
   renderAvatarEditor();
+  renderCloudSection();
   renderSettingsStatus();
   renderStorageStatus();
   $('#settings-dialog').showModal();
+}
+
+// ---------- 雲端同步 ----------
+function scheduleSync(delay = 2000) {
+  if (!cloud.me) return;
+  clearTimeout(cloud.timer);
+  cloud.timer = setTimeout(runSync, delay);
+}
+
+async function applyMerged(merged) {
+  state = normalize(cloudApi.mergeStates(state, merged)); // 同步途中本機若有新改動，一起保留
+  await saveState({ fromSync: true });
+  render();
+}
+
+async function runSync() {
+  if (!cloud.me || !state.profile) return;
+  if (cloud.running) { cloud.again = true; return; }
+  cloud.running = true;
+  setCloudStatus('syncing', '同步中…');
+  try {
+    const { downloaded } = await cloudApi.syncNow(() => state, applyMerged, (msg) => setCloudStatus('syncing', msg));
+    cloud.lastSync = new Date();
+    setCloudStatus('ok', '已同步');
+    if (downloaded) render();
+    cleanupOrphanPhotos().catch(() => {});
+  } catch (e) {
+    if (e.status === 401) {
+      cloud.me = null;
+      setCloudStatus('off', '登入已過期，請重新登入');
+    } else {
+      setCloudStatus('error', e.message);
+    }
+  } finally {
+    cloud.running = false;
+    if (cloud.again) { cloud.again = false; scheduleSync(500); }
+  }
+}
+
+function setCloudStatus(status, message) {
+  cloud.status = status;
+  cloud.message = message;
+  const btn = $('#sync-btn');
+  btn.hidden = !cloud.me;
+  btn.className = `icon-btn sync-btn ${status}`;
+  btn.textContent = status === 'syncing' ? '⟳' : status === 'error' ? '⚠︎' : '☁︎';
+  btn.title = message;
+  $('#partner-btn').hidden = !(cloud.me && cloud.me.partner);
+  if (state.profile) renderBackupBanner();
+  const line = $('#cloud-status');
+  if (line) line.textContent = cloudStatusText();
+}
+
+function cloudStatusText() {
+  if (cloud.status === 'syncing') return cloud.message;
+  if (cloud.status === 'error') return `⚠︎ ${cloud.message}（會自動重試）`;
+  if (cloud.lastSync) return `✓ 已同步 · ${pad(cloud.lastSync.getHours())}:${pad(cloud.lastSync.getMinutes())}`;
+  return cloud.message;
+}
+
+async function afterLogin(result) {
+  cloud.me = await cloudApi.fetchMe();
+  toast(`已登入：${result.user.name}`);
+  // 這支手機已經有別人的資料？先問要不要合併
+  const remote = (await cloudApi.fetchRemote()).doc;
+  const local = state.profile;
+  if (remote && remote.profile && local && state.moments.length
+    && (remote.profile.name !== local.name || remote.profile.birthday !== local.birthday)
+    && !confirm(`這支手機上的資料（${local.name}）和雲端帳號（${remote.profile.name}）不一樣。\n\n按「確定」：合併兩邊\n按「取消」：只用雲端的資料（手機上的會被取代，建議先匯出備份）`)) {
+    state = normalize(remote);
+    await saveState({ fromSync: true });
+  } else if (remote && !state.profile) {
+    state = normalize(remote);
+    await saveState({ fromSync: true });
+  }
+  setCloudStatus('ok', '');
+  render();
+  renderCloudSection();
+  await runSync();
+  renderCloudSection();
+}
+
+async function withBusy(btn, fn) {
+  btn.disabled = true;
+  try { await fn(); } catch (e) { toast(e.message); } finally { btn.disabled = false; }
+}
+
+function cloudLoginButton() {
+  const btn = h('button', { type: 'button', class: 'btn' }, '用 Face ID 登入');
+  btn.addEventListener('click', () => withBusy(btn, async () => afterLogin(await cloudApi.login())));
+  return btn;
+}
+
+async function renderCloudSection() {
+  const root = $('#cloud-section');
+  if (!root || !state.profile) return;
+  if (!cloudApi.passkeySupported()) {
+    root.replaceChildren(h('p', { class: 'hint' }, '這個瀏覽器不支援 Face ID／Passkey 登入。請用 iPhone 的 Safari 或主畫面 App 開啟。'));
+    return;
+  }
+
+  if (!cloud.me) {
+    const items = [h('p', { class: 'hint' }, '登入後，紀錄和照片會同步到雲端，換手機、手機壞掉都不怕遺失，也能和另一半互看。')];
+    let signup = { open: false, invite: false };
+    try { signup = await cloudApi.signupStatus(cloud.invite); } catch (e) { items.push(h('p', { class: 'hint' }, `⚠︎ ${e.message}`)); }
+    if (signup.open || signup.invite) {
+      if (signup.invite) items.push(h('p', { class: 'invite-note' }, `💞 ${signup.inviter} 邀請你一起使用。建立帳號後會自動連結。`));
+      const name = h('input', { value: state.profile.name, maxlength: '40', 'aria-label': '帳號名稱' });
+      const btn = h('button', { type: 'button', class: 'btn primary' }, '用 Face ID 建立帳號');
+      btn.addEventListener('click', () => withBusy(btn, async () => {
+        const result = await cloudApi.register(name.value.trim() || state.profile.name, cloud.invite);
+        cloud.invite = null;
+        await afterLogin(result);
+      }));
+      items.push(h('label', {}, '帳號名稱', name), h('div', { class: 'row' }, btn, cloudLoginButton()));
+    } else {
+      items.push(h('div', { class: 'row' }, cloudLoginButton()));
+      items.push(h('p', { class: 'hint' }, '要建立新帳號，需要已註冊的人傳邀請連結給你。'));
+    }
+    root.replaceChildren(...items);
+    return;
+  }
+
+  const syncBtn = h('button', { type: 'button', class: 'btn' }, '立即同步');
+  syncBtn.addEventListener('click', () => withBusy(syncBtn, runSync));
+  const logoutBtn = h('button', { type: 'button', class: 'btn' }, '登出');
+  logoutBtn.addEventListener('click', () => withBusy(logoutBtn, async () => {
+    if (!confirm('登出後這支手機不會再同步，但手機上的資料會留著。確定登出？')) return;
+    await cloudApi.logout();
+    cloud.me = null;
+    setCloudStatus('off', '');
+    renderCloudSection();
+  }));
+  const items = [
+    h('p', {}, `已登入：${cloud.me.user.name}`),
+    h('p', { id: 'cloud-status', class: 'hint' }, cloudStatusText()),
+    h('div', { class: 'row' }, syncBtn, logoutBtn),
+    h('h4', { class: 'sub-h' }, '另一半'),
+  ];
+
+  const partner = cloud.me.partner;
+  if (partner) {
+    const viewBtn = h('button', { type: 'button', class: 'btn primary' }, `看 ${partner.name} 的人生`);
+    viewBtn.addEventListener('click', () => { $('#settings-dialog').close(); openPartner(); });
+    const unlinkBtn = h('button', { type: 'button', class: 'btn danger' }, '解除連結');
+    unlinkBtn.addEventListener('click', () => withBusy(unlinkBtn, async () => {
+      if (!confirm(`確定要和 ${partner.name} 解除連結嗎？之後彼此都看不到分享的紀錄。`)) return;
+      await cloudApi.unlinkPartner();
+      cloud.me = await cloudApi.fetchMe();
+      setCloudStatus(cloud.status, cloud.message);
+      renderCloudSection();
+    }));
+    const titles = h('input', { type: 'checkbox' });
+    titles.checked = state.profile.shareTitles !== false;
+    titles.addEventListener('change', async () => {
+      state.profile = { ...state.profile, shareTitles: titles.checked, updatedAt: new Date().toISOString() };
+      await saveState();
+    });
+    const shared = state.moments.filter((m) => m.shared).length;
+    items.push(
+      h('p', {}, `💞 已連結：${partner.name}`),
+      h('p', { class: 'hint' }, `你分享了 ${shared} 則。在「記一筆」裡打開「💞 分享給 ${partner.name}」，對方才看得到；沒分享的都是私人的。`),
+      h('label', { class: 'switch' }, titles, h('span', {}, '讓對方看到我每一歲的一句話')),
+      h('div', { class: 'row' }, viewBtn, unlinkBtn),
+    );
+  } else if (cloud.inviteLink) {
+    const link = h('input', { value: cloud.inviteLink, readonly: true, 'aria-label': '邀請連結' });
+    const share = h('button', { type: 'button', class: 'btn primary' }, '傳送邀請連結');
+    share.addEventListener('click', async () => {
+      try {
+        if (navigator.share) await navigator.share({ title: '人生紀錄', text: `${cloud.me.user.name} 邀請你一起用人生紀錄`, url: cloud.inviteLink });
+        else { await navigator.clipboard.writeText(cloud.inviteLink); toast('已複製連結'); }
+      } catch (e) { /* 取消分享 */ }
+    });
+    items.push(h('p', { class: 'hint' }, '把這個連結傳給另一半（7 天內有效，只能用一次）。對方用 Face ID 建立帳號後就會自動連結。'), link, h('div', { class: 'row' }, share));
+  } else {
+    const invite = h('button', { type: 'button', class: 'btn' }, '邀請另一半');
+    invite.addEventListener('click', () => withBusy(invite, async () => {
+      const { code } = await cloudApi.createInvite();
+      cloud.inviteLink = `${location.origin}${location.pathname}#invite=${code}`;
+      renderCloudSection();
+    }));
+    items.push(h('p', { class: 'hint' }, '連結之後，你們可以互相看對方「分享」的紀錄，也能對照「我們在同一個年紀時」。'), h('div', { class: 'row' }, invite));
+  }
+  root.replaceChildren(...items);
+}
+
+// 收到邀請連結
+async function handleInvite() {
+  const m = location.hash.match(/^#invite=([A-Za-z0-9_-]+)$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  cloud.invite = m[1];
+  if (cloud.me) {
+    if (cloud.me.partner) { toast('你已經連結另一半了'); return; }
+    try {
+      const { inviter } = await cloudApi.signupStatus(cloud.invite);
+      if (!inviter || !confirm(`要和 ${inviter} 連結嗎？之後可以互看對方分享的紀錄。`)) return;
+      cloud.me = await cloudApi.acceptInvite(cloud.invite);
+      cloud.invite = null;
+      setCloudStatus(cloud.status, cloud.message);
+      toast(`💞 已和 ${inviter} 連結`);
+    } catch (e) { toast(e.message); }
+  } else if (state.profile) {
+    openSettings();
+  } else {
+    try {
+      const { inviter } = await cloudApi.signupStatus(cloud.invite);
+      if (inviter) $('#setup-invite').textContent = `💞 ${inviter} 邀請你一起使用。先填名字和生日，下一步用 Face ID 建立帳號。`;
+    } catch (e) { /* 離線 */ }
+  }
+}
+
+// ---------- 另一半的人生 ----------
+let partnerData = null;
+
+async function openPartner() {
+  if (!cloud.me || !cloud.me.partner) return;
+  const dlg = $('#partner-dialog');
+  $('#partner-name').textContent = cloud.me.partner.name;
+  $('#partner-body').replaceChildren(h('p', { class: 'hint' }, '讀取中…'));
+  if (!dlg.open) dlg.showModal();
+  try {
+    partnerData = await cloudApi.partnerView();
+  } catch (e) {
+    $('#partner-body').replaceChildren(h('p', { class: 'hint' }, `⚠︎ ${e.message}`));
+    return;
+  }
+  renderPartner();
+}
+
+function renderPartner() {
+  const { partner, view } = partnerData;
+  const name = partner.name;
+  $('#partner-tabs').replaceChildren(...[['timeline', `${name} 的紀錄`], ['compare', '同一個年紀']].map(([key, label]) =>
+    h('button', { type: 'button', class: `chip${cloud.partnerTab === key ? ' on' : ''}`, onclick: () => { cloud.partnerTab = key; renderPartner(); } }, label)));
+  const body = $('#partner-body');
+  if (!view || !view.profile || !view.profile.birthday) {
+    $('#partner-sub').textContent = '';
+    $('#partner-avatar').innerHTML = '';
+    body.replaceChildren(h('p', { class: 'hint' }, `${name} 還沒有同步資料。`));
+    return;
+  }
+  const pAge = ageAt(view.profile.birthday, todayStr());
+  const pStage = lifeStageFor(view.profile.birthday, pAge);
+  $('#partner-avatar').innerHTML = avatarSvg({ ...DEFAULT_AVATAR, ...(view.profile.avatar || {}), age: pAge, stageKey: pStage.key });
+  $('#partner-sub').textContent = `${pAge} 歲 · 分享了 ${view.moments.length} 則`;
+
+  const pByAge = new Map();
+  for (const m of view.moments) {
+    const a = ageAt(view.profile.birthday, m.date);
+    if (!pByAge.has(a)) pByAge.set(a, []);
+    pByAge.get(a).push(m);
+  }
+  const pTitle = (a) => (view.years[String(a)] || {}).title || '';
+  const photoLoader = (id, kind) => cloudApi.partnerPhotoUrl(id, kind);
+
+  const momentEl = (m, birthday) => {
+    const d = parseDate(m.date);
+    return h('li', { class: `moment${m.starred ? ' starred' : ''}` },
+      h('span', { class: 'moment-date' }, m.approx ? '這一年' : `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`),
+      h('div', { class: 'moment-main' },
+        h('span', { class: 'moment-text' }, m.mood ? `${MOODS[m.mood - 1]} ` : '', m.text),
+        (m.tags || []).length ? h('span', { class: 'moment-tags' }, m.tags.map((t) => h('span', { class: 'tag' }, t))) : null,
+        (m.photoIds || []).length ? h('div', { class: 'moment-photos' }, m.photoIds.map((id, i) => {
+          const img = h('img', { alt: '' });
+          photoLoader(id, 'thumb').then((url) => { if (url) img.src = url; });
+          return h('button', { type: 'button', class: 'thumb', onclick: () => openLightbox(m.photoIds, i, photoLoader) }, img);
+        })) : null));
+  };
+
+  if (cloud.partnerTab === 'timeline') {
+    const ages = [...new Set([...pByAge.keys(), ...Object.keys(view.years).map(Number)])].sort((a, b) => b - a);
+    if (!ages.length) { body.replaceChildren(h('p', { class: 'hint' }, `${name} 還沒有分享任何紀錄。`)); return; }
+    body.replaceChildren(...ages.map((a) => h('section', { class: 'age-group' },
+      h('div', { class: 'age-head static' }, h('span', { class: 'age-label' }, `${a} 歲`)),
+      pTitle(a) ? h('div', { class: 'year-title-btn' }, `「${pTitle(a)}」`) : null,
+      h('ul', { class: 'moments' }, (pByAge.get(a) || []).sort((x, y) => y.date.localeCompare(x.date)).map((m) => momentEl(m))))));
+    return;
+  }
+
+  // 同一個年紀：左邊是我，右邊是對方
+  const myByAge = groupByAge(state.moments);
+  const maxAge = Math.max(ageAt(state.profile.birthday, todayStr()), pAge);
+  const rows = [];
+  for (let a = 0; a <= maxAge; a++) {
+    const mine = myByAge.get(a) || [];
+    const theirs = pByAge.get(a) || [];
+    if (!mine.length && !theirs.length && !yearTitle(a) && !pTitle(a)) continue;
+    const col = (title, list, who, notYet) => h('div', { class: 'compare-col' },
+      h('div', { class: 'compare-who' }, who),
+      title ? h('div', { class: 'compare-title' }, `「${title}」`) : null,
+      list.length ? h('ul', { class: 'compare-list' }, list.map((m) => h('li', {}, m.starred ? '★ ' : '', m.text)))
+        : (title ? null : h('div', { class: 'muted' }, notYet ? '還沒到這個年紀' : '—')));
+    rows.push(h('section', { class: 'compare-row' },
+      h('div', { class: 'age-label' }, `${a} 歲`),
+      h('div', { class: 'compare-cols' },
+        col(yearTitle(a), mine, '我', a > ageAt(state.profile.birthday, todayStr())),
+        col(pTitle(a), theirs, name, a > pAge))));
+  }
+  body.replaceChildren(...(rows.length ? rows : [h('p', { class: 'hint' }, '還沒有可以對照的年紀。')]));
 }
 
 // ---------- 綁定事件 ----------
@@ -1085,7 +1413,11 @@ function bind() {
   $('#setup-form').birthday.max = todayStr();
   $('#setup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (await saveProfile(e.target)) { requestPersist(); render(); }
+    if (await saveProfile(e.target)) {
+      requestPersist();
+      render();
+      if (cloud.invite) openSettings(); // 被邀請的人：接著建立帳號
+    }
   });
 
   $('#add-btn').addEventListener('click', () => openMoment());
@@ -1140,6 +1472,9 @@ function bind() {
   });
 
   $('#open-settings').addEventListener('click', openSettings);
+  $('#sync-btn').addEventListener('click', openSettings);
+  $('#partner-btn').addEventListener('click', openPartner);
+  $('#setup-login').addEventListener('click', (e) => withBusy(e.target, async () => afterLogin(await cloudApi.login())));
   $('#profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (await saveProfile(e.target)) { toast('已儲存'); render(); }
@@ -1153,8 +1488,11 @@ function bind() {
     if (file) importData(file);
   });
   $('#reset-btn').addEventListener('click', async () => {
-    if (!confirm('確定要清除所有資料（包含照片）嗎？建議先匯出備份。')) return;
+    if (!confirm(`確定要清除這支手機上的所有資料（包含照片）嗎？${cloud.me ? '雲端的資料不受影響，會一併登出。' : '建議先匯出備份。'}`)) return;
     if (!confirm('真的要清除嗎？這個動作無法復原。')) return;
+    if (cloud.me) await cloudApi.logout().catch(() => {});
+    cloud.me = null;
+    setCloudStatus('off', '');
     await db.clearAll();
     try {
       localStorage.removeItem(LEGACY_KEY);
@@ -1175,7 +1513,10 @@ function bind() {
     dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); }));
 
   // 跨日或從背景回來時更新年齡與進度
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && state.profile) render(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && state.profile) { render(); scheduleSync(300); }
+  });
+  window.addEventListener('online', () => scheduleSync(300));
 }
 
 async function init() {
@@ -1188,6 +1529,13 @@ async function init() {
   }
   render();
   cleanupOrphanPhotos().catch(() => {});
+  if (!cloudApi.passkeySupported()) $('#setup-login').hidden = true;
+  try {
+    cloud.me = await cloudApi.fetchMe();
+  } catch (e) { /* 離線：照樣可以用，之後再同步 */ }
+  setCloudStatus(cloud.me ? 'ok' : 'off', '');
+  await handleInvite();
+  if (cloud.me) runSync();
 }
 
 init();
