@@ -556,3 +556,23 @@ dialog.person-dialog > div { display: flex; flex-direction: column; gap: 12px; }
 .person-row:last-child { border-bottom: 0; }
 .person-row .person-avatar { width: 44px; height: 44px; }
 dialog.person-dialog > div { gap: 14px; }
+
+/* ---------- 人生紀錄：一次看一歲，自己的紀錄和那一年的世界照時間穿插 ---------- */
+.cell.selected { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--text); z-index: 1; }
+.year-head { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.year-head-main { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; justify-content: center; text-align: center; }
+.year-head-main .age-count { margin-left: 0; }
+.icon-btn.year-nav { width: 40px; height: 40px; font-size: 22px; line-height: 1; flex-shrink: 0; }
+.icon-btn.year-nav:disabled { opacity: .3; cursor: default; }
+#timeline .year-title-btn { padding: 6px 0 2px; margin: 0 auto; text-align: center; }
+.world-modes { margin: 10px 0 2px; }
+.world-modes .chip { padding: 3px 12px; font-size: 13px; }
+.world-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--muted); }
+.world-item:last-child { border-bottom: 0; }
+.world-item .moment-main { display: flex; flex-direction: column; gap: 1px; }
+.world-meta { font-size: 11px; letter-spacing: .02em; }
+.world-title { font-size: 13px; font-weight: 600; color: var(--muted); }
+.world-text { font-size: 12px; line-height: 1.5; opacity: .8; }
+.world-item.sad .world-title { font-weight: 500; }
+.remember-btn { flex-shrink: 0; align-self: center; font-size: 12px; padding: 2px 8px; background: transparent; color: var(--muted); border-style: dashed; }
+.year-add { margin-top: 12px; justify-content: center; }

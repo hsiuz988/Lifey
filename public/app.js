@@ -9,6 +9,7 @@ import {
 import { Scene, propsForTags, festivalOf } from './scene.js';
 import * as weather from './weather.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
+import * as world from './world.js';
 import { PET_TYPES, PET_ICONS, PET_COLORS, petSvg, petSwatchStyle } from './pets.js';
 
 // ---------- 常數 ----------
@@ -41,7 +42,7 @@ const ui = {
   editingId: null, mood: null, tags: new Set(), photos: [], busy: false,
   yearAge: null, preparedExport: null, recall: { age: 0, q: 0 }, recallDone: false,
   lightbox: { ids: [], index: 0, url: null },
-  people: new Set(), event: null, eventCat: 'school', eventFor: 'moment', person: null, openSecs: null, momentSnapshot: null,
+  people: new Set(), event: null, eventCat: 'school', eventFor: 'moment', person: null, openSecs: null, momentSnapshot: null, selAge: null,
 };
 const thumbUrls = new Map(); // photoId -> Promise<objectURL|null>
 let scene = null;
@@ -476,7 +477,10 @@ function renderLifeMap() {
       cells.push(h('span', { class: cls, 'aria-hidden': 'true' }, age));
     } else {
       const label = `${age} 歲${big ? ` ${big.label}` : ''}${title ? `：${title}` : ''} · ${list.length} 則${stars ? ` · ☆${stars}` : ''}`;
-      cells.push(h('button', { type: 'button', class: `${cls}${big ? ' has-event' : ''}`, style, title: label, 'aria-label': label, onclick: () => openYear(age) },
+      cells.push(h('button', {
+        type: 'button', class: `${cls}${big ? ' has-event' : ''}${age === selectedAge() && ui.filter === 'all' && !ui.query ? ' selected' : ''}`,
+        style, title: label, 'aria-label': label, 'aria-pressed': String(age === selectedAge()), onclick: () => selectAge(age, true),
+      },
         big ? h('span', { class: 'cell-event' }, big.icon) : age));
     }
   }
@@ -518,42 +522,115 @@ function matchesFilter(m) {
   return true;
 }
 
+// 現在選中的是哪一歲（預設今年）
+function selectedAge() {
+  const current = ageAt(state.profile.birthday, todayStr());
+  return ui.selAge == null ? current : Math.max(0, Math.min(current, ui.selAge));
+}
+
+function selectAge(age, scroll = false) {
+  ui.selAge = age;
+  ui.filter = 'all';
+  ui.query = '';
+  $('#search').value = '';
+  renderLifeMap();
+  renderFilters();
+  renderTimeline();
+  if (scroll) document.getElementById('timeline-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderTimeline() {
   const { birthday } = state.profile;
   const root = $('#timeline');
-  const currentAge = ageAt(birthday, todayStr());
+  // 有篩選或搜尋時，跨所有年份列出結果（最新的在前）
+  if (ui.filter !== 'all' || ui.query) { renderSearchResults(root); return; }
 
-  if (state.moments.length === 0) {
-    root.replaceChildren(h('div', { class: 'empty' },
-      h('p', {}, `你現在 ${currentAge} 歲。`),
-      h('p', {}, '按右下角「＋ 記一筆」，寫下第一個值得記住的時刻。'),
-      h('p', { class: 'muted' }, '也可以按「🕰 回憶模式」，從 0 歲開始補上以前的回憶。')));
-    return;
-  }
+  const age = selectedAge();
+  const current = ageAt(birthday, todayStr());
+  const [start, end] = ageRange(birthday, age);
+  const last = age === current ? parseDate(todayStr()) : end;
+  const mode = state.prefs.worldMode || 'all';
+  const showSad = state.prefs.worldSad !== false;
+  const mine = state.moments.filter((m) => ageAt(birthday, m.date) === age);
+  let events = mode === 'mine' ? [] : world.eventsBetween(start, last, () => { if (selectedAge() === age) renderTimeline(); });
+  const waiting = events === null;
+  events = (events || []).filter((e) => (mode === 'all' || e.region === mode) && (showSad || !e.sad));
 
+  // 只知道年份的時事排在這一歲最前面；同一天時，自己的紀錄排在時事後面
+  const rows = [
+    ...mine.map((m) => ({ t: parseDate(m.date).getTime() + 1, el: () => renderMoment(m) })),
+    ...events.map((e) => ({ t: e.m ? world.eventDate(e).getTime() : start.getTime() - 1, el: () => renderWorldEvent(e, age) })),
+  ].sort((a, b) => a.t - b.t);
+
+  const title = yearTitle(age);
+  const stars = mine.filter((m) => m.starred).length;
+  const nav = (delta, label, text) => h('button', {
+    type: 'button', class: 'icon-btn year-nav', 'aria-label': label, disabled: age + delta < 0 || age + delta > current,
+    onclick: () => selectAge(age + delta),
+  }, text);
+  const modes = [['all', '全部'], ['mine', '只看我的'], ['tw', '台灣'], ['world', '全球']];
+  root.replaceChildren(
+    h('div', { class: 'year-head' },
+      nav(-1, '上一歲', '‹'),
+      h('div', { class: 'year-head-main' },
+        h('span', { class: 'age-label' }, `${age} 歲`),
+        h('span', { class: 'age-range' }, `${fmtDate(start)} – ${fmtDate(end)}`),
+        h('span', { class: 'age-count' }, `${mine.length} 則${stars ? ` · ☆${stars}` : ''}`)),
+      nav(1, '下一歲', '›')),
+    h('button', { class: `year-title-btn${title ? '' : ' empty'}`, type: 'button', onclick: () => openYear(age) },
+      title ? `「${title}」` : '＋ 這一歲的一句話'),
+    h('div', { class: 'chips world-modes' }, modes.map(([v, label]) => h('button', {
+      type: 'button', class: `chip${mode === v ? ' on' : ''}`,
+      onclick: async () => { state.prefs = { ...state.prefs, worldMode: v }; renderTimeline(); await saveState(); },
+    }, label))),
+    rows.length ? h('ul', { class: 'moments' }, rows.map((r) => r.el()))
+      : h('div', { class: 'empty' }, h('p', { class: 'muted' }, waiting ? '載入中…' : '這一歲還沒有紀錄。')),
+    h('div', { class: 'row year-add' }, h('button', {
+      type: 'button', class: 'btn', onclick: () => openMoment(null, age === current ? {} : { date: toDateStr(start), approx: true }),
+    }, `＋ 在 ${age} 歲記一筆`)));
+  hydrateThumbs(root);
+}
+
+// 那一年的世界：字小一點、淡一點，旁邊可以「我記得」
+function renderWorldEvent(e, age) {
+  return h('li', { class: `world-item${e.sad ? ' sad' : ''}` },
+    h('span', { class: 'moment-date' }, e.m ? `${String(e.m).padStart(2, '0')} 月` : '這年'),
+    h('div', { class: 'moment-main' },
+      h('span', { class: 'world-meta' }, `${world.CATS[e.cat] || '🌏'} ${world.REGIONS[e.region] || ''} · ${world.eventDateLabel(e)}`),
+      h('b', { class: 'world-title' }, e.title),
+      e.text ? h('span', { class: 'world-text' }, e.text) : null),
+    h('button', { type: 'button', class: 'btn small remember-btn', onclick: () => rememberWorldEvent(e, age) }, '✏️ 我記得'));
+}
+
+// 「我記得」：開一則新的紀錄，日期帶到那件事，開頭寫好那件事
+function rememberWorldEvent(e, age) {
+  const { birthday } = state.profile;
+  const [start, end] = ageRange(birthday, age);
+  const today = parseDate(todayStr());
+  let d = e.m ? new Date(e.y, e.m - 1, e.d || 1) : new Date(e.y, 6, 1);
+  if (d < start) d = start;
+  if (d > end) d = end;
+  if (d > today) d = today;
+  openMoment(null, { date: toDateStr(d), approx: !e.d, text: `${e.title}那時候，` });
+}
+
+function renderSearchResults(root) {
+  const { birthday } = state.profile;
   const items = state.moments.filter(matchesFilter)
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  const back = h('button', { type: 'button', class: 'link-btn', onclick: () => selectAge(selectedAge()) }, `‹ 回到 ${selectedAge()} 歲`);
   if (items.length === 0) {
-    root.replaceChildren(h('div', { class: 'empty' }, h('p', { class: 'muted' }, '沒有符合條件的紀錄。')));
+    root.replaceChildren(back, h('div', { class: 'empty' }, h('p', { class: 'muted' }, '沒有符合條件的紀錄。')));
     return;
   }
-
-  root.replaceChildren(...[...groupByAge(items)].map(([age, list]) => {
+  root.replaceChildren(back, ...[...groupByAge(items)].map(([age, list]) => {
     const [start, end] = ageRange(birthday, age);
-    const stars = list.filter((m) => m.starred).length;
-    const collapsed = ui.collapsed.has(age);
-    const title = yearTitle(age);
-    return h('section', { class: `age-group${collapsed ? ' collapsed' : ''}`, id: `age-${age}` },
-      h('button', {
-        class: 'age-head', type: 'button', 'aria-expanded': String(!collapsed),
-        onclick: () => { collapsed ? ui.collapsed.delete(age) : ui.collapsed.add(age); renderTimeline(); },
-      },
-      h('span', { class: 'age-label' }, `${age} 歲`),
-      h('span', { class: 'age-range' }, `${fmtDate(start)} – ${fmtDate(end)}`),
-      h('span', { class: 'age-count' }, `${list.length} 則${stars ? ` · ☆${stars}` : ''}`)),
-      h('button', { class: `year-title-btn${title ? '' : ' empty'}`, type: 'button', onclick: () => openYear(age) },
-        title ? `「${title}」` : '＋ 這一歲的一句話'),
-      collapsed ? null : h('ul', { class: 'moments' }, list.map(renderMoment)));
+    return h('section', { class: 'age-group', id: `age-${age}` },
+      h('button', { class: 'age-head', type: 'button', onclick: () => selectAge(age) },
+        h('span', { class: 'age-label' }, `${age} 歲`),
+        h('span', { class: 'age-range' }, `${fmtDate(start)} – ${fmtDate(end)}`),
+        h('span', { class: 'age-count' }, `${list.length} 則 ›`)),
+      h('ul', { class: 'moments' }, list.map(renderMoment)));
   }));
   hydrateThumbs(root);
 }
@@ -601,7 +678,7 @@ async function openMoment(id = null, preset = {}) {
   form.date.value = m ? m.date : preset.date || todayStr();
   form.date.min = state.profile.birthday;
   form.date.max = todayStr();
-  form.text.value = m ? m.text : '';
+  form.text.value = m ? m.text : preset.text || '';
   form.starred.checked = m ? !!m.starred : false;
   form.approx.checked = m ? m.approx : !!preset.approx;
   $('#moment-menu').hidden = !m;
@@ -623,8 +700,8 @@ async function openMoment(id = null, preset = {}) {
   updateAgeHint();
   $('#moment-dialog').showModal();
   if (!m && preset.event) applyEvent(eventById(preset.event));
-  else if (!m) form.text.focus();
-  ui.momentSnapshot = momentSnapshot();
+  else if (!m) { form.text.focus(); form.text.setSelectionRange(form.text.value.length, form.text.value.length); }
+  ui.momentSnapshot = preset.text ? null : momentSnapshot();
 }
 
 // 用來判斷有沒有改過，關閉時才知道要不要問「放棄這筆嗎？」
@@ -889,7 +966,7 @@ async function saveMoment(e) {
       await db.deletePhotos(removed).catch(() => {});
       removed.forEach(forgetThumb);
     }
-    ui.collapsed.delete(ageAt(state.profile.birthday, date));
+    ui.selAge = ageAt(state.profile.birthday, date);
     ui.momentSnapshot = null;
     $('#moment-dialog').close();
     const ev = eventById(fields.event);
@@ -1115,15 +1192,8 @@ function addMomentInYear() {
 }
 
 function viewYear() {
-  const age = ui.yearAge;
   $('#year-dialog').close();
-  ui.filter = 'all';
-  ui.query = '';
-  $('#search').value = '';
-  ui.collapsed.delete(age);
-  renderFilters();
-  renderTimeline();
-  document.getElementById(`age-${age}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  selectAge(ui.yearAge, true);
 }
 
 // ---------- 回憶模式 ----------
@@ -1659,6 +1729,7 @@ function openSettings(page = 'home') {
   renderWeatherSection();
   renderPeopleSection();
   $('#pref-achievements').checked = !!state.prefs.showAchievements;
+  $('#pref-world-sad').checked = state.prefs.worldSad !== false;
   renderSettingsStatus();
   renderStorageStatus();
   settingsGo(page);
@@ -1763,6 +1834,11 @@ function bind() {
   $('#add-person-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
   $('#add-pet-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
   $('#recall-event').addEventListener('click', () => openEventPicker('recall'));
+  $('#pref-world-sad').addEventListener('change', async (e) => {
+    state.prefs = { ...state.prefs, worldSad: e.target.checked };
+    await saveState();
+    renderTimeline();
+  });
   $('#pref-achievements').addEventListener('change', async (e) => {
     state.prefs = { ...state.prefs, showAchievements: e.target.checked };
     await saveState();
