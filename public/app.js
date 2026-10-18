@@ -12,12 +12,25 @@ const BACKUP_REMIND_DAYS = 30;
 const MAP_YEARS = 90;
 const MAX_PHOTOS = 4;
 
+// 回憶模式的提示問題，依人生階段不同
+const PROMPTS = {
+  baby: ['家人說過你小時候的什麼故事？', '你出生時住在哪裡？家裡有誰？', '有這時期的老照片嗎？照片裡發生了什麼事？', '你的名字是誰取的？有什麼意思？'],
+  kinder: ['你最早的記憶是什麼？', '還記得幼兒園的名字或老師嗎？', '小時候最喜歡的玩具或卡通是什麼？', '那時候和誰最親？'],
+  elementary: ['那年的導師是誰？', '那年最要好的同學是誰？', '下課最常玩什麼？', '那年家裡有沒有發生什麼大事？搬家、轉學、多了弟弟妹妹？', '那年有沒有什麼「第一次」？第一次騎腳踏車、得獎、出遠門？'],
+  junior: ['那年最常聽的歌是什麼？', '有參加社團或補習班嗎？', '那年最煩惱的事是什麼？', '那年有沒有喜歡的人？', '那年的好朋友是誰？現在還有聯絡嗎？'],
+  senior: ['讀的是哪所學校、什麼類組？', '那年最要好的朋友是誰？', '最難忘的一次出遊或活動？', '那時候想成為什麼樣的人？', '那年最常待的地方是哪裡？'],
+  college: ['那年住在哪裡？宿舍還是外宿？', '參加了什麼社團或活動？', '打工做過什麼？', '那年談戀愛了嗎？', '那年最常去的地方是哪裡？'],
+  adult: ['那年住在哪裡？', '那年在做什麼工作？', '那年最大的改變是什麼？', '那年去了哪裡旅行？', '那年最感謝的人是誰？', '如果用一個詞形容那一年，會是什麼？'],
+  now: ['今年到目前為止，最難忘的事是什麼？', '今年最大的改變是什麼？', '今年最常見面的人是誰？', '今年想完成、但還沒做的事？'],
+};
+const GRADE_NAMES = ['一', '二', '三', '四', '五', '六'];
+
 // ---------- 狀態 ----------
 let state = emptyState();
 const ui = {
   filter: 'all', query: '', collapsed: new Set(),
   editingId: null, mood: null, tags: new Set(), photos: [], busy: false,
-  yearAge: null, preparedExport: null,
+  yearAge: null, preparedExport: null, recall: { age: 0, q: 0 }, recallDone: false,
   lightbox: { ids: [], index: 0, url: null },
 };
 const thumbUrls = new Map(); // photoId -> Promise<objectURL|null>
@@ -34,6 +47,7 @@ function normalize(data) {
     ...m,
     tags: Array.isArray(m.tags) ? m.tags : [],
     photoIds: Array.isArray(m.photoIds) ? m.photoIds : [],
+    approx: !!m.approx,
     createdAt: m.createdAt || m.updatedAt || new Date().toISOString(),
   }));
   delete out.photos;
@@ -103,6 +117,20 @@ function groupByAge(moments) {
     groups.get(age).push(m);
   }
   return groups;
+}
+
+function lifeStage(age) {
+  const [by, bm, bd] = state.profile.birthday.split('-').map(Number);
+  const mid = new Date(by + age, bm - 1 + 6, 1); // 用這一歲的年中判斷
+  const schoolYear = mid.getMonth() >= 8 ? mid.getFullYear() : mid.getFullYear() - 1;
+  const late = bm > 9 || (bm === 9 && bd > 1);
+  const grade = schoolYear - (by + 6 + (late ? 1 : 0));
+  if (grade < 0) return age < 3 ? { key: 'baby', label: '嬰幼兒時期' } : { key: 'kinder', label: '幼兒園' };
+  if (grade < 6) return { key: 'elementary', label: `國小${GRADE_NAMES[grade]}年級` };
+  if (grade < 9) return { key: 'junior', label: `國中${GRADE_NAMES[grade - 6]}年級` };
+  if (grade < 12) return { key: 'senior', label: `高中${GRADE_NAMES[grade - 9]}年級` };
+  if (grade < 16) return { key: 'college', label: `大學${GRADE_NAMES[grade - 12]}年級（如果有念）` };
+  return { key: 'adult', label: '出社會' };
 }
 
 const yearTitle = (age) => (state.years[String(age)] || {}).title || '';
@@ -251,6 +279,8 @@ function renderLifeMap() {
   }
 
   $('#life-map').replaceChildren(...cells);
+  const resume = state.recall && state.recall.age > 0 && state.recall.age <= current;
+  $('#recall-btn').textContent = resume ? `🕰 繼續回憶（${state.recall.age} 歲）` : '🕰 回憶模式';
   const recorded = new Set([...byAge.keys(), ...Object.keys(state.years).map(Number)]).size;
   $('#map-summary').textContent = `已記錄 ${recorded} / ${current + 1} 個年歲${happiest ? ` · 最幸福的一歲：${happiest.age} 歲` : ''}`;
 }
@@ -290,7 +320,7 @@ function renderTimeline() {
     root.replaceChildren(h('div', { class: 'empty' },
       h('p', {}, `你現在 ${currentAge} 歲。`),
       h('p', {}, '按右下角「＋ 記一筆」，寫下第一個值得記住的時刻。'),
-      h('p', { class: 'muted' }, '也可以點上面人生地圖的格子，補上以前的回憶。')));
+      h('p', { class: 'muted' }, '也可以按「🕰 回憶模式」，從 0 歲開始補上以前的回憶。')));
     return;
   }
 
@@ -324,7 +354,7 @@ function renderTimeline() {
 function renderMoment(m) {
   const d = parseDate(m.date);
   return h('li', { class: `moment${m.starred ? ' starred' : ''}` },
-    h('span', { class: 'moment-date' }, `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`),
+    h('span', { class: 'moment-date' }, m.approx ? '這一年' : `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`),
     h('div', { class: 'moment-main' },
       h('button', { class: 'moment-body', type: 'button', onclick: () => openMoment(m.id) },
         h('span', { class: 'moment-text' }, m.mood ? `${MOODS[m.mood - 1]} ` : '', m.text),
@@ -348,7 +378,7 @@ async function toggleStar(id) {
   render();
 }
 
-async function openMoment(id = null, presetDate = null) {
+async function openMoment(id = null, preset = {}) {
   const form = $('#moment-form');
   const m = id ? state.moments.find((x) => x.id === id) : null;
   ui.editingId = m ? m.id : null;
@@ -356,11 +386,12 @@ async function openMoment(id = null, presetDate = null) {
   ui.tags = new Set(m ? m.tags : []);
   ui.photos = m ? await Promise.all(m.photoIds.map(async (pid) => ({ id: pid, existing: true, url: await thumbUrl(pid) }))) : [];
   $('#moment-title').textContent = m ? '編輯時刻' : '記一筆';
-  form.date.value = m ? m.date : presetDate || todayStr();
+  form.date.value = m ? m.date : preset.date || todayStr();
   form.date.min = state.profile.birthday;
   form.date.max = todayStr();
   form.text.value = m ? m.text : '';
   form.starred.checked = m ? !!m.starred : false;
+  form.approx.checked = m ? m.approx : !!preset.approx;
   $('#moment-delete').hidden = !m;
   renderMoodPicker();
   renderTagPicker();
@@ -466,7 +497,7 @@ async function saveMoment(e) {
       }
     }
 
-    const fields = { date, text, mood: ui.mood, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, updatedAt: now };
+    const fields = { date, text, mood: ui.mood, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, approx: form.approx.checked, updatedAt: now };
     if (prev) Object.assign(prev, fields);
     else state.moments.push({ id: momentId, createdAt: now, ...fields });
     if (!(await saveState())) return;
@@ -530,7 +561,7 @@ function addMomentInYear() {
   const today = todayStr();
   const date = age === ageAt(birthday, today) ? today : toDateStr(ageRange(birthday, age)[0]);
   $('#year-dialog').close();
-  openMoment(null, date);
+  openMoment(null, { date });
 }
 
 function viewYear() {
@@ -543,6 +574,152 @@ function viewYear() {
   renderFilters();
   renderTimeline();
   document.getElementById(`age-${age}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ---------- 回憶模式 ----------
+const isRecorded = (age) => !!yearTitle(age) || state.moments.some((m) => ageAt(state.profile.birthday, m.date) === age);
+
+function openRecall() {
+  const current = ageAt(state.profile.birthday, todayStr());
+  let age = state.recall && state.recall.age <= current ? state.recall.age : null;
+  if (age == null) {
+    age = 0;
+    while (age < current && isRecorded(age)) age++;
+  }
+  ui.recallDone = false;
+  setRecallAge(age);
+  $('#recall-dialog').showModal();
+}
+
+function setRecallAge(age) {
+  ui.recall = { age, q: 0 };
+  $('#recall-text').value = '';
+  $('#recall-star').checked = false;
+  $('#recall-date').value = '';
+  $('#recall-date-wrap').open = false;
+  $('#recall-summary').value = yearTitle(age);
+  renderRecall();
+  $('#recall-dialog').scrollTop = 0;
+}
+
+function recallDateBounds(age) {
+  const { birthday } = state.profile;
+  const [start, end] = ageRange(birthday, age);
+  const today = todayStr();
+  const min = toDateStr(start) < birthday ? birthday : toDateStr(start);
+  const max = toDateStr(end) > today ? today : toDateStr(end);
+  return [min, max];
+}
+
+function renderRecall() {
+  const { birthday } = state.profile;
+  const { age, q } = ui.recall;
+  const current = ageAt(birthday, todayStr());
+  const [start, end] = ageRange(birthday, age);
+  const stage = lifeStage(age);
+  const questions = PROMPTS[age === current ? 'now' : stage.key];
+
+  $('#recall-age').textContent = `${age} 歲`;
+  $('#recall-stage').textContent = age === current ? '今年' : `大約是${stage.label}`;
+  $('#recall-range').textContent = `${fmtDate(start)} – ${fmtDate(end)}`;
+  $('#recall-question').textContent = questions[q % questions.length];
+  const [min, max] = recallDateBounds(age);
+  $('#recall-date').min = min;
+  $('#recall-date').max = max;
+
+  let recorded = 0;
+  for (let a = 0; a <= current; a++) if (isRecorded(a)) recorded++;
+  $('#recall-bar').style.width = `${(recorded / (current + 1)) * 100}%`;
+  $('#recall-progress-text').textContent = `已回憶 ${recorded} / ${current + 1} 個年歲`;
+
+  const list = state.moments.filter((m) => ageAt(birthday, m.date) === age).sort((a, b) => a.date.localeCompare(b.date));
+  $('#recall-list').replaceChildren(...(list.length ? [
+    h('div', { class: 'field-label' }, `這一歲已經記了 ${list.length} 則`),
+    h('ul', { class: 'recall-items' }, list.map((m) => h('li', {},
+      h('button', { type: 'button', onclick: () => openMoment(m.id) },
+        h('span', { class: 'moment-date' }, m.approx ? '這一年' : m.date.slice(5).replace('-', '/')),
+        h('span', { class: 'recall-item-text' }, m.starred ? '★ ' : '', m.text, m.photoIds.length ? ` 📷${m.photoIds.length}` : ''))))),
+  ] : []));
+
+  $('#recall-prev').disabled = age === 0;
+  $('#recall-next').textContent = age === current ? '完成 ✓' : '下一歲 ›';
+}
+
+// 換頁、關閉前自動存：這一歲的一句話＋還沒按「記下來」的文字
+async function commitRecall() {
+  const { age } = ui.recall;
+  const now = new Date().toISOString();
+  let added = false;
+
+  const summary = $('#recall-summary').value.trim();
+  if (summary !== yearTitle(age)) {
+    if (summary) state.years[String(age)] = { title: summary, updatedAt: now };
+    else delete state.years[String(age)];
+  }
+
+  const text = $('#recall-text').value.trim();
+  if (text) {
+    const exact = $('#recall-date').value;
+    const [min, max] = recallDateBounds(age);
+    if (exact && (exact < min || exact > max)) {
+      toast(`日期要在 ${min.replace(/-/g, '/')} – ${max.replace(/-/g, '/')} 之間`);
+      return null;
+    }
+    state.moments.push({
+      id: newId(), date: exact || min, approx: !exact, text, mood: null, tags: [], photoIds: [],
+      starred: $('#recall-star').checked, createdAt: now, updatedAt: now,
+    });
+    $('#recall-text').value = '';
+    $('#recall-star').checked = false;
+    $('#recall-date').value = '';
+    added = true;
+  }
+
+  state.recall = { age };
+  return (await saveState()) ? added : null;
+}
+
+async function recallSave() {
+  if (!$('#recall-text').value.trim()) { $('#recall-text').focus(); return; }
+  if (await commitRecall()) {
+    toast('記下來了');
+    ui.recall.q++;
+    renderRecall();
+    render();
+  }
+}
+
+async function recallGo(delta) {
+  if (ui.recallBusy) return; // 連點時不要跳過年歲
+  ui.recallBusy = true;
+  try { await recallStep(delta); } finally { ui.recallBusy = false; }
+}
+
+async function recallStep(delta) {
+  const added = await commitRecall();
+  if (added === null) return;
+  if (added) toast('記下來了');
+  const current = ageAt(state.profile.birthday, todayStr());
+  const next = ui.recall.age + delta;
+  if (next > current) {
+    state.recall = null;
+    ui.recallDone = true;
+    await saveState();
+    $('#recall-dialog').close();
+    toast('🎉 回憶到今年了！之後隨時可以再回來補');
+  } else if (next >= 0) {
+    setRecallAge(next);
+  }
+  render();
+}
+
+async function recallMore() {
+  const added = await commitRecall();
+  if (added === null) return;
+  const { birthday } = state.profile;
+  const age = ui.recall.age;
+  const current = ageAt(birthday, todayStr());
+  openMoment(null, age === current ? {} : { date: recallDateBounds(age)[0], approx: true });
 }
 
 // ---------- 大圖 ----------
@@ -793,6 +970,21 @@ function bind() {
   $('#moment-dialog').addEventListener('close', () => {
     ui.photos.forEach((p) => { if (!p.existing && !p.saved) URL.revokeObjectURL(p.url); });
     ui.photos = [];
+    if ($('#recall-dialog').open) renderRecall();
+  });
+
+  $('#recall-btn').addEventListener('click', openRecall);
+  $('#recall-save').addEventListener('click', recallSave);
+  $('#recall-prev').addEventListener('click', () => recallGo(-1));
+  $('#recall-next').addEventListener('click', () => recallGo(1));
+  $('#recall-more').addEventListener('click', recallMore);
+  $('#recall-next-q').addEventListener('click', () => { ui.recall.q++; renderRecall(); });
+  // 「先到這裡」、點遮罩或返回鍵關閉時也會自動存
+  $('#recall-dialog').addEventListener('close', async () => {
+    if (ui.recallDone) return;
+    const added = await commitRecall();
+    if (added) toast('記下來了');
+    render();
   });
 
   $('#year-form').addEventListener('submit', saveYear);

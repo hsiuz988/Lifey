@@ -72,6 +72,7 @@
         <span class="muted small-text">一格一年 · 點格子補回憶</span>
       </div>
       <div id="map-summary" class="map-summary"></div>
+      <button id="recall-btn" class="btn recall-btn" type="button">🕰 回憶模式</button>
       <div id="life-map" class="life-map"></div>
       <div class="map-legend">
         <span>心情</span>
@@ -104,6 +105,10 @@
         <input name="date" type="date" required>
       </label>
       <div id="moment-age" class="age-hint"></div>
+      <label class="switch small-switch">
+        <input name="approx" type="checkbox">
+        <span>不確定日期，只記得是這一歲</span>
+      </label>
       <label>發生了什麼？
         <textarea name="text" rows="4" maxlength="500" required placeholder="一句話就好"></textarea>
       </label>
@@ -151,6 +156,46 @@
         <button class="btn primary" type="submit" value="save">儲存</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- 回憶模式 -->
+  <dialog id="recall-dialog" class="sheet recall">
+    <div class="recall-progress"><div id="recall-bar"></div></div>
+    <div id="recall-progress-text" class="hint"></div>
+    <div class="recall-head">
+      <span id="recall-age" class="recall-age"></span>
+      <span id="recall-stage" class="recall-stage"></span>
+    </div>
+    <div id="recall-range" class="hint"></div>
+
+    <label>這一歲的一句話
+      <input id="recall-summary" maxlength="40" placeholder="例如：搬到台北的那一年">
+    </label>
+
+    <div class="recall-q">
+      <span id="recall-question"></span>
+      <button id="recall-next-q" class="btn small" type="button">換一題</button>
+    </div>
+    <textarea id="recall-text" rows="3" maxlength="500" placeholder="想到什麼就寫什麼，一句話就好" aria-label="回憶內容"></textarea>
+    <details id="recall-date-wrap" class="recall-date">
+      <summary>我記得確切日期</summary>
+      <input id="recall-date" type="date" aria-label="確切日期">
+    </details>
+    <div class="row">
+      <label class="switch"><input id="recall-star" type="checkbox"><span>☆ 值得記住</span></label>
+      <span class="spacer"></span>
+      <button id="recall-save" class="btn primary" type="button">記下來</button>
+    </div>
+    <button id="recall-more" class="link-btn" type="button">想加照片、心情或標籤？用完整的「記一筆」→</button>
+
+    <div id="recall-list" class="recall-list"></div>
+
+    <div class="sheet-actions recall-nav">
+      <button id="recall-prev" class="btn" type="button">‹ 上一歲</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>先到這裡</button>
+      <button id="recall-next" class="btn primary" type="button">下一歲 ›</button>
+    </div>
   </dialog>
 
   <!-- 看大圖 -->

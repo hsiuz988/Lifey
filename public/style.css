@@ -294,3 +294,31 @@ dialog.lightbox::backdrop { background: #000; }
 
 .pre { white-space: pre-line; }
 .fatal { margin: 16px; padding: 12px; border: 1px solid var(--accent); color: var(--accent); }
+
+/* ---------- 回憶模式 ---------- */
+.recall-btn { width: 100%; margin-top: 12px; }
+dialog.recall { display: none; flex-direction: column; gap: 12px; }
+dialog.recall[open] { display: flex; }
+.recall-progress { height: 3px; background: var(--line); }
+#recall-bar { height: 100%; background: var(--teal); transition: width .3s; }
+#recall-progress-text { margin: -6px 0 0; font-size: 12px; }
+.recall-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.recall-age { font-family: var(--serif); font-size: 40px; line-height: 1; color: var(--teal); }
+.recall-stage { color: var(--text); font-size: 15px; }
+#recall-range { margin: -8px 0 0; }
+.recall-q { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+#recall-question { flex: 1; font-family: var(--serif); font-size: 18px; color: var(--text); }
+.recall-date summary { color: var(--muted); font-size: 13px; cursor: pointer; }
+.recall-date input { margin-top: 8px; width: 100%; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--teal); font-size: 13px; text-align: left; cursor: pointer; }
+.recall-list:empty { display: none; }
+.recall-list { border-top: 1px solid var(--line); padding-top: 12px; }
+.recall-items { list-style: none; margin: 6px 0 0; padding: 0; }
+.recall-items button {
+  display: flex; gap: 10px; width: 100%; text-align: left; background: none; border: 0;
+  padding: 8px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+}
+.recall-item-text { flex: 1; min-width: 0; word-break: break-word; }
+.recall-nav { position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom)); background: var(--panel); padding: 12px 0 calc(4px + env(safe-area-inset-bottom)); margin-top: auto; }
+.small-switch { font-size: 13px; color: var(--muted); margin-top: -6px; }
+.btn:disabled { opacity: .4; cursor: default; }
