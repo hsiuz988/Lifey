@@ -386,7 +386,7 @@ body.ptr-pulling .ptr { transition: none; } /* 拉的時候跟著手指，不要
 
 /* ---------- 會動的場景 ---------- */
 .scene { position: relative; }
-.scene canvas { width: 100%; height: auto; aspect-ratio: 120 / 50; display: block; image-rendering: pixelated; cursor: pointer; }
+.scene canvas { width: 100%; height: auto; aspect-ratio: 160 / 72; display: block; image-rendering: pixelated; cursor: pointer; }
 .scene-bubble {
   position: absolute; transform: translateX(-50%) translateY(6px); max-width: 220px; padding: 6px 12px;
   background: #fffaf0; color: #2b2b33; border-radius: 12px; font-size: 13px; line-height: 1.4; text-align: center;
@@ -410,7 +410,7 @@ dialog.avatar-dialog[open] { display: flex; }
   display: flex; justify-content: center; padding: 8px 0;
   background: radial-gradient(circle at 50% 40%, #2c3550, #1c1f26 70%); border: 1px solid var(--line); border-radius: var(--radius);
 }
-#avatar-canvas { width: 132px; height: 144px; image-rendering: pixelated; }
+#avatar-canvas { width: 132px; height: 150px; image-rendering: pixelated; }
 .age-preview { gap: 4px; }
 .age-preview b { color: var(--text); font-weight: 500; }
 .age-preview input { width: 100%; accent-color: var(--accent); }
