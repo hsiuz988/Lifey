@@ -38,6 +38,8 @@
   </section>
 
   <!-- 主畫面 -->
+  <div id="ptr" class="ptr" aria-hidden="true"><span id="ptr-icon" class="ptr-icon">↓</span><span id="ptr-text">下拉重新整理</span></div>
+
   <main id="app" hidden>
     <header class="top">
       <div class="top-row">
@@ -306,6 +308,7 @@
       <input id="import-file" type="file" accept=".zip,.json,application/zip,application/json" hidden>
     </div>
     <p id="storage-status" class="hint pre"></p>
+    <p id="app-version" class="hint"></p>
     <hr>
     <div class="row">
       <button id="reset-btn" class="btn danger" type="button">清除所有資料</button>

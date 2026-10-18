@@ -1540,6 +1540,104 @@ async function init() {
 
 init();
 
+// ---------- 下拉重新整理 ----------
+// 主畫面 App 沒有瀏覽器的重新整理按鈕，而且開啟時會先顯示手機裡存的版本。
+// 下拉時直接向伺服器檢查新版，有就裝好、立刻換上。
+const PTR_TRIGGER = 70; // 拉超過這個距離（px）放開才會更新
+const PTR_MAX = 110;
+
+// 等新版生效；新版可能在 update() 還沒結束前就已經裝好生效，所以也比對生效中的版本有沒有換
+function waitForNewVersion(reg, oldActive, ms) {
+  return new Promise((resolve) => {
+    if (reg.active !== oldActive) { resolve(true); return; }
+    const timer = setTimeout(() => resolve(reg.active !== oldActive), ms);
+    navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(timer); resolve(true); }, { once: true });
+    const worker = reg.installing || reg.waiting;
+    if (worker) {
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'activated') { clearTimeout(timer); resolve(true); }
+        if (worker.state === 'redundant') { clearTimeout(timer); resolve(false); }
+      });
+    }
+  });
+}
+
+async function refreshApp() {
+  setPtr(PTR_TRIGGER, 'loading', '檢查新版本…');
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) {
+      const oldActive = reg.active;
+      await reg.update();
+      if (reg.installing || reg.waiting || reg.active !== oldActive) {
+        setPtr(PTR_TRIGGER, 'loading', '下載新版本…');
+        if (await waitForNewVersion(reg, oldActive, 15000)) {
+          setPtr(PTR_TRIGGER, 'loading', '更新完成，重新載入…');
+          location.reload();
+          return;
+        }
+      }
+    }
+    if (cloud.me) {
+      setPtr(PTR_TRIGGER, 'loading', '同步最新紀錄…');
+      await runSync();
+    }
+    render();
+    toast(cloud.me ? `已經是最新版本${cloud.status === 'error' ? '（同步失敗，稍後會自動重試）' : '，紀錄也同步好了'}` : '已經是最新版本');
+  } catch (e) {
+    toast('連不上網路，稍後再試');
+  }
+  setPtr(0);
+}
+
+function setPtr(dist, mode = '', text = '下拉重新整理') {
+  const el = $('#ptr');
+  el.style.transform = `translateY(${dist - 60}px)`;
+  el.className = `ptr${dist > 0 ? ' show' : ''}${mode ? ` ${mode}` : ''}`;
+  $('#ptr-text').textContent = text;
+  $('#ptr-icon').textContent = mode === 'loading' ? '⟳' : '↓';
+  document.body.classList.toggle('ptr-pulling', dist > 0 && mode !== 'loading');
+}
+
+function bindPullToRefresh() {
+  let startY = null;
+  let dist = 0;
+  let busy = false;
+  const canPull = () => !busy && window.scrollY <= 0 && !document.querySelector('dialog[open]');
+
+  window.addEventListener('touchstart', (e) => {
+    startY = e.touches.length === 1 && canPull() ? e.touches[0].clientY : null;
+    dist = 0;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (startY == null) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0 || window.scrollY > 0) { if (dist) setPtr(0); startY = null; dist = 0; return; }
+    dist = Math.min(PTR_MAX, dy * 0.5); // 阻尼：手指拉 2px，指示器走 1px
+    setPtr(dist, dist >= PTR_TRIGGER ? 'ready' : '', dist >= PTR_TRIGGER ? '放開以更新' : '下拉重新整理');
+  }, { passive: true });
+
+  window.addEventListener('touchend', async () => {
+    if (startY == null) return;
+    startY = null;
+    if (dist < PTR_TRIGGER) { setPtr(0); return; }
+    busy = true;
+    await refreshApp();
+    busy = false;
+  });
+}
+
+async function renderAppVersion() {
+  const el = $('#app-version');
+  if (!el || !('caches' in window)) return;
+  const name = (await caches.keys()).find((k) => k.startsWith('lifelog-'));
+  el.textContent = name ? `App 版本：${name.replace('lifelog-', '')} · 在主畫面下拉可以檢查新版本` : '';
+}
+
+bindPullToRefresh();
+$('#open-settings').addEventListener('click', renderAppVersion);
+
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
