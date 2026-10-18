@@ -1,10 +1,13 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v1';
+const CACHE = 'lifelog-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './db.js',
+  './zip.js',
+  './photos.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
