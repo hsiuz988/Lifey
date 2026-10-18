@@ -129,7 +129,7 @@
       <div id="timeline"></div>
     </section>
 
-    <section class="panel">
+    <section id="achievements-panel" class="panel" hidden>
       <div class="panel-head">
         <h2>成就</h2>
         <span id="ach-count" class="muted small-text"></span>
@@ -144,6 +144,10 @@
   <dialog id="moment-dialog" class="sheet">
     <form id="moment-form" method="dialog">
       <h3 id="moment-title">記一筆</h3>
+      <div class="event-row">
+        <button id="event-open" class="btn small" type="button">⭐ 人生大事</button>
+        <span id="event-badge" class="event-badge" hidden></span>
+      </div>
       <label>日期
         <input name="date" type="date" required>
       </label>
@@ -155,6 +159,10 @@
       <label>發生了什麼？
         <textarea name="text" rows="4" maxlength="500" required placeholder="一句話就好"></textarea>
       </label>
+      <div class="field">
+        <span id="people-label" class="field-label">和誰（選填）</span>
+        <div id="people-picker" class="chips"></div>
+      </div>
       <div class="field">
         <span class="field-label">照片（選填，最多 4 張）</span>
         <div id="photo-picker" class="photo-picker"></div>
@@ -230,7 +238,10 @@
       <span class="spacer"></span>
       <button id="recall-save" class="btn primary" type="button">記下來</button>
     </div>
-    <button id="recall-more" class="link-btn" type="button">想加照片、心情或標籤？用完整的「記一筆」→</button>
+    <div class="row">
+      <button id="recall-event" class="btn small" type="button">⭐ 這一歲的人生大事</button>
+    </div>
+    <button id="recall-more" class="link-btn" type="button">想加照片、心情、標籤或一起的人？用完整的「記一筆」→</button>
 
     <div id="recall-list" class="recall-list"></div>
 
@@ -260,6 +271,22 @@
     </div>
   </dialog>
 
+  <!-- 人生大事 -->
+  <dialog id="event-dialog" class="sheet event-dialog">
+    <h3>人生大事</h3>
+    <div id="event-cats" class="chips"></div>
+    <div id="event-grid" class="event-grid"></div>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>取消</button>
+    </div>
+  </dialog>
+
+  <!-- 人物卡 -->
+  <dialog id="person-dialog" class="sheet person-dialog">
+    <div id="person-body"></div>
+  </dialog>
+
   <!-- 看大圖 -->
   <dialog id="lightbox" class="lightbox" aria-label="照片">
     <img id="lightbox-img" alt="">
@@ -281,6 +308,9 @@
       <button class="btn primary" type="submit" value="save">儲存個人資料</button>
     </form>
     <hr>
+    <h4>我的人物</h4>
+    <div id="people-section" class="cloud-section"></div>
+    <hr>
     <h4>我的小人</h4>
     <div class="row">
       <div id="settings-avatar" class="avatar small-avatar"></div>
@@ -289,6 +319,9 @@
     <hr>
     <h4>真實天氣</h4>
     <div id="weather-section" class="cloud-section"></div>
+    <hr>
+    <h4>成就</h4>
+    <label class="switch"><input id="pref-achievements" type="checkbox"><span>顯示成就（關閉時照樣在背後記錄）</span></label>
     <hr>
     <h4>備份</h4>
     <p class="hint">資料（含照片）只存在這支手機。換手機、清除網站資料前，記得先匯出備份。備份檔是 ZIP，可以存到 iCloud 雲碟。</p>

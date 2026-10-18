@@ -1,6 +1,7 @@
 // 會動的像素場景：天空跟著真實時間與天氣變化，小人會呼吸、眨眼、散步
 // 約每秒 10 格（像素風、省電）；切到背景或捲出畫面就暫停；系統開了「減少動態效果」就只每分鐘更新一次靜態畫面
 import { composeAvatar, drawAvatar, H as AVATAR_H } from './avatar.js';
+import { drawPet, petSize } from './pets.js';
 
 export const W = 120;
 export const H = 50;
@@ -146,7 +147,8 @@ export class Scene {
     this.canvas = canvas;
     this.bubble = bubble;
     this.ctx = canvas.getContext('2d');
-    this.state = { stageKey: 'adult', age: 30, avatar: null, props: [], weather: null, birthday: null, messages: () => [] };
+    this.state = { stageKey: 'adult', age: 30, avatar: null, props: [], weather: null, birthday: null, messages: () => [], pets: [] };
+    this.petActors = [];
     this.frames = null;
     this.actor = { x: 52, target: 52, dir: 1, mode: 'idle', until: 0, stepAt: 0, step: false, blinkAt: 2000, blinkUntil: 0, jumpAt: -1, jumpsLeft: 0 };
     this.particles = [];
@@ -191,6 +193,12 @@ export class Scene {
         blink: composeAvatar(avatar, age, stageKey, { blink: true }),
         step: composeAvatar(avatar, age, stageKey, { step: true }),
       };
+    }
+    if (this.state.pets !== prev.pets) {
+      this.petActors = (this.state.pets || []).map((pet, i) => {
+        const old = this.petActors[i];
+        return { ...pet, x: old && old.type === pet.type ? old.x : this.actor.x + (i ? 19 : -11), dir: 1, frame: 0, frameAt: 0 };
+      });
     }
     this.draw(performance.now());
   }
@@ -306,6 +314,21 @@ export class Scene {
     }
     if (now > a.blinkAt) { a.blinkUntil = now + 160; a.blinkAt = now + 2500 + Math.random() * 3000; }
 
+    // 寵物：跟在小人旁邊（魚缸固定在左邊），走路時兩格交替，停下來偶爾搖尾巴
+    this.petActors.forEach((p, i) => {
+      if (p.type === 'fish') { if (now > p.frameAt) { p.frame = 1 - p.frame; p.frameAt = now + 1500; } return; }
+      const target = a.x + (i === 0 ? -11 : 19);
+      const diff = target - p.x;
+      if (Math.abs(diff) > 1) {
+        p.x += Math.sign(diff) * Math.min(Math.abs(diff), 9 * dt);
+        p.dir = Math.sign(diff);
+        if (now > p.frameAt) { p.frame = 1 - p.frame; p.frameAt = now + 200; }
+      } else {
+        p.dir = a.dir;
+        if (now > p.frameAt) { p.frame = 1 - p.frame; p.frameAt = now + (p.frame ? 300 : 1200 + Math.random() * 1500); }
+      }
+    });
+
     // 鳥：白天、沒下大雨時偶爾飛過
     const w = this.state.weather;
     const wet = w && ['rain', 'heavyrain', 'thunder', 'snow'].includes(w.kind);
@@ -399,7 +422,7 @@ export class Scene {
 
     // 讓測試和樣式知道目前狀態
     const box = this.canvas.parentElement;
-    if (box) Object.assign(box.dataset, { period: light > 0.6 ? 'day' : light > 0.05 ? 'twilight' : 'night', season: this.season, weather: w ? w.kind : 'none', festival: this.festival || 'none' });
+    if (box) Object.assign(box.dataset, { period: light > 0.6 ? 'day' : light > 0.05 ? 'twilight' : 'night', season: this.season, weather: w ? w.kind : 'none', festival: this.festival || 'none', pets: String(this.petActors.length) });
 
     // 天空（分成 10 條色帶，保留像素感）
     let [top, mid, bottom] = skyAt(hour, sr, ss);
@@ -494,7 +517,8 @@ export class Scene {
     }
 
     // 今年標籤的小道具
-    const slots = [36, 74, 30];
+    // 放在右邊建築物前，讓出小人和寵物走動的地方
+    const slots = [88, 96, 104];
     st.props.forEach((name, i) => {
       const pr = PROP_SPRITES[name];
       const bob = name === 'heart' ? Math.floor(t / 600) % 2 : 0;
@@ -515,6 +539,16 @@ export class Scene {
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
       ctx.fillRect(Math.round(a.x) + 3, FEET + 1, 10, 1);
       drawAvatar(ctx, frame, Math.round(a.x), FEET + 1 - AVATAR_H - jumpY, { flip: a.dir < 0, breathe });
+    }
+
+    // 寵物
+    for (const p of this.petActors) {
+      const [, ph] = petSize(p.type);
+      if (p.type === 'fish') { drawPet(ctx, 'fish', p.color, 4, FEET - 6, p.frame); continue; }
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillRect(Math.round(p.x) + 1, FEET + 1, petSize(p.type)[0] - 2, 1);
+      // 主人開心跳的時候，寵物也跟著跳一半高
+      drawPet(ctx, p.type, p.color, Math.round(p.x), FEET + 1 - ph - (jumpY > 0 ? Math.ceil(jumpY / 2) : 0), p.frame, p.dir < 0);
     }
 
     // 季節小東西、鳥

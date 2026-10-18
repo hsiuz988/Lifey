@@ -418,3 +418,49 @@ dialog.avatar-dialog[open] { display: flex; }
 .avatar-options { display: flex; flex-direction: column; gap: 14px; min-height: 160px; }
 .avatar-options .hint { margin: 0; font-size: 12px; }
 .small-avatar { width: 48px; height: 48px; border: 1px solid var(--line); }
+
+/* ---------- 人生大事 ---------- */
+.event-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: -4px; }
+.event-badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 10px; font-size: 14px;
+  border: 1px solid var(--yellow); border-radius: 999px; background: rgba(230, 184, 79, .12);
+}
+.badge-x { background: none; border: 0; color: var(--muted); font-size: 16px; padding: 0 6px; cursor: pointer; }
+dialog.event-dialog { display: none; flex-direction: column; gap: 12px; }
+dialog.event-dialog[open] { display: flex; }
+.event-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; min-height: 200px; align-content: start; }
+.event-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; font-size: 13px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text);
+}
+.event-btn:active { border-color: var(--accent); }
+.event-btn.sad { color: var(--muted); }
+.event-btn-icon { font-size: 24px; line-height: 1.2; }
+.event-icon { font-weight: normal; }
+.cell.has-event .cell-event { font-size: 14px; line-height: 1; }
+
+/* ---------- 人物 ---------- */
+.field-label.ask { color: var(--yellow); }
+.field-label.ask::after { content: " ←"; }
+.add-chip { border-style: dashed; }
+.moment-people { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.person-chip {
+  font-size: 12px; padding: 1px 8px; cursor: pointer;
+  background: rgba(224, 96, 126, .1); border: 1px solid rgba(224, 96, 126, .45); border-radius: 999px; color: var(--text);
+}
+dialog.person-dialog > div { display: flex; flex-direction: column; gap: 12px; }
+.person-head { display: flex; gap: 12px; align-items: center; }
+.person-head h3 { margin: 0; }
+.person-avatar {
+  width: 56px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  background: #2a3040; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+}
+.person-avatar svg { width: 100%; height: 100%; display: block; }
+.person-initial { font-family: var(--serif); font-size: 26px; color: var(--accent); }
+.person-facts { margin: 0; font-size: 14px; }
+.person-moments { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow-y: auto; }
+.person-moments button {
+  display: flex; gap: 10px; width: 100%; text-align: left; background: none; border: 0; padding: 8px 0;
+  border-bottom: 1px solid var(--line); cursor: pointer; color: var(--text);
+}
+.person-moments .moment-date { width: 48px; }
