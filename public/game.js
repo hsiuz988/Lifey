@@ -2,10 +2,10 @@
 
 // ---------- 四項狀態 ----------
 export const STATS = [
-  { key: 'health', label: '健康', color: '#5cc28a', tags: ['健康', '運動'] },
-  { key: 'happy', label: '幸福', color: '#e0b050' },
-  { key: 'knowledge', label: '知識', color: '#3fb8a8', tags: ['學習', '工作'] },
-  { key: 'social', label: '人際關係', color: '#e0607e', tags: ['家人', '朋友', '愛情'] },
+  { key: 'health', label: '健康', color: '#a9de8c', tags: ['健康', '運動'] },
+  { key: 'happy', label: '幸福', color: '#f3dc6a' },
+  { key: 'knowledge', label: '知識', color: '#a9d2f0', tags: ['學習', '工作'] },
+  { key: 'social', label: '人際關係', color: '#f5b6c8', tags: ['家人', '朋友', '愛情'] },
 ];
 
 const weight = (m) => (m.starred ? 2 : 1);

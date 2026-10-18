@@ -15,7 +15,7 @@ import { PET_TYPES, PET_ICONS, PET_COLORS, petSvg, petSwatchStyle } from './pets
 const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
 const DATA_VERSION = 2;
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄']; // 對應 1–5
-const MOOD_COLORS = ['#56608f', '#4f86a6', '#3fa89a', '#7fbf6a', '#e6b84f'];
+const MOOD_COLORS = ['#d6dbf5', '#c6e3f3', '#c4ecdf', '#dcf2bf', '#fbeaa2'];
 const DEFAULT_TAGS = ['家人', '朋友', '愛情', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
 const BACKUP_REMIND_DAYS = 30;
 const MAP_YEARS = 90;
@@ -461,7 +461,7 @@ function renderLifeMap() {
     const cls = ['cell',
       age > current && 'future', age === current && 'now',
       (list.length || title) && 'filled', stars && 'starred'].filter(Boolean).join(' ');
-    const style = avg ? `--c:${MOOD_COLORS[Math.round(avg) - 1]};--c-text:#10131a` : null;
+    const style = avg ? `--c:${MOOD_COLORS[Math.round(avg) - 1]};--c-text:#1d1d1f` : null;
 
     if (age > current) {
       cells.push(h('span', { class: cls, 'aria-hidden': 'true' }, age));
@@ -1394,7 +1394,7 @@ async function renderStorageStatus() {
 
 // ---------- 捏小人 ----------
 const AVATAR_TABS = [
-  ['body', '身體', [{ key: 'gender', label: '性別', choices: GENDERS, note: '只影響體型和學生制服，其他都能自由搭配' }, { key: 'skin', label: '膚色', colors: SKINS }]],
+  ['body', '身體', [{ key: 'gender', label: '性別', choices: GENDERS, note: '只影響學生制服（裙子或褲子），其他都能自由搭配' }, { key: 'skin', label: '膚色', colors: SKINS }]],
   ['hair', '頭髮', [{ key: 'hairStyle', label: '髮型', choices: HAIR_STYLES }, { key: 'hair', label: '髮色', colors: HAIRS, note: '50 歲以後會慢慢變淡，65 歲變白髮' }]],
   ['face', '臉', [{ key: 'eyes', label: '眼睛', choices: EYES }, { key: 'lashes', label: '睫毛', toggle: true }, { key: 'blush', label: '腮紅', toggle: true },
     { key: 'freckles', label: '雀斑', toggle: true }, { key: 'beard', label: '鬍子', choices: BEARDS, note: '18 歲以後才會出現' }]],
@@ -1425,13 +1425,13 @@ function drawAvatarPreview() {
   if (canvas.width !== 22 * scale) { canvas.width = 22 * scale; canvas.height = 25 * scale; }
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.clearRect(0, 0, 22, 25);
-  ctx.fillStyle = '#2a3040'; ctx.fillRect(0, 23, 22, 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(6, 23, 10, 1);
+  ctx.fillStyle = '#d8efb8'; ctx.fillRect(0, 23, 22, 2);
+  ctx.fillStyle = 'rgba(30,20,40,0.18)'; ctx.fillRect(6, 23, 10, 1);
   const t = performance.now();
   const blink = t % 3600 < 160;
   const { age } = ui.avatar;
   const sprite = composeAvatar(ui.avatar.draft, age, lifeStage(age).key, { blink });
-  drawAvatar(ctx, sprite, 3, 3, { breathe: Math.floor(t / 800) % 2 === 1 });
+  drawAvatar(ctx, sprite, 1, 2, { breathe: Math.floor(t / 800) % 2 === 1 });
 }
 
 function renderAvatarEditor() {
