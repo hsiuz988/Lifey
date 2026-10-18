@@ -247,7 +247,7 @@ export class Scene {
     if (st.pets !== prev.pets) {
       this.petActors = (st.pets || []).map((pet, i) => {
         const old = this.petActors[i];
-        return { ...pet, x: old && old.type === pet.type ? old.x : this.actor.x + (i ? AVATAR_W : -16), dir: 1, frame: 0, frameAt: 0 };
+        return { ...pet, x: old && old.type === pet.type ? old.x : this.actor.x + (i ? AVATAR_W - 1 : -13), dir: 1, frame: 0, frameAt: 0 };
       });
     }
     this.draw(performance.now());
@@ -374,7 +374,7 @@ export class Scene {
     const side = this.companionSide();
     this.petActors.forEach((p, i) => {
       if (p.type === 'fish') { if (now > p.frameAt) { p.frame = 1 - p.frame; p.frameAt = now + 1500; } return; }
-      const target = a.x + (side === 0 ? (i === 0 ? -16 : AVATAR_W) : side > 0 ? -16 - i * 16 : AVATAR_W + i * 16);
+      const target = a.x + (side === 0 ? (i === 0 ? -13 : AVATAR_W - 1) : side > 0 ? -13 - i * 14 : AVATAR_W - 1 + i * 14);
       const diff = target - p.x;
       if (Math.abs(diff) > 1) {
         p.x += Math.sign(diff) * Math.min(Math.abs(diff), 9 * dt);

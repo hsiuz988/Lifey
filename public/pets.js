@@ -131,8 +131,73 @@ const SPRITES = {
   ],
 };
 
+// 場景用的縮小版：一樣的畫法，高度大約是小人的六成，寵物一定比人小
+const MINI = {
+  dog: [
+    '...xxxxxxx...',
+    '.ddxxxxxxxdd.',
+    'dddxelxxelddd',
+    'dddxeexxeeddd',
+    '.ddkwwnwwkdd.',
+    '...xwwwwwx...',
+    '..xxxwwwxxx.d',
+    '..xxxwwwxxxd.',
+    '..wwx...xww..',
+  ],
+  cat: [
+    '.d.....d..',
+    '.dd...dd..',
+    '.xxdxdxx..',
+    'xelxxxelx.',
+    'xeexxxeex.',
+    'xkwwnwwkx.',
+    '.xwwwwwx.d',
+    '.xwwwwwxd.',
+    '.ww...ww..',
+  ],
+  rabbit: [
+    '..xx...xx..',
+    '..xk...kx..',
+    '..xk...kx..',
+    '.xxxxxxxxx.',
+    'xxelxxxelxx',
+    'xxeexxxeexx',
+    'xkxxwnwxxkx',
+    '.xxwwwwwxx.',
+    'xxxwwwwwxxx',
+    '.www...www.',
+  ],
+  fish: [
+    '...dd......',
+    '..xxxxx..d.',
+    '.xelxxxx.dd',
+    'xxeexxxxxdd',
+    '.xxxxxxx.dd',
+    '..xxxxx..d.',
+    '...dd......',
+  ],
+  bird: [
+    '..xxx...',
+    '.xxelxoo',
+    '.xxeexo.',
+    'dkxxxx..',
+    'ddwwwx..',
+    '.dwwx...',
+    '..o.o...',
+  ],
+  hamster: [
+    '.d.....d.',
+    '.xxxxxxx.',
+    'xelxxxelx',
+    'xeexxxeex',
+    'xkwwnwwkx',
+    '.xwwwwwx.',
+    '..w...w..',
+  ],
+};
+
 // 尺寸含描邊；第 2 格跳起來 1 格，所以高度多留 1 格
-export const petSize = (type) => [(SPRITES[type] || SPRITES.dog)[0].length + 2, (SPRITES[type] || SPRITES.dog).length + 3];
+export const petSize = (type) => [(MINI[type] || MINI.dog)[0].length + 2, (MINI[type] || MINI.dog).length + 3];
 
 // 深色毛的眼睛改成琥珀色，才看得到
 const isDark = (hex) => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) & 255) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11 < 110; };
@@ -149,10 +214,11 @@ function palette(type, idx) {
 
 // 寵物的格子（含描邊），快取起來，每一種只算一次
 const cache = new Map();
-function petGrid(type, idx) {
-  const key = `${type}:${idx}`;
+function petGrid(type, idx, small = false) {
+  const key = `${type}:${idx}:${small ? 's' : 'b'}`;
   if (cache.has(key)) return cache.get(key);
-  const rows = SPRITES[type] || SPRITES.dog;
+  const set = small ? MINI : SPRITES;
+  const rows = set[type] || set.dog;
   const w = rows[0].length + 2;
   const h = rows.length + 2;
   const colors = palette(type, idx);
@@ -178,28 +244,27 @@ function paint(ctx, g, x, y, flip) {
   }));
 }
 
-// 魚缸（場景用）：寬 20、高 17，魚在裡面左右游
-export const BOWL = [20, 17];
+// 魚缸（場景用）：寬 17、高 13，魚在裡面左右游
+export const BOWL = [17, 13];
 function drawBowl(ctx, colorIdx, x, y, frame) {
   const R = (rx, ry, rw, rh, c) => { ctx.fillStyle = c; ctx.fillRect(x + rx, y + ry, rw, rh); };
   // 圓圓的玻璃缸：描邊、水、缸口
-  const rows = [[4, 12], [2, 16], [1, 18], [0, 20], [0, 20], [0, 20], [0, 20], [0, 20], [0, 20], [0, 20], [0, 20], [1, 18], [1, 18], [2, 16], [3, 14], [4, 12]];
-  rows.forEach(([ox, w], i) => { R(ox, i + 1, w, 1, OUTLINE); if (w > 2) R(ox + 1, i + 1, w - 2, 1, i < 3 ? '#eaf6fb' : '#bfe3f2'); });
-  R(4, 0, 12, 1, OUTLINE); R(3, 1, 14, 1, OUTLINE);
-  R(2, 5, 1, 4, '#ffffff'); // 玻璃反光
-  R(4, 15, 12, 1, '#e8d9b8'); // 缸底的沙
-  const g = petGrid('fish', colorIdx);
-  paint(ctx, g, x + (frame ? 4 : 2), y + 4, !!frame);
+  const rows = [[3, 11], [1, 15], [0, 17], [0, 17], [0, 17], [0, 17], [0, 17], [0, 17], [1, 15], [1, 15], [2, 13], [3, 11]];
+  rows.forEach(([ox, w], i) => { R(ox, i + 1, w, 1, OUTLINE); if (w > 2) R(ox + 1, i + 1, w - 2, 1, i < 2 ? '#eaf6fb' : '#bfe3f2'); });
+  R(3, 0, 11, 1, OUTLINE);
+  R(2, 4, 1, 3, '#ffffff'); // 玻璃反光
+  R(3, 11, 11, 1, '#e8d9b8'); // 缸底的沙
+  paint(ctx, petGrid('fish', colorIdx, true), x + (frame ? 3 : 1), y + 2, !!frame);
 }
 
-// 畫到 canvas：x, y 是左上角（含描邊），ctx 已縮放成 1 格 = 1 單位
+// 畫到場景（縮小版）：x, y 是左上角（含描邊），ctx 已縮放成 1 格 = 1 單位
 // 第 2 格會往上跳 1 格；魚加上 { bowl: true } 就畫在魚缸裡
 export function drawPet(ctx, type, colorIdx, x, y, frame = 0, flip = false, { bowl = false } = {}) {
   if (type === 'fish' && bowl) { drawBowl(ctx, colorIdx, x, y, frame); return; }
-  paint(ctx, petGrid(type, colorIdx), x, y + (frame ? 0 : 1), flip);
+  paint(ctx, petGrid(type, colorIdx, true), x, y + (frame ? 0 : 1), flip);
 }
 
-// 靜態小圖（人物清單、人物卡）
+// 靜態小圖（人物清單、人物卡）：用細節比較多的大版本
 export function petSvg(type, colorIdx) {
   const g = petGrid(type, colorIdx);
   const w = g[0].length;
