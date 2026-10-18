@@ -10,7 +10,7 @@ import { Scene, propsForTags, festivalOf } from './scene.js';
 import * as weather from './weather.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
-import { PET_TYPES, PET_ICONS, PET_COLORS, petSvg } from './pets.js';
+import { PET_TYPES, PET_ICONS, PET_COLORS, petSvg, petSwatchStyle } from './pets.js';
 
 // ---------- 常數 ----------
 const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
@@ -894,7 +894,8 @@ function renderPersonDialog() {
     const { birthday } = state.profile;
     const first = list.length ? list[list.length - 1] : null;
     const gone = p.kind === 'pet' ? petGoneMoment(p) : null;
-    const sub = [p.kind === 'pet' ? (PET_TYPES.find(([k]) => k === p.petType) || [, '寵物'])[1] : p.relation || '人物'];
+    const coat = p.kind === 'pet' ? (PET_COLORS[p.petType] || [])[p.petColor || 0] : null;
+    const sub = [p.kind === 'pet' ? (coat ? coat.label : (PET_TYPES.find(([k]) => k === p.petType) || [, '寵物'])[1]) : p.relation || '人物'];
     if (p.birthday && !gone) sub.push(`${ageAt(p.birthday, todayStr())} 歲`);
     const facts = [`一起記了 ${list.length} 則`];
     if (first) facts.push(`第一次是你 ${ageAt(birthday, first.date)} 歲的時候`);
@@ -940,8 +941,8 @@ function renderPersonDialog() {
         type: 'button', class: `chip${d.petType === k ? ' on' : ''}`, onclick: () => { d.petType = k; d.petColor = 0; renderPersonDialog(); },
       }, `${PET_ICONS[k]} ${label}`)))),
       h('div', { class: 'field' }, h('span', { class: 'field-label' }, '毛色'), h('div', { class: 'row' }, preview, h('div', { class: 'swatches' },
-        PET_COLORS[d.petType].map(([c], i) => h('button', {
-          type: 'button', class: `swatch-btn${d.petColor === i ? ' on' : ''}`, style: `--c:${c}`, 'aria-label': `毛色 ${i + 1}`,
+        PET_COLORS[d.petType].map((c, i) => h('button', {
+          type: 'button', class: `swatch-btn${d.petColor === i ? ' on' : ''}`, style: petSwatchStyle(d.petType, i), title: c.label, 'aria-label': c.label,
           onclick: () => { d.petColor = i; renderPersonDialog(); },
         }))))),
     );
@@ -1476,16 +1477,16 @@ function drawAvatarPreview() {
   const canvas = $('#avatar-canvas');
   const ctx = canvas.getContext('2d');
   const scale = 8;
-  if (canvas.width !== 22 * scale) { canvas.width = 22 * scale; canvas.height = 24 * scale; }
+  if (canvas.width !== 22 * scale) { canvas.width = 22 * scale; canvas.height = 25 * scale; }
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  ctx.clearRect(0, 0, 22, 24);
-  ctx.fillStyle = '#2a3040'; ctx.fillRect(0, 22, 22, 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(6, 22, 10, 1);
+  ctx.clearRect(0, 0, 22, 25);
+  ctx.fillStyle = '#2a3040'; ctx.fillRect(0, 23, 22, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(6, 23, 10, 1);
   const t = performance.now();
   const blink = t % 3600 < 160;
   const { age } = ui.avatar;
   const sprite = composeAvatar(ui.avatar.draft, age, lifeStage(age).key, { blink });
-  drawAvatar(ctx, sprite, 3, 2, { breathe: Math.floor(t / 800) % 2 === 1 });
+  drawAvatar(ctx, sprite, 3, 3, { breathe: Math.floor(t / 800) % 2 === 1 });
 }
 
 function renderAvatarEditor() {
