@@ -211,18 +211,20 @@
         </div>
         <textarea name="text" class="composer-text" maxlength="500" placeholder="今天發生了什麼？" aria-label="發生了什麼？"></textarea>
         <div id="photo-picker" class="photo-picker"></div>
+        <div class="field tag-field" id="tag-field">
+          <span class="field-label">標籤 <span class="hint-inline">依你寫的字建議，點一下就加上</span></span>
+          <div id="tag-picker" class="chips tag-row"></div>
+        </div>
         <div class="field emo-field" id="emo-field">
           <span class="field-label">現在的心情？（選填）</span>
           <div id="emo-picker" class="emo-row"></div>
           <div id="emo-hint" class="hint"></div>
           <textarea name="feel" rows="2" maxlength="300" placeholder="想多說一點心情嗎？（選填）" aria-label="當下的心情" hidden></textarea>
         </div>
-        <button id="more-toggle" class="more-toggle" type="button" data-sec="more" aria-expanded="false"><b>更多</b><span id="more-summary">和誰、標籤、人生大事…</span><span class="chev">▾</span></button>
+        <button id="more-toggle" class="more-toggle" type="button" data-sec="more" aria-expanded="false"><b>更多</b><span id="more-summary">和誰、人生大事…</span><span class="chev">▾</span></button>
         <div class="opt-sec more-list-rows" data-sec="more" hidden>
           <button class="more-row" type="button" data-sec="people"><span class="ic">👥</span><span class="k" id="people-label">和誰</span><span class="v" id="people-sum"></span></button>
           <div class="opt-sec field sub-sec" data-sec="people" hidden><div id="people-picker" class="chips"></div></div>
-          <button class="more-row" type="button" data-sec="tags"><span class="ic">🏷</span><span class="k">標籤</span><span class="v" id="tags-sum"></span></button>
-          <div class="opt-sec field sub-sec" data-sec="tags" hidden><div id="tag-picker" class="chips"></div></div>
           <button class="more-row" type="button" id="event-open"><span class="ic">⭐</span><span class="k">人生大事</span><span class="v" id="event-sum"></span></button>
           <button class="more-row" type="button" id="star-toggle" aria-pressed="false"><span class="ic">☆</span><span class="k">值得記住</span><span class="v" id="star-sum">關</span></button>
           <label id="share-row" class="switch small-switch" hidden>
@@ -235,6 +237,7 @@
       <!-- 下方：貼在鍵盤上面的小工具列 -->
       <div class="composer-toolbar">
         <label class="tool" for="photo-input" id="photo-add">📷 <span id="photo-add-label">照片</span></label>
+        <button class="tool" type="button" id="tb-tags">🏷 標籤</button>
         <button class="tool" type="button" id="tb-mood">😊 心情</button>
         <button class="tool" type="button" id="tb-more">⋯ 更多</button>
       </div>

@@ -19,7 +19,21 @@ const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
 const DATA_VERSION = 2;
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄']; // 對應 1–5
 const MOOD_COLORS = ['#56608f', '#4f86a6', '#3fa89a', '#7fbf6a', '#e6b84f'];
-const DEFAULT_TAGS = ['家人', '朋友', '愛情', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
+const DEFAULT_TAGS = ['家人', '朋友', '愛情', '寵物', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
+// 依寫的字建議標籤（不會自動加上，點了才算）
+const TAG_WORDS = {
+  家人: ['爸', '媽', '家人', '阿嬤', '阿公', '外婆', '外公', '奶奶', '爺爺', '哥', '姊', '姐', '弟', '妹', '回家'],
+  朋友: ['朋友', '同學', '聚餐', '聚會', '閨蜜', '同事'],
+  愛情: ['約會', '男友', '女友', '老公', '老婆', '告白', '交往', '紀念日'],
+  寵物: ['狗', '貓', '寵物', '毛孩', '遛狗', '兔', '金魚', '鸚鵡'],
+  工作: ['上班', '工作', '開會', '加班', '公司', '主管', '專案', '簡報', '面試'],
+  學習: ['書', '閱讀', '讀', '上課', '考試', '學', '課程', '筆記'],
+  健康: ['看醫生', '生病', '醫院', '感冒', '睡', '吃藥', '體檢', '牙醫'],
+  運動: ['運動', '跑步', '健身', '游泳', '瑜珈', '打球', '籃球', '羽球', '爬山', '騎車', '散步'],
+  旅行: ['旅行', '出國', '機場', '飯店', '旅遊', '露營', '看海'],
+  興趣: ['電影', '畫畫', '音樂', '遊戲', '看劇', '追劇', '唱歌', '攝影', '拍照', '手作', '烘焙'],
+};
+const suggestTags = (text) => Object.keys(TAG_WORDS).filter((t) => TAG_WORDS[t].some((w) => (text || '').includes(w)));
 const BACKUP_REMIND_DAYS = 30;
 const MAP_YEARS = 90;
 const MAX_PHOTOS = 4;
@@ -883,7 +897,6 @@ function renderOptBar() {
   const ev = eventById(ui.event);
   const set = (id, text) => { const el = $(id); el.textContent = text ? `${text} ›` : '›'; el.classList.toggle('set', !!text); };
   set('#people-sum', names.length > 2 ? `${names.slice(0, 2).join('、')} 等 ${names.length} 位` : names.join('、'));
-  set('#tags-sum', [...ui.tags].slice(0, 3).join('、') + (ui.tags.size > 3 ? '…' : ''));
   set('#event-sum', ev ? `${ev.icon} ${ev.label}` : '');
   const star = $('#star-toggle');
   star.classList.toggle('filled', form.starred.checked);
@@ -891,8 +904,8 @@ function renderOptBar() {
   star.querySelector('.ic').textContent = form.starred.checked ? '★' : '☆';
   $('#star-sum').textContent = form.starred.checked ? '開' : '關';
   $('#star-sum').classList.toggle('set', form.starred.checked);
-  const filled = [names.length && '和誰', ui.tags.size && '標籤', ev && '人生大事', form.starred.checked && '值得記住', form.shared.checked && '分享'].filter(Boolean);
-  $('#more-summary').textContent = open('more') ? '' : filled.length ? `已填：${filled.join('、')}` : '和誰、標籤、人生大事…';
+  const filled = [names.length && '和誰', ev && '人生大事', form.starred.checked && '值得記住', form.shared.checked && '分享'].filter(Boolean);
+  $('#more-summary').textContent = open('more') ? '' : filled.length ? `已填：${filled.join('、')}` : '和誰、人生大事…';
   $('#more-summary').classList.toggle('set', !!filled.length && !open('more'));
   $('#more-toggle .chev').textContent = open('more') ? '▴' : '▾';
 
@@ -1034,10 +1047,15 @@ function renderEmoPicker() {
   if (ui.openSecs) renderOptBar();
 }
 
+// 標籤：建議的排在最前面（虛線），選了的實心；一個標籤只出現一次
 function renderTagPicker() {
-  $('#tag-picker').replaceChildren(...allTags().map((t) =>
+  const form = $('#moment-form');
+  const suggested = suggestTags(`${form.text.value} ${form.feel.value}`).filter((t) => !ui.tags.has(t));
+  const all = allTags();
+  const order = [...all.filter((t) => ui.tags.has(t)), ...suggested.filter((t) => all.includes(t)), ...all.filter((t) => !ui.tags.has(t) && !suggested.includes(t))];
+  $('#tag-picker').replaceChildren(...order.map((t) =>
     h('button', {
-      type: 'button', class: `chip${ui.tags.has(t) ? ' on' : ''}`,
+      type: 'button', class: `chip${ui.tags.has(t) ? ' on' : suggested.includes(t) ? ' suggest' : ''}`,
       onclick: () => { ui.tags.has(t) ? ui.tags.delete(t) : ui.tags.add(t); renderTagPicker(); },
     }, t)));
   if (ui.openSecs) renderOptBar();
@@ -1051,10 +1069,15 @@ function renderPhotoPicker() {
       onclick: () => removePendingPhoto(i),
     }, '×')));
   if (ui.busy) items.push(h('div', { class: 'photo-item busy' }, '處理中…'));
+  // 灰色虛線框：沒照片時是一大塊「加照片」，有照片時是後面的小格子
+  else if (ui.photos.length < MAX_PHOTOS) {
+    items.push(h('label', { class: `photo-add${ui.photos.length ? '' : ' empty'}`, for: 'photo-input' },
+      '📷', h('span', {}, ui.photos.length ? '再加一張' : '加照片')));
+  }
   const picker = $('#photo-picker');
   picker.replaceChildren(...items);
   picker.classList.toggle('single', ui.photos.length === 1 && !ui.busy); // 只有一張時放大
-  picker.hidden = !items.length;
+  picker.classList.toggle('none', !ui.photos.length && !ui.busy);
   $('#photo-add').hidden = ui.photos.length >= MAX_PHOTOS;
   $('#photo-add-label').textContent = ui.photos.length ? '再加一張' : '照片';
   $('#moment-form').text.placeholder = ui.photos.length ? '想說點什麼嗎？（可以不寫）' : '今天發生了什麼？';
@@ -2883,9 +2906,11 @@ function bind() {
   // 鍵盤上方的工具列：收起鍵盤，捲到心情或「更多」
   const reveal = (el) => { document.activeElement && document.activeElement.blur(); setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 120); };
   $('#tb-mood').addEventListener('click', () => reveal($('#emo-field')));
+  $('#tb-tags').addEventListener('click', () => reveal($('#tag-field')));
   $('#tb-more').addEventListener('click', () => { ui.openSecs.add('more'); renderOptBar(); reveal($('#more-toggle')); });
   $('#moment-form').shared.addEventListener('change', renderOptBar);
-  $('#moment-form').text.addEventListener('input', renderOptBar);
+  $('#moment-form').text.addEventListener('input', () => { renderOptBar(); renderTagPicker(); });
+  $('#moment-form').feel.addEventListener('input', renderTagPicker);
   // 首頁的入口：點一下就打開「記一筆」；📷 直接選照片
   $('#quick-open').addEventListener('click', () => openMoment());
   $('#quick-photo').addEventListener('click', () => { openMoment(); $('#photo-input').click(); });

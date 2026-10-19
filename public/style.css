@@ -854,9 +854,9 @@ dialog.composer-page #moment-form { flex: 1; min-height: 0; min-width: 0; width:
 }
 .composer-text:focus { outline: none; }
 .composer-text::placeholder { color: var(--muted); opacity: .7; }
-.composer-body .photo-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.composer-body .photo-picker.single { grid-template-columns: 1fr; }
-.composer-body .photo-picker.single .photo-item { aspect-ratio: 4 / 3; border-radius: 14px; }
+/* 照片都是正方形格子，一排三格；加照片也是一格灰色虛線 */
+.composer-body .photo-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.composer-body .photo-item, .composer-body .photo-add { aspect-ratio: 1; border-radius: 12px; }
 .composer-toolbar {
   flex-shrink: 0; display: flex; gap: 8px; align-items: center;
   padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel);
@@ -865,3 +865,15 @@ dialog.composer-page #moment-form { flex: 1; min-height: 0; min-width: 0; width:
 @media (min-width: 700px) {
   dialog.composer-page { top: 5vh; height: 90vh; max-width: 640px; margin: 0 auto; border: 1px solid var(--line); border-radius: 12px; }
 }
+
+/* 照片虛線框、標籤列 */
+.composer-body .photo-add { border-width: 1.5px; gap: 4px; font-size: 24px; }
+.composer-body .photo-add span { font-size: 12px; }
+.tag-field { gap: 8px; }
+.hint-inline { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 4px; }
+.tag-row { flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px; padding: 2px 20px 4px; scrollbar-width: none; }
+.tag-row::-webkit-scrollbar { display: none; }
+.tag-row .chip { flex-shrink: 0; white-space: nowrap; }
+.chip.suggest { border-style: dashed; border-color: var(--accent); color: var(--accent); }
+.chip.suggest::before { content: '✨ '; }
+.composer-toolbar .tool { padding: 8px 12px; }
