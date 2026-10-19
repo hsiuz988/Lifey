@@ -20,5 +20,21 @@
       "binding": "PHOTOS",
       "bucket_name": "lifey-photos"
     }
-  ]
+  ],
+  // 分支的預覽版本（Workers Builds 的 Preview builds）：和正式機共用同一個資料庫與照片
+  "previews": {
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "lifey-db",
+        "database_id": "abdae2da-d0f9-4606-b320-52a37dd4cbe7"
+      }
+    ],
+    "r2_buckets": [
+      {
+        "binding": "PHOTOS",
+        "bucket_name": "lifey-photos"
+      }
+    ]
+  }
 }
