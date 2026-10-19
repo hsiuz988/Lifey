@@ -1,6 +1,6 @@
 // Cloudflare Workers 設定：public/ 是網站，worker/ 處理 /api（登入、同步、照片）
 {
-  "name": "lifey",
+  "name": "app",
   "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
   "assets": {
