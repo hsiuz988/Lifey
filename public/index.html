@@ -176,12 +176,12 @@
   </main>
 
   <!-- 新增／編輯時刻：內容放第一個，選填的項目收成一排按鈕，點了才展開 -->
-  <dialog id="moment-dialog" class="sheet">
+  <dialog id="moment-dialog" class="sheet composer-page">
     <form id="moment-form" method="dialog" novalidate>
-      <div class="sheet-top">
+      <!-- 上方：關閉、標題、記下來（鍵盤怎麼彈都看得到） -->
+      <div class="composer-head">
+        <button class="icon-btn small-icon close-x" type="button" data-close aria-label="關閉">✕</button>
         <h3 id="moment-title">記一筆</h3>
-        <span class="spacer"></span>
-        <button id="date-chip" class="date-chip" type="button" data-sec="date" aria-expanded="false">📅 <span id="date-btn-label">今天</span> ▾</button>
         <div id="moment-menu" class="more-menu" hidden>
           <button id="moment-menu-btn" class="icon-btn small-icon" type="button" aria-label="更多" aria-expanded="false">⋯</button>
           <div id="moment-menu-list" class="more-list" hidden>
@@ -190,54 +190,55 @@
             <button id="moment-delete" class="danger-item" type="button">刪除這則</button>
           </div>
         </div>
-        <button class="icon-btn small-icon close-x" type="button" data-close aria-label="關閉">✕</button>
+        <button id="moment-save" class="btn primary save-pill" type="submit" value="save">記下來</button>
       </div>
-      <div class="opt-sec field" data-sec="date" hidden>
-        <label>日期
-          <input name="date" type="date" required>
-        </label>
-        <div id="moment-age" class="age-hint"></div>
-        <label class="switch small-switch">
-          <input name="approx" type="checkbox">
-          <span>不確定日期，只記得是這一歲</span>
-        </label>
-      </div>
-      <!-- 唯一要做的事：寫一句話，或放一張照片 -->
-      <div class="composer">
-        <div id="photo-picker" class="photo-picker"></div>
-        <textarea name="text" rows="2" maxlength="500" placeholder="今天發生了什麼？一句話、或一張照片就好" aria-label="發生了什麼？"></textarea>
-        <div class="composer-tools">
-          <label class="tool" for="photo-input" id="photo-add">📷 <span id="photo-add-label">照片</span></label>
+      <!-- 中間：一大塊寫字的地方 -->
+      <div class="composer-body">
+        <div class="composer-meta">
+          <button id="date-chip" class="date-chip" type="button" data-sec="date" aria-expanded="false">📅 <span id="date-btn-label">今天</span> ▾</button>
           <span id="event-badge" class="event-badge" hidden></span>
+          <span id="save-hint" class="hint save-hint"></span>
         </div>
-        <input id="photo-input" type="file" accept="image/*" multiple hidden>
+        <div class="opt-sec field" data-sec="date" hidden>
+          <label>日期
+            <input name="date" type="date" required>
+          </label>
+          <div id="moment-age" class="age-hint"></div>
+          <label class="switch small-switch">
+            <input name="approx" type="checkbox">
+            <span>不確定日期，只記得是這一歲</span>
+          </label>
+        </div>
+        <textarea name="text" class="composer-text" maxlength="500" placeholder="今天發生了什麼？" aria-label="發生了什麼？"></textarea>
+        <div id="photo-picker" class="photo-picker"></div>
+        <div class="field emo-field" id="emo-field">
+          <span class="field-label">現在的心情？（選填）</span>
+          <div id="emo-picker" class="emo-row"></div>
+          <div id="emo-hint" class="hint"></div>
+          <textarea name="feel" rows="2" maxlength="300" placeholder="想多說一點心情嗎？（選填）" aria-label="當下的心情" hidden></textarea>
+        </div>
+        <button id="more-toggle" class="more-toggle" type="button" data-sec="more" aria-expanded="false"><b>更多</b><span id="more-summary">和誰、標籤、人生大事…</span><span class="chev">▾</span></button>
+        <div class="opt-sec more-list-rows" data-sec="more" hidden>
+          <button class="more-row" type="button" data-sec="people"><span class="ic">👥</span><span class="k" id="people-label">和誰</span><span class="v" id="people-sum"></span></button>
+          <div class="opt-sec field sub-sec" data-sec="people" hidden><div id="people-picker" class="chips"></div></div>
+          <button class="more-row" type="button" data-sec="tags"><span class="ic">🏷</span><span class="k">標籤</span><span class="v" id="tags-sum"></span></button>
+          <div class="opt-sec field sub-sec" data-sec="tags" hidden><div id="tag-picker" class="chips"></div></div>
+          <button class="more-row" type="button" id="event-open"><span class="ic">⭐</span><span class="k">人生大事</span><span class="v" id="event-sum"></span></button>
+          <button class="more-row" type="button" id="star-toggle" aria-pressed="false"><span class="ic">☆</span><span class="k">值得記住</span><span class="v" id="star-sum">關</span></button>
+          <label id="share-row" class="switch small-switch" hidden>
+            <input name="shared" type="checkbox">
+            <span id="share-label">💞 分享給另一半</span>
+          </label>
+        </div>
+        <input name="starred" type="checkbox" hidden>
       </div>
-      <div class="field emo-field">
-        <span class="field-label">現在的心情？（選填）</span>
-        <div id="emo-picker" class="emo-row"></div>
-        <div id="emo-hint" class="hint"></div>
-        <textarea name="feel" rows="2" maxlength="300" placeholder="想多說一點心情嗎？（選填）" aria-label="當下的心情" hidden></textarea>
+      <!-- 下方：貼在鍵盤上面的小工具列 -->
+      <div class="composer-toolbar">
+        <label class="tool" for="photo-input" id="photo-add">📷 <span id="photo-add-label">照片</span></label>
+        <button class="tool" type="button" id="tb-mood">😊 心情</button>
+        <button class="tool" type="button" id="tb-more">⋯ 更多</button>
       </div>
-      <!-- 其他都收在「更多」 -->
-      <button id="more-toggle" class="more-toggle" type="button" data-sec="more" aria-expanded="false"><b>更多</b><span id="more-summary">和誰、標籤、人生大事…</span><span class="chev">▾</span></button>
-      <div class="opt-sec more-list-rows" data-sec="more" hidden>
-        <button class="more-row" type="button" data-sec="people"><span class="ic">👥</span><span class="k" id="people-label">和誰</span><span class="v" id="people-sum"></span></button>
-        <div class="opt-sec field sub-sec" data-sec="people" hidden><div id="people-picker" class="chips"></div></div>
-        <button class="more-row" type="button" data-sec="tags"><span class="ic">🏷</span><span class="k">標籤</span><span class="v" id="tags-sum"></span></button>
-        <div class="opt-sec field sub-sec" data-sec="tags" hidden><div id="tag-picker" class="chips"></div></div>
-        <button class="more-row" type="button" id="event-open"><span class="ic">⭐</span><span class="k">人生大事</span><span class="v" id="event-sum"></span></button>
-        <button class="more-row" type="button" id="star-toggle" aria-pressed="false"><span class="ic">☆</span><span class="k">值得記住</span><span class="v" id="star-sum">關</span></button>
-        <label id="share-row" class="switch small-switch" hidden>
-          <input name="shared" type="checkbox">
-          <span id="share-label">💞 分享給另一半</span>
-        </label>
-      </div>
-      <input name="starred" type="checkbox" hidden>
-      <div class="sheet-actions">
-        <span id="save-hint" class="hint save-hint"></span>
-        <span class="spacer"></span>
-        <button id="moment-save" class="btn primary" type="submit" value="save">記下來</button>
-      </div>
+      <input id="photo-input" type="file" accept="image/*" multiple hidden>
     </form>
   </dialog>
 

@@ -826,3 +826,42 @@ label.tool, .tool {
 #moment-form .more-list-rows #share-row { padding: 12px 2px; border-top: 1px solid var(--line); }
 #moment-save.off { opacity: .45; }
 .save-hint { margin: 0; font-size: 12.5px; }
+
+/* ---------- 記一筆：全螢幕寫字畫面（高度貼齊鍵盤上方看得到的範圍） ---------- */
+dialog.composer-page {
+  position: fixed; inset: auto 0 auto 0; top: var(--vv-top, 0px);
+  width: 100%; max-width: none; height: var(--vv-h, 100dvh); max-height: none;
+  margin: 0; padding: 0; border: 0; border-radius: 0; background: var(--bg); overflow: hidden;
+}
+dialog.composer-page[open] { display: flex; flex-direction: column; }
+dialog.composer-page #moment-form { flex: 1; min-height: 0; min-width: 0; width: 100%; display: flex; flex-direction: column; gap: 0; }
+.composer-head {
+  flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px; border-bottom: 1px solid var(--line);
+}
+.composer-head h3 { flex: 1; text-align: center; font-size: 17px; }
+.save-pill { padding: 8px 18px; border-radius: 999px; min-height: 0; font-size: 15px; }
+.composer-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 14px 20px 24px; display: flex; flex-direction: column; gap: 14px;
+}
+.composer-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.composer-meta .save-hint { margin-left: auto; }
+.composer-text {
+  flex: 1 0 auto; min-height: 34vh; width: 100%; resize: none; outline: none;
+  background: transparent; border: 0; padding: 0; color: var(--text);
+  font-size: 22px; line-height: 1.6;
+}
+.composer-text:focus { outline: none; }
+.composer-text::placeholder { color: var(--muted); opacity: .7; }
+.composer-body .photo-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.composer-body .photo-picker.single { grid-template-columns: 1fr; }
+.composer-body .photo-picker.single .photo-item { aspect-ratio: 4 / 3; border-radius: 14px; }
+.composer-toolbar {
+  flex-shrink: 0; display: flex; gap: 8px; align-items: center;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel);
+}
+.composer-toolbar .tool { font-size: 14px; padding: 8px 14px; }
+@media (min-width: 700px) {
+  dialog.composer-page { top: 5vh; height: 90vh; max-width: 640px; margin: 0 auto; border: 1px solid var(--line); border-radius: 12px; }
+}

@@ -899,7 +899,7 @@ function renderOptBar() {
   // 寫一句或放一張照片就能記
   const ready = !!form.text.value.trim() || ui.photos.length > 0;
   $('#moment-save').classList.toggle('off', !ready);
-  $('#save-hint').textContent = ready ? '' : '寫一句或放一張照片';
+  $('#save-hint').textContent = ready ? '' : '一句話、或一張照片就好';
 }
 
 function toggleSec(sec, force) {
@@ -1057,7 +1057,7 @@ function renderPhotoPicker() {
   picker.hidden = !items.length;
   $('#photo-add').hidden = ui.photos.length >= MAX_PHOTOS;
   $('#photo-add-label').textContent = ui.photos.length ? '再加一張' : '照片';
-  $('#moment-form').text.placeholder = ui.photos.length ? '想說點什麼嗎？（可以不寫）' : '今天發生了什麼？一句話、或一張照片就好';
+  $('#moment-form').text.placeholder = ui.photos.length ? '想說點什麼嗎？（可以不寫）' : '今天發生了什麼？';
   if (ui.openSecs) renderOptBar();
 }
 
@@ -2880,6 +2880,10 @@ function bind() {
   document.querySelectorAll('#moment-form button[data-sec]').forEach((btn) => btn.addEventListener('click', () => toggleSec(btn.dataset.sec)));
   $('#star-toggle').addEventListener('click', () => { const box = $('#moment-form').starred; box.checked = !box.checked; renderOptBar(); });
   $('#event-open').addEventListener('click', () => openEventPicker('moment'));
+  // 鍵盤上方的工具列：收起鍵盤，捲到心情或「更多」
+  const reveal = (el) => { document.activeElement && document.activeElement.blur(); setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 120); };
+  $('#tb-mood').addEventListener('click', () => reveal($('#emo-field')));
+  $('#tb-more').addEventListener('click', () => { ui.openSecs.add('more'); renderOptBar(); reveal($('#more-toggle')); });
   $('#moment-form').shared.addEventListener('change', renderOptBar);
   $('#moment-form').text.addEventListener('input', renderOptBar);
   // 首頁的入口：點一下就打開「記一筆」；📷 直接選照片
@@ -3031,11 +3035,16 @@ function bind() {
   // 鍵盤打開時，把底部固定列墊高到鍵盤上方
   if (window.visualViewport) {
     const onViewport = () => {
-      const kb = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+      const vv = window.visualViewport;
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       document.documentElement.style.setProperty('--kb', `${Math.round(kb)}px`);
+      // 寫字的全螢幕畫面直接貼齊「鍵盤上方看得到的範圍」
+      document.documentElement.style.setProperty('--vv-h', `${Math.round(vv.height)}px`);
+      document.documentElement.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
     };
     window.visualViewport.addEventListener('resize', onViewport);
     window.visualViewport.addEventListener('scroll', onViewport);
+    onViewport();
   }
 
   // 跨日或從背景回來時更新年齡與進度

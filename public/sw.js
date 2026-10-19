@@ -1,5 +1,5 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v23';
+const CACHE = 'lifelog-v24';
 const ASSETS = [
   './',
   './index.html',
