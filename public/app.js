@@ -392,7 +392,7 @@ function sceneMessages() {
   // 好一陣子沒一起記錄的人
   const last = new Map();
   for (const m of state.moments) for (const id of m.people) if (!last.has(id) || m.date > last.get(id)) last.set(id, m.date);
-  const quiet = state.people.filter((p) => p.kind === 'person' && last.has(p.id) && daysBetween(parseDate(last.get(p.id)), new Date()) > 60);
+  const quiet = state.people.filter((p) => p.kind === 'person' && !p.hideInMemories && last.has(p.id) && daysBetween(parseDate(last.get(p.id)), new Date()) > 60);
   if (quiet.length) out.push(`好久沒記到 ${personName(quiet[Math.floor(Math.random() * quiet.length)])} 了，最近好嗎？`);
   return out;
 }
@@ -1054,6 +1054,15 @@ async function saveQuickNote(e) {
   if (scene) scene.celebrate();
 }
 
+// 回顧時要避開的：難過的人生大事、設成「回顧時避開」的人、設成「輕輕帶過」的年歲
+const quietAge = (age) => !!(state.years[String(age)] || {}).quiet;
+function avoidInMemories(m) {
+  const ev = eventById(m.event);
+  if (ev && ev.sad) return true;
+  if (quietAge(ageAt(state.profile.birthday, m.date))) return true;
+  return m.people.some((id) => { const p = personById(id); return p && p.hideInMemories; });
+}
+
 // 每週回憶題：從記得最少的幾歲裡輪流挑一題，每週換一次
 function weeklyQuestion() {
   const { birthday } = state.profile;
@@ -1102,7 +1111,7 @@ function renderToday() {
   }
   // 那年今日：先找自己的紀錄，沒有的話找那天的時事
   const md = today.slice(5);
-  const past = state.moments.filter((m) => !m.approx && m.date < today && m.date.slice(5) === md).sort((a, b) => b.date.localeCompare(a.date));
+  const past = state.moments.filter((m) => !m.approx && m.date < today && m.date.slice(5) === md && !avoidInMemories(m)).sort((a, b) => b.date.localeCompare(a.date));
   if (past.length) {
     const m = past[0];
     const a = ageAt(birthday, m.date);
@@ -1111,7 +1120,7 @@ function renderToday() {
   } else {
     const [mm, dd] = md.split('-').map(Number);
     const evs = world.eventsOnDay(mm, dd, Number(birthday.slice(0, 4)), () => renderToday());
-    const fit = (evs || []).filter((e) => (state.prefs.worldSad !== false || !e.sad) && `${e.y}-${md}` >= birthday && e.y < Number(today.slice(0, 4)));
+    const fit = (evs || []).filter((e) => (state.prefs.worldSad !== false || !e.sad) && `${e.y}-${md}` >= birthday && e.y < Number(today.slice(0, 4)) && !quietAge(ageAt(birthday, `${e.y}-${md}`)));
     if (fit.length) {
       const e = fit[Number(today.slice(0, 4)) % fit.length];
       const a = ageAt(birthday, `${e.y}-${md}`);
@@ -1123,6 +1132,26 @@ function renderToday() {
   if (wq) cards.push(todayCard('weekly', '🕰', `本週回憶題 · ${wq.age} 歲`, wq.q, [['回答', () => openRecallAt(wq.age, wq.qi)]]));
   root.hidden = !cards.length;
   root.replaceChildren(...cards);
+}
+
+// ---------- 第一次使用：捏完小人後，看看出生那年的世界，寫下第一筆 ----------
+async function openWelcome() {
+  const { birthday, name } = state.profile;
+  const y = Number(birthday.slice(0, 4));
+  const age = ageAt(birthday, todayStr());
+  const evs = (await worldFor(new Date(y, 0, 1), new Date(y, 11, 31))).filter((e) => !e.sad);
+  const pick = [...evs.filter((e) => e.region === 'tw').slice(0, 2), ...evs.filter((e) => e.region === 'world').slice(0, 2)];
+  $('#letter-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `歡迎，${name} 🌱`)),
+    pick.length ? h('p', {}, `你出生的 ${y} 年，世界正在發生這些事：`) : null,
+    pick.length ? h('ul', { class: 'welcome-events' }, pick.map((e) => h('li', {}, `${world.CATS[e.cat] || '🌏'} ${e.title}`))) : null,
+    h('p', {}, `你現在 ${age} 歲，在人生地圖的第 ${age + 1} 格。每一格是一年，一歲記滿 ${LIT_AT} 則就會點亮。`),
+    h('p', { class: 'hint' }, '從今天的一句話開始就好。想補小時候的回憶，可以用「🕰 回憶模式」，一歲一歲慢慢來。'),
+    h('div', { class: 'sheet-actions' },
+      h('button', { type: 'button', class: 'btn', onclick: () => { $('#letter-dialog').close(); openRecall(); } }, '從小時候開始'),
+      h('span', { class: 'spacer' }),
+      h('button', { type: 'button', class: 'btn primary', onclick: () => { $('#letter-dialog').close(); openMoment(); } }, '寫下第一筆')));
+  if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
 }
 
 // ---------- 給未來的信 ----------
@@ -1302,7 +1331,8 @@ async function stepReplay() {
   const stage = lifeStage(age);
   const [start, end] = ageRange(birthday, age);
   const list = state.moments.filter((m) => ageAt(birthday, m.date) === age);
-  const picks = [...list].sort((a, b) => (!!eventById(b.event) - !!eventById(a.event)) || (b.starred - a.starred) || a.date.localeCompare(b.date)).slice(0, 3);
+  const gentle = quietAge(age);
+  const picks = gentle ? [] : [...list].filter((m) => !avoidInMemories(m)).sort((a, b) => (!!eventById(b.event) - !!eventById(a.event)) || (b.starred - a.starred) || a.date.localeCompare(b.date)).slice(0, 3);
   replay.scene.update({
     stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday, props: propsForTags(new Set(list.flatMap((m) => m.tags))),
     weather: null, messages: () => [], pets: [], garden: Math.min(5, Math.floor(age / 6)), quiet: false, mail: false,
@@ -1310,7 +1340,7 @@ async function stepReplay() {
   $('#replay-age').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : stage.label}`;
   $('#replay-bar').style.width = `${((age + 1) / (replay.current + 1)) * 100}%`;
   const ev = (await worldFor(start, end > parseDate(todayStr()) ? parseDate(todayStr()) : end)).filter((e) => !e.sad);
-  const lines = [
+  const lines = gentle ? [h('p', { class: 'replay-title' }, '這一年，輕輕帶過 🤍')] : [
     yearTitle(age) ? h('p', { class: 'replay-title' }, `「${yearTitle(age)}」`) : null,
     ...picks.map((m) => h('p', {}, `${eventById(m.event) ? eventById(m.event).icon : m.starred ? '★' : '·'} ${m.text}`)),
     ev.length ? h('p', { class: 'replay-world' }, `那一年：${ev[age % ev.length].title}`) : null,
@@ -1323,7 +1353,7 @@ async function stepReplay() {
     $('#replay-caption').replaceChildren(h('p', { class: 'replay-title' }, '這就是到現在的你 🌱'), h('p', {}, '未完待續…繼續記下去，重播就會越來越長。'));
     replay.done = true;
     $('#replay-toggle').textContent = '重播';
-  }, picks.length || yearTitle(age) ? 3200 : 1100);
+  }, !gentle && (picks.length || yearTitle(age)) ? 3200 : 1100);
 }
 
 function toggleReplay() {
@@ -1425,6 +1455,10 @@ function renderPersonDialog() {
       h('p', { class: 'hint' }, '場景裡最多 2 隻，超過時會出現最新加入的 2 隻；不想出現的可以關掉。'));
   }
 
+  const avoid = h('input', { type: 'checkbox' });
+  avoid.checked = !!d.hideInMemories;
+  avoid.addEventListener('change', () => { d.hideInMemories = avoid.checked; });
+  fields.push(h('label', { class: 'switch small-switch' }, avoid, h('span', {}, '回顧時避開（「那年今日」、人生重播、小人的話都不會提到）')));
   const save = h('button', { type: 'button', class: 'btn primary' }, '儲存');
   save.addEventListener('click', () => savePerson());
   body.replaceChildren(
@@ -1447,7 +1481,7 @@ async function savePerson() {
   if (draft.kind === 'person' && !draft.relation) { toast('請選擇關係'); return; }
   const now = new Date().toISOString();
   const clean = {
-    kind: draft.kind, name, birthday: isValidDateStr(draft.birthday) ? draft.birthday : '', updatedAt: now,
+    kind: draft.kind, name, birthday: isValidDateStr(draft.birthday) ? draft.birthday : '', hideInMemories: !!draft.hideInMemories, updatedAt: now,
     ...(draft.kind === 'pet' ? { petType: draft.petType, petColor: draft.petColor || 0, inScene: draft.inScene !== false, relation: null } : { relation: draft.relation }),
   };
   let person;
@@ -1506,6 +1540,7 @@ function openYear(age) {
   $('#year-heading').textContent = `${age} 歲`;
   $('#year-range').textContent = `${fmtDate(start)} – ${fmtDate(end)} · ${list.length} 則${stars ? ` · ☆${stars}` : ''}`;
   $('#year-form').summary.value = yearTitle(age);
+  $('#year-form').quiet.checked = !!(state.years[String(age)] || {}).quiet;
   $('#year-view').hidden = list.length === 0;
   renderStatBars($('#year-stats'), statsFor(list), yearFocus(age));
   $('#year-dialog').showModal();
@@ -1516,6 +1551,7 @@ async function saveYear(e) {
   const title = e.target.summary.value.trim();
   const key = String(ui.yearAge);
   setYearField(key, 'title', title);
+  setYearField(key, 'quiet', e.target.quiet.checked || null);
   if (await saveState()) {
     $('#year-dialog').close();
     toast('已儲存');
@@ -2078,6 +2114,7 @@ function openSettings(page = 'home') {
   renderPeopleSection();
   $('#pref-achievements').checked = !!state.prefs.showAchievements;
   $('#pref-world-sad').checked = state.prefs.worldSad !== false;
+  renderThemeChips();
   renderSettingsStatus();
   renderStorageStatus();
   settingsGo(page);
@@ -2102,6 +2139,26 @@ function settingsGo(page) {
   $('#settings-dialog').scrollTop = 0;
 }
 
+// ---------- 外觀：深色、淺色、跟隨系統（存在這支手機，每台裝置可以不同） ----------
+const THEMES = [['dark', '深色'], ['light', '淺色'], ['auto', '跟隨系統']];
+function themePref() {
+  try { return localStorage.getItem('lifey.theme') || 'dark'; } catch (e) { return 'dark'; }
+}
+function applyTheme() {
+  const pref = themePref();
+  const light = pref === 'light' || (pref === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+  document.documentElement.dataset.theme = light ? 'light' : 'dark';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = light ? '#f7f6f3' : '#15171c';
+}
+function renderThemeChips() {
+  const pref = themePref();
+  $('#theme-chips').replaceChildren(...THEMES.map(([v, label]) => h('button', {
+    type: 'button', class: `chip${pref === v ? ' on' : ''}`, 'aria-pressed': String(pref === v),
+    onclick: () => { try { localStorage.setItem('lifey.theme', v); } catch (e) { /* 無痕模式存不了，只套用這次 */ } applyTheme(); renderThemeChips(); },
+  }, label)));
+}
+
 // ---------- 綁定事件 ----------
 function bind() {
   $('#setup-form').birthday.max = todayStr();
@@ -2110,7 +2167,8 @@ function bind() {
     if (await saveProfile(e.target)) {
       requestPersist();
       render();
-      openAvatarEditor(); // 第一次使用：接著捏自己的小人
+      ui.onboarding = true;
+      openAvatarEditor(); // 第一次使用：接著捏自己的小人，捏完看歡迎頁
     }
   });
 
@@ -2207,7 +2265,10 @@ function bind() {
     renderAvatarEditor();
     drawAvatarPreview();
   });
-  $('#avatar-dialog').addEventListener('close', () => { clearInterval(ui.avatar && ui.avatar.timer); });
+  $('#avatar-dialog').addEventListener('close', () => {
+    clearInterval(ui.avatar && ui.avatar.timer);
+    if (ui.onboarding) { ui.onboarding = false; setTimeout(openWelcome, 250); }
+  });
   $('#profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (await saveProfile(e.target)) { toast('已儲存'); render(); renderSettingsMenu(); settingsGo('home'); }
@@ -2266,6 +2327,8 @@ function bind() {
 }
 
 async function init() {
+  applyTheme();
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
   bind();
   try {
     state = await loadState();

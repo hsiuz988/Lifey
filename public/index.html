@@ -4,7 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#15171c">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
+  <script>
+    // 外觀在畫面出來前就套用，避免閃一下：dark（預設）、light、auto（跟隨系統）
+    (function () {
+      var pref = 'dark';
+      try { pref = localStorage.getItem('lifey.theme') || 'dark'; } catch (e) {}
+      var light = pref === 'light' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches);
+      document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    })();
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,7 +28,13 @@
   <!-- 第一次開啟：設定姓名與生日 -->
   <section id="setup" class="setup" hidden>
     <h1 class="brand">人生紀錄<span class="brand-dot">.</span></h1>
-    <p class="muted">只屬於你的一生。每個值得記住的時刻，都會被放進那一歲。</p>
+    <p class="muted">把你真實的一生，慢慢養成一座小世界。</p>
+    <ul class="intro-list">
+      <li><span>🗺</span>一生 90 格，一格一年，記滿就會點亮</li>
+      <li><span>🌏</span>台灣和世界的大事，穿插在你的紀錄裡</li>
+      <li><span>🧒</span>會跟著你長大的小人，還有你的寵物</li>
+      <li><span>🔒</span>資料先存在你的手機，不給任何人看</li>
+    </ul>
     <form id="setup-form" class="panel form">
       <label>名字
         <input name="name" required maxlength="40" autocomplete="name">
@@ -28,7 +43,7 @@
         <input name="birthday" type="date" required>
       </label>
       <button class="btn primary" type="submit">開始記錄</button>
-      <p class="hint">資料只存在這支手機的瀏覽器裡，不會上傳到任何地方。</p>
+      <p class="hint">資料只存在這支手機的瀏覽器裡，不會上傳到任何地方。<a href="privacy.html">隱私權政策與使用條款</a></p>
     </form>
   </section>
 
@@ -226,6 +241,10 @@
       <div id="year-stats" class="stat-bars compact"></div>
       <label>這一歲的一句話
         <input name="summary" maxlength="40" placeholder="例如：離家上大學的一年">
+      </label>
+      <label class="switch small-switch">
+        <input name="quiet" type="checkbox">
+        <span>回顧時輕輕帶過這一歲（「那年今日」和人生重播不會提起）</span>
       </label>
       <div class="row">
         <button id="year-add" class="btn" type="button">＋ 在這一歲記一筆</button>
@@ -430,8 +449,13 @@
 
     <section class="settings-page" data-page="other" hidden>
       <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>其他</h3></div>
+      <div class="field">
+        <span class="field-label">外觀</span>
+        <div id="theme-chips" class="chips"></div>
+      </div>
       <label class="switch"><input id="pref-world-sad" type="checkbox"><span>「那一年的世界」裡顯示災難、離別這類難過的事</span></label>
       <label class="switch"><input id="pref-achievements" type="checkbox"><span>顯示成就（關閉時照樣在背後記錄）</span></label>
+      <p class="hint"><a href="privacy.html">隱私權政策與使用條款</a></p>
       <p id="app-version" class="hint"></p>
       <div class="sheet-actions">
         <span class="spacer"></span>

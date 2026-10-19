@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>隱私權政策與使用條款 · 人生紀錄</title>
+  <script>
+    (function () {
+      var pref = 'dark';
+      try { pref = localStorage.getItem('lifey.theme') || 'dark'; } catch (e) {}
+      var light = pref === 'light' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches);
+      document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .doc { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; line-height: 1.8; }
+    .doc h1 { font-size: 26px; margin: 8px 0 4px; }
+    .doc h2 { font-size: 19px; margin: 32px 0 8px; }
+    .doc ul { padding-left: 20px; }
+    .doc li { margin: 4px 0; }
+    .doc .muted { font-size: 13px; }
+    .doc a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="doc">
+    <p><a href="./">‹ 回到人生紀錄</a></p>
+    <h1>隱私權政策與使用條款</h1>
+    <p class="muted">最後更新：2026 年 10 月 19 日（封閉測試版）</p>
+
+    <p>人生紀錄是一個記錄你真實人生的 App。你寫下的每一件事都很私密，所以我們把「你的資料是你的」當成最重要的原則。以下用白話說明我們怎麼處理你的資料。</p>
+
+    <h2>一、我們收集哪些資料</h2>
+    <ul>
+      <li><b>你主動填寫的內容</b>：名字、生日、紀錄的文字、照片、心情、標籤、人物與寵物、給未來的信、小人的外觀設定。</li>
+      <li><b>天氣功能的位置</b>：只有你在設定裡開啟「真實天氣」時，才會取得一次大約到 1 公里的位置，只存在你的手機，用來向免費的 Open-Meteo 查詢天氣，不會傳給我們。</li>
+      <li><b>我們不收集</b>：通訊錄、廣告追蹤碼、你在其他網站或 App 的行為。</li>
+    </ul>
+
+    <h2>二、資料存在哪裡</h2>
+    <ul>
+      <li><b>預設只存在你的手機</b>：紀錄和照片存在這支手機的瀏覽器裡（IndexedDB），不會上傳到任何地方。</li>
+      <li><b>開啟雲端同步後</b>：為了讓你換手機、跨裝置使用，資料會加密傳輸並存放在 Cloudflare 的雲端資料庫（D1）與檔案儲存（R2）。只有你登入的裝置，以及你主動分享的家人或伴侶看得到你選擇分享的內容。</li>
+      <li><b>誠實說明</b>：在封閉測試期間，負責營運這個服務的人技術上有能力存取雲端上的資料。我們承諾不會主動查看、不會出售、不會用於廣告，只有在你要求協助（例如找回資料）時才會在你同意下處理。正式版會評估加入端對端加密。</li>
+    </ul>
+
+    <h2>三、我們怎麼使用資料</h2>
+    <ul>
+      <li>只用來提供 App 的功能：顯示你的紀錄、人生地圖、年度卡、人生重播、同步與備份。</li>
+      <li>不會出售、出租或交換你的資料，也不會拿來投放廣告或訓練 AI 模型。</li>
+      <li>如果之後加入匿名使用統計（例如有多少人每週打開 App），只會統計次數，不會讀取紀錄內容，並會先在這裡公告。</li>
+    </ul>
+
+    <h2>四、分享給家人或伴侶</h2>
+    <ul>
+      <li>只有你產生邀請連結、對方加入後，才會建立連結。</li>
+      <li>你可以決定哪些紀錄要分享，也可以隨時取消分享或解除連結。</li>
+    </ul>
+
+    <h2>五、你的權利</h2>
+    <ul>
+      <li><b>匯出</b>：隨時可以在「設定 → 備份與資料」匯出完整備份（含照片），格式是一般的 ZIP 和 JSON，不會被綁住。</li>
+      <li><b>刪除</b>：可以刪除任何一則紀錄，或清除所有資料；開啟雲端同步的帳號也可以要求刪除雲端上的全部資料。</li>
+      <li><b>不付費也不會刪你的資料</b>：未來就算推出付費方案，你已經記下的內容和匯出功能都不會被鎖住。</li>
+      <li>依據中華民國《個人資料保護法》，你可以查詢、閱覽、要求補充或更正、要求停止處理或刪除你的個人資料。</li>
+    </ul>
+
+    <h2>六、資料安全與備份提醒</h2>
+    <ul>
+      <li>只存在手機裡的資料，可能因為清除瀏覽器資料、刪除 App、換手機而消失。請定期匯出備份，或開啟雲端同步。</li>
+      <li>封閉測試版可能有錯誤。我們會盡力保護資料，但無法保證絕對不會遺失，重要的回憶請一定要備份。</li>
+    </ul>
+
+    <h2>七、使用條款</h2>
+    <ul>
+      <li>這是封閉測試版，免費提供給受邀的朋友使用，功能可能隨時調整。</li>
+      <li>你寫下的內容屬於你。請不要上傳侵害他人權益或違法的內容。</li>
+      <li>「那一年的世界」時事內容由我們整理，力求正確，但可能有疏漏；如果發現錯誤，歡迎告訴我們。</li>
+      <li>天氣資料來自 Open-Meteo，時事僅供回憶參考。</li>
+      <li>我們可能更新這份政策；重大變更會在 App 裡通知你。</li>
+    </ul>
+
+    <h2>八、聯絡我們</h2>
+    <p>對隱私或資料有任何問題，請寫信到：<span id="contact">（聯絡信箱待填）</span></p>
+  </main>
+</body>
+</html>
