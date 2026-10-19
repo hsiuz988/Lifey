@@ -105,13 +105,13 @@ let b;
   await p.waitForTimeout(300);
 
   // 同步到雲端
-  // 存檔後隔一下才同步，等雲端出現這一則
-  const remoteStory = await p.waitForFunction(() => fetch('/api/sync').then(r => r.json()).then(r => {
-    const m = r.doc && r.doc.moments[0];
-    return m && m.story ? m.story.title : null;
-  }), null, { timeout: 20000, polling: 1000 }).then(h => h.jsonValue()).catch(() => null);
+  // 最後一次改動後 2 秒才同步（連續改動會一直往後延），等雲端出現這一則
+  let remoteStory = null;
+  for (let i = 0; i < 20 && remoteStory !== '淡水的夕陽2'; i++) {
+    await p.waitForTimeout(1000);
+    remoteStory = await p.evaluate(() => fetch('/api/sync').then(r => r.json()).then(r => { const m = r.doc && r.doc.moments[0]; return m && m.story ? m.story.title : null; }));
+  }
   assert(remoteStory === '淡水的夕陽2', '故事版有同步到雲端');
-  if (remoteStory !== '淡水的夕陽2') console.log('DEBUG', JSON.stringify(await p.evaluate(() => fetch('/api/sync').then(r => r.json()))).slice(0, 800), await p.evaluate(() => document.querySelector('#sync-btn') && document.querySelector('#sync-btn').className + ' ' + document.querySelector('#sync-btn').title));
 
   // 改了事件 → 舊故事拿掉、重新問；選保留原文
   await p.click('#timeline .moment-body');
