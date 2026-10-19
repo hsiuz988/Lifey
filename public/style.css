@@ -875,5 +875,5 @@ dialog.composer-page #moment-form { flex: 1; min-height: 0; min-width: 0; width:
 .tag-row::-webkit-scrollbar { display: none; }
 .tag-row .chip { flex-shrink: 0; white-space: nowrap; }
 .chip.suggest { border-style: dashed; border-color: var(--accent); color: var(--accent); }
-.chip.suggest::before { content: '✨ '; }
+.chip.suggest[data-icon]::before { content: attr(data-icon) ' '; } /* 圖示跟著寫的字：狗 🐶、書 📖、跑步 🏃 */
 .composer-toolbar .tool { padding: 8px 12px; }

@@ -20,20 +20,28 @@ const DATA_VERSION = 2;
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄']; // 對應 1–5
 const MOOD_COLORS = ['#56608f', '#4f86a6', '#3fa89a', '#7fbf6a', '#e6b84f'];
 const DEFAULT_TAGS = ['家人', '朋友', '愛情', '寵物', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
-// 依寫的字建議標籤（不會自動加上，點了才算）
+// 依寫的字建議標籤（不會自動加上，點了才算）：每個詞有自己的小圖示，第一個是標籤本身的
 const TAG_WORDS = {
-  家人: ['爸', '媽', '家人', '阿嬤', '阿公', '外婆', '外公', '奶奶', '爺爺', '哥', '姊', '姐', '弟', '妹', '回家'],
-  朋友: ['朋友', '同學', '聚餐', '聚會', '閨蜜', '同事'],
-  愛情: ['約會', '男友', '女友', '老公', '老婆', '告白', '交往', '紀念日'],
-  寵物: ['狗', '貓', '寵物', '毛孩', '遛狗', '兔', '金魚', '鸚鵡'],
-  工作: ['上班', '工作', '開會', '加班', '公司', '主管', '專案', '簡報', '面試'],
-  學習: ['書', '閱讀', '讀', '上課', '考試', '學', '課程', '筆記'],
-  健康: ['看醫生', '生病', '醫院', '感冒', '睡', '吃藥', '體檢', '牙醫'],
-  運動: ['運動', '跑步', '健身', '游泳', '瑜珈', '打球', '籃球', '羽球', '爬山', '騎車', '散步'],
-  旅行: ['旅行', '出國', '機場', '飯店', '旅遊', '露營', '看海'],
-  興趣: ['電影', '畫畫', '音樂', '遊戲', '看劇', '追劇', '唱歌', '攝影', '拍照', '手作', '烘焙'],
+  家人: ['👨‍👩‍👧', ['爸', '👨'], ['媽', '👩'], ['家人', '🏠'], ['阿嬤', '👵'], ['外婆', '👵'], ['奶奶', '👵'], ['阿公', '👴'], ['外公', '👴'], ['爺爺', '👴'], ['哥', '👦'], ['姊', '👧'], ['姐', '👧'], ['弟', '👦'], ['妹', '👧'], ['回家', '🏠']],
+  朋友: ['🧑‍🤝‍🧑', ['朋友', '🧑‍🤝‍🧑'], ['同學', '🎒'], ['聚餐', '🍻'], ['聚會', '🎉'], ['閨蜜', '👯'], ['同事', '💼']],
+  愛情: ['💕', ['約會', '💑'], ['男友', '💙'], ['女友', '💗'], ['老公', '💍'], ['老婆', '💍'], ['告白', '💌'], ['交往', '💕'], ['紀念日', '🌹']],
+  寵物: ['🐾', ['狗', '🐶'], ['遛狗', '🐶'], ['貓', '🐱'], ['寵物', '🐾'], ['毛孩', '🐾'], ['兔', '🐰'], ['金魚', '🐠'], ['鸚鵡', '🦜']],
+  工作: ['💼', ['上班', '💼'], ['工作', '💼'], ['開會', '🗓'], ['加班', '🌙'], ['公司', '🏢'], ['主管', '👔'], ['專案', '📁'], ['簡報', '📊'], ['面試', '🤝']],
+  學習: ['📚', ['書', '📖'], ['閱讀', '📖'], ['讀', '📖'], ['上課', '🏫'], ['考試', '📝'], ['課程', '🎓'], ['學', '✏️'], ['筆記', '📒']],
+  健康: ['🩺', ['看醫生', '🩺'], ['生病', '🤒'], ['感冒', '🤧'], ['醫院', '🏥'], ['吃藥', '💊'], ['體檢', '🩺'], ['牙醫', '🦷'], ['睡', '😴']],
+  運動: ['🏃', ['跑步', '🏃'], ['健身', '🏋️'], ['游泳', '🏊'], ['瑜珈', '🧘'], ['籃球', '🏀'], ['羽球', '🏸'], ['打球', '⚽'], ['爬山', '⛰️'], ['騎車', '🚴'], ['散步', '🚶'], ['運動', '🏃']],
+  旅行: ['✈️', ['出國', '✈️'], ['機場', '🛫'], ['旅行', '🧳'], ['旅遊', '🧳'], ['飯店', '🏨'], ['露營', '🏕️'], ['看海', '🌊']],
+  興趣: ['🎨', ['電影', '🎬'], ['畫畫', '🎨'], ['音樂', '🎵'], ['唱歌', '🎤'], ['遊戲', '🎮'], ['看劇', '📺'], ['追劇', '📺'], ['攝影', '📷'], ['拍照', '📷'], ['手作', '🧶'], ['烘焙', '🧁']],
 };
-const suggestTags = (text) => Object.keys(TAG_WORDS).filter((t) => TAG_WORDS[t].some((w) => (text || '').includes(w)));
+// 回傳 [{ tag, icon }]：icon 用文字裡最先出現的那個詞的圖示
+function suggestTags(text) {
+  const src = text || '';
+  return Object.entries(TAG_WORDS).map(([tag, [, ...words]]) => {
+    let best = null;
+    for (const [w, icon] of words) { const i = src.indexOf(w); if (i >= 0 && (!best || i < best.i)) best = { i, icon }; }
+    return best && { tag, icon: best.icon, i: best.i };
+  }).filter(Boolean).sort((a, b) => a.i - b.i);
+}
 const BACKUP_REMIND_DAYS = 30;
 const MAP_YEARS = 90;
 const MAX_PHOTOS = 4;
@@ -1050,12 +1058,14 @@ function renderEmoPicker() {
 // 標籤：建議的排在最前面（虛線），選了的實心；一個標籤只出現一次
 function renderTagPicker() {
   const form = $('#moment-form');
-  const suggested = suggestTags(`${form.text.value} ${form.feel.value}`).filter((t) => !ui.tags.has(t));
+  const hints = suggestTags(`${form.text.value} ${form.feel.value}`).filter((x) => !ui.tags.has(x.tag));
+  const icons = Object.fromEntries(hints.map((x) => [x.tag, x.icon]));
+  const suggested = hints.map((x) => x.tag);
   const all = allTags();
   const order = [...all.filter((t) => ui.tags.has(t)), ...suggested.filter((t) => all.includes(t)), ...all.filter((t) => !ui.tags.has(t) && !suggested.includes(t))];
   $('#tag-picker').replaceChildren(...order.map((t) =>
     h('button', {
-      type: 'button', class: `chip${ui.tags.has(t) ? ' on' : suggested.includes(t) ? ' suggest' : ''}`,
+      type: 'button', class: `chip${ui.tags.has(t) ? ' on' : suggested.includes(t) ? ' suggest' : ''}`, 'data-icon': icons[t] || null,
       onclick: () => { ui.tags.has(t) ? ui.tags.delete(t) : ui.tags.add(t); renderTagPicker(); },
     }, t)));
   if (ui.openSecs) renderOptBar();
