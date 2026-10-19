@@ -187,6 +187,8 @@
         <div id="moment-menu" class="more-menu" hidden>
           <button id="moment-menu-btn" class="icon-btn small-icon" type="button" aria-label="更多" aria-expanded="false">⋯</button>
           <div id="moment-menu-list" class="more-list" hidden>
+            <button id="moment-story" type="button" hidden>✨ 寫成故事</button>
+            <button id="moment-story-remove" type="button" hidden>拿掉故事版</button>
             <button id="moment-delete" class="danger-item" type="button">刪除這則</button>
           </div>
         </div>
@@ -195,7 +197,8 @@
       <div class="event-row">
         <span id="event-badge" class="event-badge" hidden></span>
       </div>
-      <textarea name="text" rows="4" maxlength="500" required placeholder="發生了什麼？一句話就好" aria-label="發生了什麼？"></textarea>
+      <textarea name="text" rows="3" maxlength="500" required placeholder="發生了什麼？一句話就好" aria-label="發生了什麼？"></textarea>
+      <textarea name="feel" rows="2" maxlength="300" placeholder="當下的心情？（選填）" aria-label="當下的心情"></textarea>
       <div class="opt-bar" id="opt-bar">
         <button type="button" class="opt" data-sec="date" aria-expanded="false">📅 <span id="date-btn-label">今天</span></button>
         <button type="button" class="opt" data-sec="people" aria-expanded="false">👥 <span>和誰</span></button>
@@ -492,6 +495,8 @@
         <span class="field-label">外觀</span>
         <div id="theme-chips" class="chips"></div>
       </div>
+      <label class="switch"><input id="pref-ai-story" type="checkbox"><span>✨ 記下來之後，用 AI 寫成一段小故事</span></label>
+      <p class="hint">需要登入雲端同步。開啟後，送出的事件和心情會傳給 Anthropic 的 Claude 改寫，不會被拿去訓練 AI；原文一樣會留著。每天最多 5 次。</p>
       <label class="switch"><input id="pref-world-sad" type="checkbox"><span>「那一年的世界」裡顯示災難、離別這類難過的事</span></label>
       <label class="switch"><input id="pref-achievements" type="checkbox"><span>顯示成就（關閉時照樣在背後記錄）</span></label>
       <p class="hint"><a href="privacy.html">隱私權政策與使用條款</a></p>

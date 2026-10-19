@@ -53,6 +53,13 @@ const SCHEMA = [
     person_id TEXT,
     expires_at TEXT NOT NULL
   )`,
+  // AI 故事每人每天用了幾次（day 是台灣時間的日期）
+  `CREATE TABLE IF NOT EXISTS story_usage (
+    user_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    n INTEGER NOT NULL,
+    PRIMARY KEY (user_id, day)
+  )`,
   'CREATE INDEX IF NOT EXISTS idx_credentials_user ON credentials (user_id)',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id)',
 ];

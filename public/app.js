@@ -546,7 +546,7 @@ function matchesFilter(m) {
   if (ui.filter === 'event' && !m.event) return false;
   if (ui.filter.startsWith('person:') && !m.people.includes(ui.filter.slice(7))) return false;
   if (ui.filter.startsWith('tag:') && !m.tags.includes(ui.filter.slice(4))) return false;
-  if (ui.query && !m.text.toLowerCase().includes(ui.query.toLowerCase())) return false;
+  if (ui.query && ![m.text, m.feel, m.story && m.story.title, m.story && m.story.text].some((t) => t && t.toLowerCase().includes(ui.query.toLowerCase()))) return false;
   return true;
 }
 
@@ -672,7 +672,12 @@ function renderMoment(m) {
     h('div', { class: 'moment-main' },
       h('button', { class: 'moment-body', type: 'button', onclick: () => openMoment(m.id) },
         h('span', { class: 'moment-text' }, eventById(m.event) ? h('span', { class: 'event-icon' }, `${eventById(m.event).icon} `) : null,
-          m.mood ? `${MOODS[m.mood - 1]} ` : '', m.text, m.shared ? h('span', { class: 'shared-mark', title: '已分享' }, ' 💞') : null),
+          m.mood ? `${MOODS[m.mood - 1]} ` : '', m.story ? h('b', { class: 'story-title' }, m.story.title) : m.text,
+          m.shared ? h('span', { class: 'shared-mark', title: '已分享' }, ' 💞') : null),
+        m.story ? h('span', { class: 'story-text' }, m.story.text) : null,
+        // 有故事版時，原文和心情縮小放在下面；沒有時心情接在事件下面
+        m.story ? h('span', { class: 'moment-orig' }, `✏️ ${m.text}${m.feel ? `　${m.feel}` : ''}`)
+          : m.feel ? h('span', { class: 'moment-feel' }, m.feel) : null,
         m.tags.length ? h('span', { class: 'moment-tags' }, m.tags.map((t) => h('span', { class: 'tag' }, t))) : null),
       m.people.length ? h('div', { class: 'moment-people' }, m.people.map(personById).filter(Boolean).map((p) =>
         h('button', { type: 'button', class: 'person-chip', onclick: () => openPerson(p.id) }, personLabel(p)))) : null,
@@ -709,10 +714,14 @@ async function openMoment(id = null, preset = {}) {
   form.date.min = state.profile.birthday;
   form.date.max = todayStr();
   form.text.value = m ? m.text : preset.text || '';
+  form.feel.value = m ? m.feel || '' : '';
   form.starred.checked = m ? !!m.starred : false;
   form.approx.checked = m ? m.approx : !!preset.approx;
   $('#moment-menu').hidden = !m;
   $('#moment-menu-list').hidden = true;
+  $('#moment-story').hidden = !(m && storyOn());
+  $('#moment-story').textContent = m && m.story ? '✨ 重寫故事' : '✨ 寫成故事';
+  $('#moment-story-remove').hidden = !(m && m.story);
   // 編輯舊的紀錄時，有填的項目直接展開；新的一筆只展開不是今天的日期
   ui.openSecs = new Set();
   if (m) {
@@ -744,7 +753,7 @@ async function openMoment(id = null, preset = {}) {
 // 用來判斷有沒有改過，關閉時才知道要不要問「放棄這筆嗎？」
 function momentSnapshot() {
   const form = $('#moment-form');
-  return JSON.stringify([form.text.value, form.date.value, form.approx.checked, form.starred.checked, ui.mood, [...ui.tags], [...ui.people], ui.event, ui.photos.map((p) => p.id)]);
+  return JSON.stringify([form.text.value, form.feel.value, form.date.value, form.approx.checked, form.starred.checked, ui.mood, [...ui.tags], [...ui.people], ui.event, ui.photos.map((p) => p.id)]);
 }
 const momentDirty = () => $('#moment-dialog').open && ui.momentSnapshot != null && momentSnapshot() !== ui.momentSnapshot;
 
@@ -965,6 +974,7 @@ async function saveMoment(e) {
   const form = e.target;
   const date = form.date.value;
   const text = form.text.value.trim();
+  const feel = form.feel.value.trim();
   if (!isValidDateStr(date) || !text) return;
   if (date < state.profile.birthday || date > todayStr()) {
     toast('日期要在生日到今天之間');
@@ -991,9 +1001,12 @@ async function saveMoment(e) {
     }
 
     const fields = {
-      date, text, mood: ui.mood, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, approx: form.approx.checked,
+      date, text, feel, mood: ui.mood, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, approx: form.approx.checked,
       shared: form.shared.checked, people: [...ui.people].filter(personById), event: ui.event, updatedAt: now,
     };
+    // 事件或心情改了，舊的故事版就對不上了，拿掉（可以再寫一次）
+    const rewrite = !prev || prev.text !== text || (prev.feel || '') !== feel;
+    if (prev && rewrite) fields.story = null;
     if (prev) Object.assign(prev, fields);
     else state.moments.push({ id: momentId, createdAt: now, ...fields });
     if (!(await saveState())) return;
@@ -1011,6 +1024,7 @@ async function saveMoment(e) {
     toast(prev ? '已更新' : ev && ev.sad ? '已經好好記下來了 🤍' : '記下來了');
     render();
     if (!prev && scene && !(ev && ev.sad)) scene.celebrate({ star: fields.starred });
+    if (rewrite && storyOn()) openStory(momentId);
   } finally {
     saveBtn.disabled = false;
   }
@@ -1074,6 +1088,73 @@ async function saveQuickNote(e) {
   toast('記下來了');
   render();
   if (scene) scene.celebrate();
+  if (text && storyOn()) openStory(m.id);
+}
+
+// ---------- AI 故事 ----------
+// 要開啟設定、登入雲端、而且有網路；離線記的之後可以從「⋯ → 寫成故事」補
+const storyOn = () => !!(state.prefs.aiStory && cloud.me && navigator.onLine);
+
+async function openStory(id) {
+  const m = state.moments.find((x) => x.id === id);
+  if (!m) return;
+  const body = $('#letter-body');
+  const close = () => $('#letter-dialog').close();
+  const actions = (...btns) => h('div', { class: 'sheet-actions' }, ...btns);
+  const btn = (label, onclick, cls = 'btn') => h('button', { type: 'button', class: cls, onclick }, label);
+  const top = h('div', { class: 'sheet-top' }, h('h3', {}, '✨ 寫成故事'));
+  const original = h('p', { class: 'hint story-src' }, `✏️ ${m.text}${m.feel ? `　${m.feel}` : ''}`);
+
+  body.replaceChildren(top, original, h('div', { class: 'story-card loading' }, h('p', { class: 'muted' }, '正在把這件事寫成故事…')), actions(btn('保留原文', close)));
+  if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
+
+  const ev = eventById(m.event);
+  let story;
+  try {
+    story = await cloudApi.writeStory({
+      event: m.text, feel: m.feel || '', mood: m.mood || null,
+      people: m.people.map(personById).filter(Boolean).map(personName),
+      lifeEvent: ev ? ev.label : '', sad: !!(ev && ev.sad),
+    });
+  } catch (err) {
+    if (!$('#letter-dialog').open) return;
+    const retry = ![429, 503].includes(err.status) || err.message.includes('忙');
+    body.replaceChildren(top, original, h('p', { class: 'story-error' }, err.message || '故事暫時寫不出來'),
+      actions(btn('關閉', close), h('span', { class: 'spacer' }), retry ? btn('再試一次', () => openStory(id), 'btn primary') : null));
+    return;
+  }
+  if (!$('#letter-dialog').open) return; // 等的時候已經關掉了
+
+  const use = async () => {
+    const cur = state.moments.find((x) => x.id === id);
+    if (!cur) { close(); return; }
+    cur.story = { title: story.title, text: story.text, at: new Date().toISOString() };
+    cur.updatedAt = cur.story.at;
+    if (!(await saveState())) return;
+    close();
+    toast('寫進你的故事裡了 ✨');
+    render();
+  };
+  body.replaceChildren(top,
+    h('div', { class: 'story-card' }, h('b', { class: 'story-title' }, story.title), h('p', { class: 'story-text' }, story.text)),
+    original,
+    h('p', { class: 'hint' }, `今天還可以寫 ${story.left} 次`),
+    actions(btn('保留原文', close), h('span', { class: 'spacer' }),
+      story.left > 0 ? btn('再寫一次', () => openStory(id)) : null,
+      btn('用這個', use, 'btn primary')));
+}
+
+async function removeStory() {
+  const m = state.moments.find((x) => x.id === ui.editingId);
+  if (!m || !m.story) return;
+  m.story = null;
+  m.updatedAt = new Date().toISOString();
+  if (!(await saveState())) return;
+  $('#moment-story-remove').hidden = true;
+  $('#moment-story').textContent = '✨ 寫成故事';
+  $('#moment-menu-list').hidden = true;
+  toast('已拿掉故事版，原文還在');
+  render();
 }
 
 // 回顧時要避開的：難過的人生大事、設成「回顧時避開」的人、設成「輕輕帶過」的年歲
@@ -2171,6 +2252,7 @@ function openSettings(page = 'home') {
   renderPeopleSection();
   $('#pref-achievements').checked = !!state.prefs.showAchievements;
   $('#pref-world-sad').checked = state.prefs.worldSad !== false;
+  $('#pref-ai-story').checked = !!state.prefs.aiStory;
   renderThemeChips();
   renderSettingsStatus();
   renderStorageStatus();
@@ -2622,6 +2704,14 @@ function bind() {
   $('#moment-form').date.addEventListener('input', updateAgeHint);
   $('#moment-form').approx.addEventListener('change', renderOptBar);
   $('#moment-delete').addEventListener('click', deleteMoment);
+  $('#moment-story').addEventListener('click', () => {
+    if (momentDirty()) { toast('先儲存修改，再寫成故事'); return; }
+    const id = ui.editingId;
+    ui.momentSnapshot = null;
+    $('#moment-dialog').close();
+    openStory(id);
+  });
+  $('#moment-story-remove').addEventListener('click', removeStory);
   $('#moment-menu-btn').addEventListener('click', () => {
     const list = $('#moment-menu-list');
     list.hidden = !list.hidden;
@@ -2693,6 +2783,15 @@ function bind() {
   $('#add-person-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
   $('#add-pet-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
   $('#recall-event').addEventListener('click', () => openEventPicker('recall'));
+  $('#pref-ai-story').addEventListener('change', async (e) => {
+    if (e.target.checked && !cloud.me) {
+      e.target.checked = false;
+      toast('要先登入雲端同步才能用');
+      return;
+    }
+    state.prefs = { ...state.prefs, aiStory: e.target.checked };
+    await saveState();
+  });
   $('#pref-world-sad').addEventListener('change', async (e) => {
     state.prefs = { ...state.prefs, worldSad: e.target.checked };
     await saveState();

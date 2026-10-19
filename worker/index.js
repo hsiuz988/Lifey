@@ -3,6 +3,7 @@ import { HttpError, json } from './util.js';
 import { ensureSchema } from './schema.js';
 import * as auth from './auth.js';
 import * as data from './data.js';
+import { writeStory } from './story.js';
 
 async function route(request, env) {
   const url = new URL(request.url);
@@ -36,6 +37,7 @@ async function route(request, env) {
   if (method === 'GET' && pathname === '/api/photos') return data.listPhotos(user, env);
   if (method === 'POST' && pathname === '/api/invite') return data.createInvite(request, user, env);
   if (method === 'POST' && pathname === '/api/invite/accept') return data.acceptInvite(request, user, env);
+  if (method === 'POST' && pathname === '/api/story') return writeStory(request, user, env);
 
   let m = pathname.match(/^\/api\/photos\/([^/]+)$/);
   if (m && method === 'PUT') return data.putPhoto(request, user, env, m[1]);

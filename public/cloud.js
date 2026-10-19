@@ -226,3 +226,4 @@ export function memberPhotoUrl(userId, id, kind = 'thumb') {
 }
 
 export const fetchRemote = () => apiJson('/api/sync');
+export const writeStory = (entry) => apiJson('/api/story', { method: 'POST', body: entry });
