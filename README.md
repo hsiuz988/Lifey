@@ -70,6 +70,11 @@ worker/        Cloudflare Worker，只處理 /api/*
 - 第一個帳號可直接建立，之後只能用邀請連結建立（避免陌生人註冊）
 - 另一半只拿得到 `shared` 的紀錄與其照片；另一半的照片不快取，取消分享立刻生效
 
+## 預覽網址
+
+推到 `main` 以外的分支時，Cloudflare 會建一個預覽版本（Workers Builds 的 Preview builds），可以先在手機上試，不影響正式網址。
+預覽和正式機共用同一個 D1／R2，在預覽建立的帳號和資料會留在正式資料庫裡。
+
 ## 部署（Cloudflare Workers）
 
 每次推到 `main` 會自動重新發布（Workers Builds 會自動 `npm install`，再 `npx wrangler deploy`）。
