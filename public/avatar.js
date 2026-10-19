@@ -74,7 +74,7 @@ const CX = IW / 2; // 中線在 CX-1 和 CX 之間
 // 回傳 { grid, waist }：grid[y][x] 是顏色或 null（含描邊）；waist 以上的列在呼吸時會往下沉 1px
 // 畫法：先把每一格標上材質（皮膚、頭髮、衣服…），再依材質上明暗（光從左上來），最後在外圍描一圈深色邊
 // 眼睛和寵物同一套：大眼 2×2 加反光、圓眼直的兩格、瞇瞇眼是 ^ ^ 笑眼
-export function composeAvatar(avatar, age, stageKey, { blink = false, step = false } = {}) {
+export function composeAvatar(avatar, age, stageKey, { blink = false, step = false, emo = '' } = {}) {
   const a = normalizeAvatar(avatar);
   const kind = kindFor(age);
   const baby = kind === 'baby';
@@ -157,14 +157,31 @@ export function composeAvatar(avatar, age, stageKey, { blink = false, step = fal
   const eL = CX - 4; // 左眼（2 格寬）的左邊那格，兩眼中間留 4 格
   const eR = IW - eL - 2;
   const eyes = baby ? 'round' : a.eyes;
-  if (blink) { row(eL, eL + 1, ey + 1, skinShade, 'face'); row(eR, eR + 1, ey + 1, skinShade, 'face'); }
+  // 今天的情緒（garden.js 的 EMOTIONS）：換眼睛和嘴巴，其他表情符號由場景畫在頭旁邊
+  const E = baby ? '' : emo;
+  const caret = () => [eL - 1, eR - 1].forEach((x) => { put(x + 1, ey + 1, dark, 'face'); put(x + 2, ey, dark, 'face'); put(x + 3, ey + 1, dark, 'face'); });
+  if (!blink && E === 'happy') caret();
+  else if (!blink && E === 'excited') [eL, eR].forEach((x) => { row(x, x + 1, ey, dark, 'face'); row(x, x + 1, ey + 1, dark, 'face'); put(x + 1, ey, '#ffffff', 'face'); });
+  else if (!blink && (E === 'calm' || E === 'tired')) { row(eL, eL + 1, ey + 1, dark, 'face'); row(eR, eR + 1, ey + 1, dark, 'face'); }
+  else if (!blink && E === 'moved') [eL, eR].forEach((x) => { row(x, x + 1, ey, dark, 'face'); row(x, x + 1, ey + 1, dark, 'face'); put(x + 1, ey, '#ffffff', 'face'); put(x + 1, ey + 1, '#9fd3ff', 'face'); });
+  else if (!blink && E === 'miss') { pair(eL, ey, dark, 'face'); pair(eL + 1, ey, dark, 'face'); }
+  else if (blink) { row(eL, eL + 1, ey + 1, skinShade, 'face'); row(eR, eR + 1, ey + 1, skinShade, 'face'); }
   else if (eyes === 'sleepy') [eL - 1, eR - 1].forEach((x) => { put(x, ey + 1, dark, 'face'); put(x + 1, ey, dark, 'face'); put(x + 2, ey + 1, dark, 'face'); });
   else if (eyes === 'big') [eL, eR].forEach((x) => { row(x, x + 1, ey, dark, 'face'); row(x, x + 1, ey + 1, dark, 'face'); put(x + 1, ey, '#ffffff', 'face'); });
   else { pair(eL + 1, ey, dark, 'face'); pair(eL + 1, ey + 1, dark, 'face'); }
   if (a.lashes && !baby && !blink && eyes !== 'sleepy') pair(eyes === 'big' ? eL - 1 : eL, ey, dark, 'face');
   if (a.blush || baby) pair(hx1 + 1, ey + 2, '#f4a3a8', 'face');
   if (a.freckles) pair(eL + 2, ey + 2, shade(skin, 0.7), 'face');
-  mid(2, ey + 2, '#c9636b', 'face');
+  const lip = '#c9636b';
+  const cheek = '#f08a9a';
+  if (E === 'happy') { mid(4, ey + 2, lip, 'face'); mid(2, ey + 3, '#8a3a44', 'face'); pair(hx1 + 1, ey + 2, cheek, 'face'); }
+  else if (E === 'excited') { mid(4, ey + 2, lip, 'face'); mid(4, ey + 3, '#8a3a44', 'face'); pair(hx1 + 1, ey + 2, cheek, 'face'); }
+  else if (E === 'love') { mid(2, ey + 2, lip, 'face'); row(hx1, hx1 + 2, ey + 2, cheek, 'face'); row(hx2 - 2, hx2, ey + 2, cheek, 'face'); }
+  else if (E === 'tired') mid(2, ey + 3, shade(lip, 0.8), 'face');
+  else if (E === 'sad') { put(CX - 1, ey + 3, lip, 'face'); put(CX, ey + 3, lip, 'face'); put(CX - 2, ey + 4, lip, 'face'); put(CX + 1, ey + 4, lip, 'face'); put(eR + 1, ey + 2, '#8fc8f0', 'face'); }
+  else if (E === 'angry') { mid(4, ey + 3, '#8a3a44', 'face'); pair(eL, ey - 1, dark, 'face'); }
+  else if (E === 'nervous') { put(CX - 2, ey + 3, lip, 'face'); put(CX - 1, ey + 2, lip, 'face'); put(CX, ey + 3, lip, 'face'); put(CX + 1, ey + 2, lip, 'face'); }
+  else mid(2, ey + 2, lip, 'face');
   if (kind === 'adult' && age >= 18) {
     if (a.beard === 'stubble') mid(hw - 4, y0 + hh - 1, shade(hairDark, 1.2), 'face');
     if (a.beard === 'full') {

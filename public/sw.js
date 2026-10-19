@@ -1,14 +1,16 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v15';
+const CACHE = 'lifelog-v25';
 const ASSETS = [
   './',
   './index.html',
+  './privacy.html',
   './style.css',
   './app.js',
   './db.js',
   './zip.js',
   './photos.js',
   './game.js',
+  './cloud.js',
   './avatar.js',
   './scene.js',
   './weather.js',
@@ -21,6 +23,7 @@ const ASSETS = [
   './world/2010s.json',
   './world/2020s.json',
   './pets.js',
+  './garden.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -43,7 +46,9 @@ self.addEventListener('activate', (e) => {
 // 先給快取（離線也能開），同時在背景更新快取，下次開啟就是新版
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  // API（登入、同步、照片）一律走網路，絕對不能快取
+  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(req, { ignoreSearch: true });

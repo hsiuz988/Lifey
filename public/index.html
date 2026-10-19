@@ -4,7 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#15171c">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
+  <script>
+    // 外觀在畫面出來前就套用，避免閃一下：dark（預設）、light、auto（跟隨系統）
+    (function () {
+      var pref = 'dark';
+      try { pref = localStorage.getItem('lifey.theme') || 'dark'; } catch (e) {}
+      var light = pref === 'light' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches);
+      document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    })();
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,17 +28,28 @@
   <!-- 第一次開啟：設定姓名與生日 -->
   <section id="setup" class="setup" hidden>
     <h1 class="brand">人生紀錄<span class="brand-dot">.</span></h1>
-    <p class="muted">只屬於你的一生。每個值得記住的時刻，都會被放進那一歲。</p>
+    <p class="muted">把你真實的一生，慢慢養成一座小世界。</p>
+    <ul class="intro-list">
+      <li><span>🗺</span>一生 90 格，一格一年，記滿就會點亮</li>
+      <li><span>🌏</span>台灣和世界的大事，穿插在你的紀錄裡</li>
+      <li><span>🧒</span>會跟著你長大的小人，還有你的寵物</li>
+      <li><span>🔒</span>資料先存在你的手機，不給任何人看</li>
+    </ul>
+    <p id="setup-invite" class="invite-note"></p>
     <form id="setup-form" class="panel form">
       <label>名字
         <input name="name" required maxlength="40" autocomplete="name">
       </label>
       <label>生日
-        <input name="birthday" type="date" required>
+        <input name="birthday" type="date" required class="bday-native">
       </label>
       <button class="btn primary" type="submit">開始記錄</button>
-      <p class="hint">資料只存在這支手機的瀏覽器裡，不會上傳到任何地方。</p>
+      <p class="hint">資料先存在這支手機裡；之後可以在設定裡用 Face ID 登入，同步到雲端。<a href="privacy.html">隱私權政策與使用條款</a></p>
     </form>
+    <div class="setup-login">
+      <span class="muted">已經有帳號了？</span>
+      <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
+    </div>
   </section>
 
   <!-- 主畫面 -->
@@ -40,6 +60,8 @@
       <div class="top-row">
         <div class="brand small">人生紀錄<span class="brand-dot">.</span></div>
         <div class="age"><span id="age-num">0</span><span class="age-unit">歲</span></div>
+        <button id="partner-btn" class="icon-btn" type="button" aria-label="連結的家人" hidden>💞</button>
+        <button id="sync-btn" class="icon-btn sync-btn" type="button" aria-label="同步狀態" hidden>☁︎</button>
         <button id="open-settings" class="icon-btn" aria-label="設定">⚙</button>
       </div>
       <div id="age-sub" class="age-sub"></div>
@@ -57,15 +79,11 @@
         <div id="scene-bubble" class="scene-bubble" role="status"></div>
       </div>
       <!-- 一秒日記：一句話或一個心情就算記過 -->
-      <form id="quick-note" class="quick-note" autocomplete="off">
-        <input id="quick-text" maxlength="500" placeholder="今天過得怎麼樣？一句話就好" aria-label="今天過得怎麼樣">
-        <div class="quick-row">
-          <div id="quick-moods" class="quick-moods"></div>
-          <span class="spacer"></span>
-          <button id="quick-send" class="btn primary small" type="submit">記下來</button>
-        </div>
-        <div id="quick-done" class="hint" hidden></div>
-      </form>
+      <div id="quick-note" class="quick-note">
+        <button id="quick-open" class="quick-open" type="button"><span>今天過得怎麼樣？一句話就好</span></button>
+        <button id="quick-photo" class="quick-photo" type="button" aria-label="用一張照片記錄">📷</button>
+      </div>
+      <div id="quick-done" class="hint" hidden></div>
       <div id="avatar-banner" class="avatar-banner" hidden>
         <span>🎨 小人可以自己捏了！性別、髮型、衣服、配件都能選</span>
         <button id="avatar-banner-btn" class="btn small" type="button">來捏</button>
@@ -123,6 +141,7 @@
       <div class="row map-actions">
         <button id="recall-btn" class="btn recall-btn" type="button">🕰 回憶模式</button>
         <button id="replay-btn" class="btn recall-btn" type="button">🎬 人生重播</button>
+        <button id="garden-btn" class="btn recall-btn" type="button">🌷 心情花園</button>
       </div>
       <div id="life-map" class="life-map"></div>
       <div class="map-legend">
@@ -157,64 +176,72 @@
   </main>
 
   <!-- 新增／編輯時刻：內容放第一個，選填的項目收成一排按鈕，點了才展開 -->
-  <dialog id="moment-dialog" class="sheet">
-    <form id="moment-form" method="dialog">
-      <div class="sheet-top">
+  <dialog id="moment-dialog" class="sheet composer-page">
+    <form id="moment-form" method="dialog" novalidate>
+      <!-- 上方：關閉、標題、記下來（鍵盤怎麼彈都看得到） -->
+      <div class="composer-head">
+        <button class="icon-btn small-icon close-x" type="button" data-close aria-label="關閉">✕</button>
         <h3 id="moment-title">記一筆</h3>
-        <span class="spacer"></span>
         <div id="moment-menu" class="more-menu" hidden>
           <button id="moment-menu-btn" class="icon-btn small-icon" type="button" aria-label="更多" aria-expanded="false">⋯</button>
           <div id="moment-menu-list" class="more-list" hidden>
+            <button id="moment-story" type="button" hidden>✨ 寫成故事</button>
+            <button id="moment-story-remove" type="button" hidden>拿掉故事版</button>
             <button id="moment-delete" class="danger-item" type="button">刪除這則</button>
           </div>
         </div>
+        <button id="moment-save" class="btn primary save-pill" type="submit" value="save">記下來</button>
       </div>
-      <div class="quick-events" id="quick-events"></div>
-      <div class="event-row">
-        <span id="event-badge" class="event-badge" hidden></span>
-      </div>
-      <textarea name="text" rows="4" maxlength="500" required placeholder="發生了什麼？一句話就好" aria-label="發生了什麼？"></textarea>
-      <div class="opt-bar" id="opt-bar">
-        <button type="button" class="opt" data-sec="date" aria-expanded="false">📅 <span id="date-btn-label">今天</span></button>
-        <button type="button" class="opt" data-sec="people" aria-expanded="false">👥 <span>和誰</span></button>
-        <button type="button" class="opt" data-sec="photos" aria-expanded="false">📷 <span>照片</span></button>
-        <button type="button" class="opt" data-sec="mood" aria-expanded="false">😊 <span>心情</span></button>
-        <button type="button" class="opt" data-sec="tags" aria-expanded="false">🏷 <span>標籤</span></button>
-        <button type="button" class="opt" id="star-toggle" aria-pressed="false">☆ <span>值得記住</span></button>
-      </div>
-      <input name="starred" type="checkbox" hidden>
-      <div class="opt-sec field" data-sec="date" hidden>
-        <label>日期
-          <input name="date" type="date" required>
-        </label>
-        <div id="moment-age" class="age-hint"></div>
-        <label class="switch small-switch">
-          <input name="approx" type="checkbox">
-          <span>不確定日期，只記得是這一歲</span>
-        </label>
-      </div>
-      <div class="opt-sec field" data-sec="people" hidden>
-        <span id="people-label" class="field-label">和誰</span>
-        <div id="people-picker" class="chips"></div>
-      </div>
-      <div class="opt-sec field" data-sec="photos" hidden>
-        <span class="field-label">照片（最多 4 張）</span>
+      <!-- 中間：一大塊寫字的地方 -->
+      <div class="composer-body">
+        <div class="composer-meta">
+          <button id="date-chip" class="date-chip" type="button" data-sec="date" aria-expanded="false">📅 <span id="date-btn-label">今天</span> ▾</button>
+          <span id="event-badge" class="event-badge" hidden></span>
+          <span id="save-hint" class="hint save-hint"></span>
+        </div>
+        <div class="opt-sec field" data-sec="date" hidden>
+          <label>日期
+            <input name="date" type="date" required>
+          </label>
+          <div id="moment-age" class="age-hint"></div>
+          <label class="switch small-switch">
+            <input name="approx" type="checkbox">
+            <span>不確定日期，只記得是這一歲</span>
+          </label>
+        </div>
+        <textarea name="text" class="composer-text" maxlength="500" placeholder="今天發生了什麼？" aria-label="發生了什麼？"></textarea>
         <div id="photo-picker" class="photo-picker"></div>
-        <input id="photo-input" type="file" accept="image/*" multiple hidden>
+        <div class="field tag-field" id="tag-field">
+          <span class="field-label">標籤 <span class="hint-inline">依你寫的字建議，點一下就加上</span></span>
+          <div id="tag-picker" class="chips tag-row"></div>
+        </div>
+        <div class="field emo-field" id="emo-field">
+          <span class="field-label">現在的心情？（選填）</span>
+          <div id="emo-picker" class="emo-row"></div>
+          <div id="emo-hint" class="hint"></div>
+          <textarea name="feel" rows="2" maxlength="300" placeholder="想多說一點心情嗎？（選填）" aria-label="當下的心情" hidden></textarea>
+        </div>
+        <button id="more-toggle" class="more-toggle" type="button" data-sec="more" aria-expanded="false"><b>更多</b><span id="more-summary">和誰、人生大事…</span><span class="chev">▾</span></button>
+        <div class="opt-sec more-list-rows" data-sec="more" hidden>
+          <button class="more-row" type="button" data-sec="people"><span class="ic">👥</span><span class="k" id="people-label">和誰</span><span class="v" id="people-sum"></span></button>
+          <div class="opt-sec field sub-sec" data-sec="people" hidden><div id="people-picker" class="chips"></div></div>
+          <button class="more-row" type="button" id="event-open"><span class="ic">⭐</span><span class="k">人生大事</span><span class="v" id="event-sum"></span></button>
+          <button class="more-row" type="button" id="star-toggle" aria-pressed="false"><span class="ic">☆</span><span class="k">值得記住</span><span class="v" id="star-sum">關</span></button>
+          <label id="share-row" class="switch small-switch" hidden>
+            <input name="shared" type="checkbox">
+            <span id="share-label">💞 分享給另一半</span>
+          </label>
+        </div>
+        <input name="starred" type="checkbox" hidden>
       </div>
-      <div class="opt-sec field" data-sec="mood" hidden>
-        <span class="field-label">心情</span>
-        <div id="mood-picker" class="mood-picker"></div>
+      <!-- 下方：貼在鍵盤上面的小工具列 -->
+      <div class="composer-toolbar">
+        <label class="tool" for="photo-input" id="photo-add">📷 <span id="photo-add-label">照片</span></label>
+        <button class="tool" type="button" id="tb-tags">🏷 標籤</button>
+        <button class="tool" type="button" id="tb-mood">😊 心情</button>
+        <button class="tool" type="button" id="tb-more">⋯ 更多</button>
       </div>
-      <div class="opt-sec field" data-sec="tags" hidden>
-        <span class="field-label">標籤</span>
-        <div id="tag-picker" class="chips"></div>
-      </div>
-      <div class="sheet-actions">
-        <button class="btn" type="button" data-close>取消</button>
-        <span class="spacer"></span>
-        <button id="moment-save" class="btn primary" type="submit" value="save">儲存</button>
-      </div>
+      <input id="photo-input" type="file" accept="image/*" multiple hidden>
     </form>
   </dialog>
 
@@ -226,6 +253,10 @@
       <div id="year-stats" class="stat-bars compact"></div>
       <label>這一歲的一句話
         <input name="summary" maxlength="40" placeholder="例如：離家上大學的一年">
+      </label>
+      <label class="switch small-switch">
+        <input name="quiet" type="checkbox">
+        <span>回顧時輕輕帶過這一歲（「那年今日」和人生重播不會提起）</span>
       </label>
       <div class="row">
         <button id="year-add" class="btn" type="button">＋ 在這一歲記一筆</button>
@@ -283,6 +314,24 @@
     </div>
   </dialog>
 
+  <!-- 另一半 -->
+  <dialog id="partner-dialog" class="sheet partner">
+    <div id="partner-lineup" class="lineup" aria-label="全家福"></div>
+    <div class="partner-head">
+      <div id="partner-avatar" class="avatar"></div>
+      <div>
+        <h3 id="partner-name"></h3>
+        <div id="partner-sub" class="hint"></div>
+      </div>
+    </div>
+    <div id="partner-tabs" class="chips"></div>
+    <div id="partner-body"></div>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>關閉</button>
+    </div>
+  </dialog>
+
   <!-- 捏小人 -->
   <dialog id="avatar-dialog" class="sheet avatar-dialog">
     <h3>捏你的小人</h3>
@@ -294,7 +343,6 @@
       <button id="avatar-random" class="btn" type="button">🎲 隨機</button>
       <button id="avatar-undo" class="btn" type="button" disabled>↺ 復原</button>
       <span class="spacer"></span>
-      <button class="btn" type="button" data-close>取消</button>
       <button id="avatar-save" class="btn primary" type="button">完成</button>
     </div>
   </dialog>
@@ -319,6 +367,11 @@
   <!-- 給未來的信 -->
   <dialog id="letter-dialog" class="sheet letter-dialog">
     <div id="letter-body"></div>
+  </dialog>
+
+  <!-- 心情花園：一個月一片花圃，一天一朵花 -->
+  <dialog id="garden-dialog" class="sheet garden-dialog">
+    <div id="garden-body"></div>
   </dialog>
 
   <!-- 人生重播 -->
@@ -359,6 +412,7 @@
         <button id="settings-avatar-btn" class="btn small" type="button">✏️ 捏小人</button>
       </div>
       <div class="menu">
+        <button class="menu-item" type="button" data-go="cloud"><span>☁️ 雲端與家人</span><span id="menu-cloud" class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-go="people"><span>👨‍👩‍👧 人物與寵物</span><span id="menu-people" class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-go="weather"><span>🌤 真實天氣</span><span id="menu-weather" class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-go="backup"><span>💾 備份與資料</span><span id="menu-backup" class="menu-sub"></span><span class="chev">›</span></button>
@@ -377,7 +431,7 @@
           <input name="name" required maxlength="40">
         </label>
         <label>生日
-          <input name="birthday" type="date" required>
+          <input name="birthday" type="date" required class="bday-native">
         </label>
         <div class="sheet-actions">
           <button class="btn" type="button" data-back>返回</button>
@@ -385,6 +439,15 @@
           <button class="btn primary" type="submit" value="save">儲存</button>
         </div>
       </form>
+    </section>
+
+    <section class="settings-page" data-page="cloud" hidden>
+      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>雲端與家人</h3></div>
+      <div id="cloud-section" class="cloud-section"></div>
+      <div class="sheet-actions">
+        <span class="spacer"></span>
+        <button class="btn primary" type="button" data-back>返回</button>
+      </div>
     </section>
 
     <section class="settings-page" data-page="people" hidden>
@@ -430,8 +493,15 @@
 
     <section class="settings-page" data-page="other" hidden>
       <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>其他</h3></div>
+      <div class="field">
+        <span class="field-label">外觀</span>
+        <div id="theme-chips" class="chips"></div>
+      </div>
+      <label class="switch"><input id="pref-ai-story" type="checkbox"><span>✨ 記下來之後，用 AI 寫成一段小故事</span></label>
+      <p class="hint">需要登入雲端同步。開啟後，送出的事件和心情會傳給 Anthropic 的 Claude 改寫，不會被拿去訓練 AI；原文一樣會留著。每天最多 5 次。</p>
       <label class="switch"><input id="pref-world-sad" type="checkbox"><span>「那一年的世界」裡顯示災難、離別這類難過的事</span></label>
       <label class="switch"><input id="pref-achievements" type="checkbox"><span>顯示成就（關閉時照樣在背後記錄）</span></label>
+      <p class="hint"><a href="privacy.html">隱私權政策與使用條款</a></p>
       <p id="app-version" class="hint"></p>
       <div class="sheet-actions">
         <span class="spacer"></span>
