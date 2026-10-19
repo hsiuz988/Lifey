@@ -2,18 +2,18 @@
 // 情緒和小圖都是先畫好的一套，依紀錄的文字配對；開了 AI 故事時由 AI 從同一套裡挑
 const OUTLINE = '#2a2230';
 
-// 情緒：key、名稱、圖示、代表的花；順序也是自動判斷時比對的順序（越前面越優先）
+// 情緒：key、心情好壞（1–5，選了情緒就自動算，不用另外選）、名稱、圖示、代表的花
 export const EMOTIONS = [
-  { key: 'happy', label: '開心', icon: '😊', flower: '向日葵' },
-  { key: 'excited', label: '興奮', icon: '🤩', flower: '鬱金香' },
-  { key: 'calm', label: '平靜', icon: '😌', flower: '雛菊' },
-  { key: 'moved', label: '感動', icon: '🥹', flower: '康乃馨' },
-  { key: 'love', label: '戀愛', icon: '🥰', flower: '玫瑰' },
-  { key: 'tired', label: '累', icon: '😪', flower: '薰衣草' },
-  { key: 'sad', label: '難過', icon: '😢', flower: '鈴蘭' },
-  { key: 'angry', label: '生氣', icon: '😠', flower: '火鶴' },
-  { key: 'nervous', label: '緊張', icon: '😰', flower: '風鈴草' },
-  { key: 'miss', label: '想念', icon: '🥺', flower: '蒲公英' },
+  { key: 'happy', mood: 5, label: '開心', icon: '😊', flower: '向日葵' },
+  { key: 'excited', mood: 5, label: '興奮', icon: '🤩', flower: '鬱金香' },
+  { key: 'calm', mood: 4, label: '平靜', icon: '😌', flower: '雛菊' },
+  { key: 'moved', mood: 4, label: '感動', icon: '🥹', flower: '康乃馨' },
+  { key: 'love', mood: 5, label: '戀愛', icon: '🥰', flower: '玫瑰' },
+  { key: 'tired', mood: 2, label: '累', icon: '😪', flower: '薰衣草' },
+  { key: 'sad', mood: 1, label: '難過', icon: '😢', flower: '鈴蘭' },
+  { key: 'angry', mood: 1, label: '生氣', icon: '😠', flower: '火鶴' },
+  { key: 'nervous', mood: 2, label: '緊張', icon: '😰', flower: '風鈴草' },
+  { key: 'miss', mood: 3, label: '想念', icon: '🥺', flower: '蒲公英' },
 ];
 export const emotionByKey = (k) => EMOTIONS.find((e) => e.key === k) || null;
 

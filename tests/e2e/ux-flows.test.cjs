@@ -40,17 +40,29 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   answer = true; await p.click('#moment-save'); await p.waitForTimeout(200);
   let s = await st(p);
   assert(s.moments.length === 1 && s.moments[0].text === '只寫一句', '一句話直接存');
+  // 只放一張照片也能存；什麼都沒有時不會存
+  await p.click('#quick-open');
+  assert(await p.$eval('#moment-save', (e) => e.classList.contains('off')), '還沒寫也沒照片時，「記下來」是淡的');
+  await p.click('#moment-save'); await p.waitForTimeout(150);
+  assert(await p.$eval('#moment-dialog', d => d.open) && (await st(p)).moments.length === 1, '什麼都沒有時按了不會存');
+  await p.setInputFiles('#photo-input', require('path').join(__dirname, '..', 'fixtures', 'p0.jpg'));
+  await p.waitForFunction(() => document.querySelector('#photo-picker.single img'));
+  assert(!(await p.$eval('#moment-save', (e) => e.classList.contains('off'))), '放了照片就可以記');
+  await p.click('#moment-save'); await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
+  s = await st(p);
+  assert(s.moments.length === 2 && s.moments.some((m) => m.text === '' && m.photoIds.length === 1), '只有一張照片、沒有文字也存起來');
   // 展開日期、改成不確定
   await p.click('#add-btn'); await p.fill('#moment-form [name=text]', '小時候');
-  await p.click('#opt-bar .opt[data-sec=date]'); await p.fill('#moment-form [name=date]', '2003-05-01'); await p.check('#moment-form [name=approx]');
+  await p.click('#date-chip'); await p.fill('#moment-form [name=date]', '2003-05-01'); await p.check('#moment-form [name=approx]');
   assert((await p.textContent('#date-btn-label')).includes('8 歲時'), '日期按鈕顯示「8 歲時（日期不確定）」');
+  await p.click('#more-toggle'); assert(await p.isVisible('#star-toggle'), '「更多」打開後看得到和誰、標籤、人生大事、值得記住');
   await p.click('#star-toggle'); assert(await p.$eval('#star-toggle', e => e.classList.contains('filled')), '值得記住亮起來');
   await p.click('#moment-save'); await p.waitForTimeout(200);
   s = await st(p); const old = s.moments.find(m => m.text === '小時候');
   assert(old && old.approx && old.starred && old.date === '2003-05-01', '日期、不確定、值得記住都存下來');
-  // 常用人生大事
-  await p.click('#add-btn'); await p.click('#quick-events button:has-text("搬家")');
-  assert(await p.inputValue('#moment-form [name=text]') === '搬家了', '常用大事一點就帶入');
+  // 人生大事收在「更多」裡
+  await p.click('#add-btn'); await p.click('#more-toggle'); await p.click('#event-open'); await p.fill('#event-search', '搬家'); await p.click('#event-grid .event-btn >> nth=0');
+  assert(await p.inputValue('#moment-form [name=text]') === '搬家了', '人生大事一點就帶入');
   await p.click('#event-open'); await p.fill('#event-search', '馬拉松');
   assert((await p.$$('#event-grid .event-btn')).length === 1, '人生大事可以搜尋');
   await p.click('#event-grid .event-btn'); assert(await p.inputValue('#moment-form [name=text]') === '完成了馬拉松', '搜尋後選到');
@@ -74,6 +86,6 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(!(await p.isHidden('[data-page=home]')) && (await p.textContent('#profile-card-name')) === 'Hsiu2', '儲存個人資料後回到首頁');
   // 清除要輸入「清除」
   await p.click('[data-go=backup]'); answer = '不要'; await p.click('#reset-btn'); await p.waitForTimeout(200);
-  s = await st(p); assert(s && s.moments.length === 2, '沒輸入「清除」就不清除');
+  s = await st(p); assert(s && s.moments.length === 3, '沒輸入「清除」就不清除');
   console.log('errors', errors); await b.close();
 })().catch(e => { console.log('💥', e.message.split('\n').slice(0, 4).join(' | ')); process.exit(1); });

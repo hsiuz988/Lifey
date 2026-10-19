@@ -41,7 +41,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   await p.fill('#moment-form [name=text]', '和朋友去花蓮');
   await p.setInputFiles('#photo-input', [IMG + '/rotated.jpg', IMG + '/transparent.png']);
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 2);
-  await p.click('#mood-picker button:nth-child(5)');
+  await p.click('#emo-picker .chip >> text=開心');
   await p.screenshot({ path: S + '/s2-sheet.png' });
   await p.click('#moment-save');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);

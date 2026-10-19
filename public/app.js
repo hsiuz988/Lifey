@@ -812,6 +812,7 @@ async function openMoment(id = null, preset = {}) {
   const m = id ? state.moments.find((x) => x.id === id) : null;
   ui.editingId = m ? m.id : null;
   ui.mood = m ? m.mood || null : null;
+  ui.baseMood = ui.mood; // 舊紀錄的心情程度（沒有情緒時用）
   ui.emo = m ? m.emo || null : null;
   ui.emoManual = !!(m && m.emo && !m.emoAuto);
   ui.tags = new Set(m ? m.tags : []);
@@ -824,6 +825,7 @@ async function openMoment(id = null, preset = {}) {
   form.date.max = todayStr();
   form.text.value = m ? m.text : preset.text || '';
   form.feel.value = m ? m.feel || '' : '';
+  // 舊紀錄只有心情程度、沒有情緒時，用程度推一個情緒出來（之後存檔會照情緒重算程度）
   renderEmoPicker();
   form.starred.checked = m ? !!m.starred : false;
   form.approx.checked = m ? m.approx : !!preset.approx;
@@ -832,14 +834,10 @@ async function openMoment(id = null, preset = {}) {
   $('#moment-story').hidden = !(m && storyOn());
   $('#moment-story').textContent = m && m.story ? '✨ 重寫故事' : '✨ 寫成故事';
   $('#moment-story-remove').hidden = !(m && m.story);
-  // 編輯舊的紀錄時，有填的項目直接展開；新的一筆只展開不是今天的日期
+  // 一開始只有輸入框和心情；編輯有填「更多」裡東西的舊紀錄時，才把「更多」打開
   ui.openSecs = new Set();
-  if (m) {
-    if (m.people.length) ui.openSecs.add('people');
-    if (m.photoIds.length) ui.openSecs.add('photos');
-    if (m.mood || (m.emo && !m.emoAuto)) ui.openSecs.add('mood');
-    if (m.tags.length) ui.openSecs.add('tags');
-  } else if (preset.date) ui.openSecs.add('date');
+  if (m && (m.people.length || m.tags.length || m.event || m.starred || m.shared)) ui.openSecs.add('more');
+  if (!m && preset.date) ui.openSecs.add('date');
   form.shared.checked = m ? m.shared : false;
   const links = cloud.me ? cloud.me.links : [];
   $('#share-row').hidden = !links.length;
@@ -847,12 +845,10 @@ async function openMoment(id = null, preset = {}) {
     const names = links.map((l) => l.name);
     $('#share-label').textContent = `💞 分享給 ${names.length > 3 ? `${names.slice(0, 2).join('、')} 等 ${names.length} 人` : names.join('、')}`;
   }
-  renderMoodPicker();
   renderTagPicker();
   renderPhotoPicker();
   renderPeoplePicker();
   renderEventBadge();
-  renderQuickEvents();
   updateAgeHint();
   $('#moment-dialog').showModal();
   if (!m && preset.event) applyEvent(eventById(preset.event));
@@ -867,37 +863,43 @@ function momentSnapshot() {
 }
 const momentDirty = () => $('#moment-dialog').open && ui.momentSnapshot != null && momentSnapshot() !== ui.momentSnapshot;
 
-// 選填項目那一排：有填的會亮起來，點了展開或收起
+// 抽屜上的狀態：日期標籤、「更多」的摘要和每一列的值、「記下來」按鈕
 function renderOptBar() {
   const form = $('#moment-form');
-  const filled = {
-    date: form.date.value !== todayStr() || form.approx.checked,
-    people: ui.people.size > 0, photos: ui.photos.length > 0, mood: !!ui.mood || ui.emoManual, tags: ui.tags.size > 0,
-  };
-  const counts = { people: ui.people.size, photos: ui.photos.length, tags: ui.tags.size };
-  document.querySelectorAll('#opt-bar .opt[data-sec]').forEach((btn) => {
-    const sec = btn.dataset.sec;
-    const open = ui.openSecs.has(sec);
-    btn.classList.toggle('filled', filled[sec]);
-    btn.classList.toggle('open', open);
-    btn.setAttribute('aria-expanded', String(open));
-    if (sec !== 'date') btn.lastElementChild.textContent = { people: '和誰', photos: '照片', mood: '心情', tags: '標籤' }[sec] + (counts[sec] ? ` ${counts[sec]}` : '');
-    if (sec === 'mood' && ui.mood) btn.firstChild.textContent = `${MOODS[ui.mood - 1]} `;
-    else if (sec === 'mood' && ui.emo) btn.firstChild.textContent = `${emotionByKey(ui.emo).icon} `;
-    else if (sec === 'mood') btn.firstChild.textContent = '😊 ';
-  });
-  document.querySelectorAll('#moment-form .opt-sec').forEach((el) => { el.hidden = !ui.openSecs.has(el.dataset.sec); });
+  const open = (sec) => ui.openSecs.has(sec);
+  document.querySelectorAll('#moment-form .opt-sec').forEach((el) => { el.hidden = !open(el.dataset.sec); });
+  document.querySelectorAll('#moment-form button[data-sec]').forEach((btn) => btn.setAttribute('aria-expanded', String(open(btn.dataset.sec))));
   const date = form.date.value;
   let label = '今天';
   if (isValidDateStr(date) && date !== todayStr()) {
     const age = ageAt(state.profile.birthday, date);
-    label = form.approx.checked ? `${age} 歲時（日期不確定）` : `${fmtDate(parseDate(date))} · ${age} 歲`;
+    label = form.approx.checked ? `${age} 歲時` : `${pad(parseDate(date).getMonth() + 1)}/${pad(parseDate(date).getDate())} · ${age} 歲`;
   }
   $('#date-btn-label').textContent = label;
+  $('#date-chip').classList.toggle('filled', label !== '今天');
+
+  // 「更多」裡每一列右邊的值，有填的亮起來
+  const names = [...ui.people].map(personById).filter(Boolean).map(personName);
+  const ev = eventById(ui.event);
+  const set = (id, text) => { const el = $(id); el.textContent = text ? `${text} ›` : '›'; el.classList.toggle('set', !!text); };
+  set('#people-sum', names.length > 2 ? `${names.slice(0, 2).join('、')} 等 ${names.length} 位` : names.join('、'));
+  set('#tags-sum', [...ui.tags].slice(0, 3).join('、') + (ui.tags.size > 3 ? '…' : ''));
+  set('#event-sum', ev ? `${ev.icon} ${ev.label}` : '');
   const star = $('#star-toggle');
   star.classList.toggle('filled', form.starred.checked);
   star.setAttribute('aria-pressed', String(form.starred.checked));
-  star.firstChild.textContent = form.starred.checked ? '★ ' : '☆ ';
+  star.querySelector('.ic').textContent = form.starred.checked ? '★' : '☆';
+  $('#star-sum').textContent = form.starred.checked ? '開' : '關';
+  $('#star-sum').classList.toggle('set', form.starred.checked);
+  const filled = [names.length && '和誰', ui.tags.size && '標籤', ev && '人生大事', form.starred.checked && '值得記住', form.shared.checked && '分享'].filter(Boolean);
+  $('#more-summary').textContent = open('more') ? '' : filled.length ? `已填：${filled.join('、')}` : '和誰、標籤、人生大事…';
+  $('#more-summary').classList.toggle('set', !!filled.length && !open('more'));
+  $('#more-toggle .chev').textContent = open('more') ? '▴' : '▾';
+
+  // 寫一句或放一張照片就能記
+  const ready = !!form.text.value.trim() || ui.photos.length > 0;
+  $('#moment-save').classList.toggle('off', !ready);
+  $('#save-hint').textContent = ready ? '' : '寫一句或放一張照片';
 }
 
 function toggleSec(sec, force) {
@@ -906,19 +908,9 @@ function toggleSec(sec, force) {
   renderOptBar();
   if (open) {
     const el = document.querySelector(`#moment-form .opt-sec[data-sec="${sec}"]`);
+    if (sec !== 'date' && sec !== 'more') ui.openSecs.add('more'); // 「更多」裡的項目要先把「更多」打開
     if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
-}
-
-// 常用的人生大事：最近用過的排前面，再補常見的
-const QUICK_EVENTS = ['dating', 'graduate', 'first-job', 'move', 'pet', 'first-abroad', 'wedding', 'baby'];
-function renderQuickEvents() {
-  const used = [...state.moments].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).map((m) => m.event).filter(Boolean);
-  const ids = [...new Set([...used.slice(0, 3), ...QUICK_EVENTS])].slice(0, 8);
-  const more = h('button', { type: 'button', id: 'event-open', class: 'chip more-chip', onclick: () => openEventPicker('moment') }, '⭐ 人生大事');
-  $('#quick-events').replaceChildren(more, ...ids.map(eventById).filter(Boolean).map((ev) => h('button', {
-    type: 'button', class: `chip${ui.event === ev.id ? ' on' : ''}`, onclick: () => applyEvent(ev),
-  }, `${ev.icon} ${ev.label}`)));
 }
 
 function renderEventBadge() {
@@ -927,7 +919,7 @@ function renderEventBadge() {
   badge.hidden = !ev;
   if (!ev) return;
   badge.replaceChildren(`${ev.icon} ${ev.label} `, h('button', {
-    type: 'button', class: 'badge-x', 'aria-label': '取消人生大事', onclick: () => { ui.event = null; renderEventBadge(); renderPeoplePicker(); renderQuickEvents(); },
+    type: 'button', class: 'badge-x', 'aria-label': '取消人生大事', onclick: () => { ui.event = null; renderEventBadge(); renderPeoplePicker(); },
   }, '×'));
 }
 
@@ -967,9 +959,8 @@ function applyEvent(ev) {
   if (!ui.editingId) form.starred.checked = !ev.sad;
   renderEventBadge();
   renderTagPicker();
-  if (ev.ask) ui.openSecs.add('people'); // 需要「和誰」的大事，直接展開讓你選
+  if (ev.ask) { ui.openSecs.add('more'); ui.openSecs.add('people'); } // 需要「和誰」的大事，直接展開讓你選
   renderPeoplePicker();
-  renderQuickEvents();
   if (ev.ask === 'pet' && !state.people.some((p) => p.kind === 'pet' && !petGoneMoment(p))) {
     openPersonEditor(null, { kind: 'pet', onSaved: (person) => { ui.people.add(person.id); renderPeoplePicker(); } });
   } else if (ev.ask === 'child' && !ui.people.size) {
@@ -1019,30 +1010,27 @@ function updateAgeHint() {
   if (ui.openSecs) renderOptBar();
 }
 
-function renderMoodPicker() {
-  $('#mood-picker').replaceChildren(...MOODS.map((emoji, i) =>
-    h('button', {
-      type: 'button', class: `mood${ui.mood === i + 1 ? ' on' : ''}`, 'aria-label': `心情 ${i + 1}`,
-      onclick: () => { ui.mood = ui.mood === i + 1 ? null : i + 1; renderMoodPicker(); renderEmoPicker(); },
-    }, emoji)));
-  if (ui.openSecs) renderOptBar();
-}
-
 // 情緒：沒自己選時，依心情欄（沒寫就看事件）自動判斷；點了就以自己選的為準，再點一次取消
+// 心情好壞（1–5）不用另外選，跟著情緒走；點了情緒才出現「想多說一點嗎」
 function renderEmoPicker() {
   const form = $('#moment-form');
-  if (!ui.emoManual) ui.emo = detectEmotion(form.feel.value, form.text.value, ui.mood);
+  if (!ui.emoManual) ui.emo = detectEmotion(form.feel.value, form.text.value, ui.emoManual ? null : ui.baseMood);
   $('#emo-picker').replaceChildren(...EMOTIONS.map((e) => h('button', {
-    type: 'button', class: `chip${ui.emo === e.key ? ' on' : ''}`, 'aria-pressed': String(ui.emo === e.key),
+    type: 'button', class: `chip emo${ui.emo === e.key ? ' on' : ''}${ui.emo === e.key && !ui.emoManual ? ' auto' : ''}`,
+    'aria-pressed': String(ui.emo === e.key), 'aria-label': e.label,
     onclick: () => {
       const same = ui.emo === e.key && ui.emoManual;
       ui.emoManual = !same;
       ui.emo = same ? null : e.key;
       renderEmoPicker();
+      if (!same && !form.feel.value) form.feel.focus();
     },
-  }, `${e.icon} ${e.label}`)));
+  }, h('span', { class: 'emo-icon' }, e.icon), h('span', { class: 'emo-label' }, e.label))));
   const cur = emotionByKey(ui.emo);
-  $('#emo-hint').textContent = !cur ? '寫下心情會自動判斷，也可以自己點一個' : ui.emoManual ? `你選了「${cur.label}」，再點一次可以取消` : `自動判斷是「${cur.label}」，不對的話點別的`;
+  ui.mood = cur ? cur.mood : ui.baseMood;
+  $('#emo-hint').textContent = !cur ? '' : ui.emoManual ? `你選了「${cur.label}」，再點一次可以取消` : `自動判斷是「${cur.label}」，不對的話點別的`;
+  $('#emo-hint').hidden = !cur;
+  form.feel.hidden = !cur && !form.feel.value;
   if (ui.openSecs) renderOptBar();
 }
 
@@ -1063,8 +1051,13 @@ function renderPhotoPicker() {
       onclick: () => removePendingPhoto(i),
     }, '×')));
   if (ui.busy) items.push(h('div', { class: 'photo-item busy' }, '處理中…'));
-  else if (ui.photos.length < MAX_PHOTOS) items.push(h('label', { class: 'photo-add', for: 'photo-input' }, '＋', h('span', {}, '加照片')));
-  $('#photo-picker').replaceChildren(...items);
+  const picker = $('#photo-picker');
+  picker.replaceChildren(...items);
+  picker.classList.toggle('single', ui.photos.length === 1 && !ui.busy); // 只有一張時放大
+  picker.hidden = !items.length;
+  $('#photo-add').hidden = ui.photos.length >= MAX_PHOTOS;
+  $('#photo-add-label').textContent = ui.photos.length ? '再加一張' : '照片';
+  $('#moment-form').text.placeholder = ui.photos.length ? '想說點什麼嗎？（可以不寫）' : '今天發生了什麼？一句話、或一張照片就好';
   if (ui.openSecs) renderOptBar();
 }
 
@@ -1104,7 +1097,8 @@ async function saveMoment(e) {
   const date = form.date.value;
   const text = form.text.value.trim();
   const feel = form.feel.value.trim();
-  if (!isValidDateStr(date) || !text) return;
+  if (!text && !ui.photos.length) { toast('寫一句話，或放一張照片'); form.text.focus(); return; }
+  if (!isValidDateStr(date)) { ui.openSecs.add('date'); renderOptBar(); return; }
   if (!ui.emoManual) ui.emo = detectEmotion(feel, text, ui.mood);
   if (date < state.profile.birthday || date > todayStr()) {
     toast('日期要在生日到今天之間');
@@ -1154,7 +1148,7 @@ async function saveMoment(e) {
     toast(prev ? '已更新' : ev && ev.sad ? '已經好好記下來了 🤍' : '記下來了');
     render();
     if (!prev && scene && !(ev && ev.sad)) scene.celebrate({ star: fields.starred });
-    if (rewrite && storyOn()) openStory(momentId);
+    if (rewrite && text && storyOn()) openStory(momentId);
   } finally {
     saveBtn.disabled = false;
   }
@@ -1191,35 +1185,9 @@ const readyLetters = () => state.letters.filter((l) => !l.openedAt && l.openOn <
 
 // 一秒日記：一句話或一個心情就算記過
 function renderQuickNote() {
-  $('#quick-moods').replaceChildren(...MOODS.map((emoji, i) => h('button', {
-    type: 'button', class: `mood small-mood${ui.quickMood === i + 1 ? ' on' : ''}`, 'aria-label': `心情 ${i + 1}`,
-    onclick: () => { ui.quickMood = ui.quickMood === i + 1 ? null : i + 1; renderQuickNote(); },
-  }, emoji)));
   const n = state.moments.filter((m) => m.date === todayStr()).length;
   $('#quick-done').hidden = !n;
   $('#quick-done').textContent = n ? `今天記了 ${n} 則 ✓ 想到什麼再記一句` : '';
-}
-
-async function saveQuickNote(e) {
-  e.preventDefault();
-  const text = $('#quick-text').value.trim();
-  if (!text && !ui.quickMood) { $('#quick-text').focus(); return; }
-  const now = new Date().toISOString();
-  const m = {
-    id: newId(), date: todayStr(), text: text || `今天的心情 ${MOODS[ui.quickMood - 1]}`, mood: ui.quickMood || null,
-    emo: detectEmotion('', text, ui.quickMood), emoAuto: true, tags: [], photoIds: [],
-    starred: false, approx: false, people: [], event: null, createdAt: now, updatedAt: now,
-  };
-  state.moments.push(m);
-  if (!(await saveState())) { state.moments.pop(); return; }
-  $('#quick-text').value = '';
-  $('#quick-text').blur();
-  ui.quickMood = null;
-  ui.selAge = ageAt(state.profile.birthday, m.date);
-  toast('記下來了');
-  render();
-  if (scene) scene.celebrate();
-  if (text && storyOn()) openStory(m.id);
 }
 
 // ---------- AI 故事 ----------
@@ -2909,8 +2877,14 @@ function bind() {
     list.hidden = !list.hidden;
     $('#moment-menu-btn').setAttribute('aria-expanded', String(!list.hidden));
   });
-  document.querySelectorAll('#opt-bar .opt[data-sec]').forEach((btn) => btn.addEventListener('click', () => toggleSec(btn.dataset.sec)));
+  document.querySelectorAll('#moment-form button[data-sec]').forEach((btn) => btn.addEventListener('click', () => toggleSec(btn.dataset.sec)));
   $('#star-toggle').addEventListener('click', () => { const box = $('#moment-form').starred; box.checked = !box.checked; renderOptBar(); });
+  $('#event-open').addEventListener('click', () => openEventPicker('moment'));
+  $('#moment-form').shared.addEventListener('change', renderOptBar);
+  $('#moment-form').text.addEventListener('input', renderOptBar);
+  // 首頁的入口：點一下就打開「記一筆」；📷 直接選照片
+  $('#quick-open').addEventListener('click', () => openMoment());
+  $('#quick-photo').addEventListener('click', () => { openMoment(); $('#photo-input').click(); });
   $('#event-search').addEventListener('input', renderEventPicker);
   $('#photo-input').addEventListener('change', (e) => {
     const files = [...e.target.files];
@@ -2931,7 +2905,6 @@ function bind() {
   $('#moment-form').text.addEventListener('input', () => { if (!ui.emoManual) renderEmoPicker(); });
   $('#replay-toggle').addEventListener('click', toggleReplay);
   $('#replay-dialog').addEventListener('close', () => { if (replay) { clearTimeout(replay.timer); replay.scene.stop(); } });
-  $('#quick-note').addEventListener('submit', saveQuickNote);
   $('#recall-save').addEventListener('click', recallSave);
   $('#recall-prev').addEventListener('click', () => recallGo(-1));
   $('#recall-next').addEventListener('click', () => recallGo(1));

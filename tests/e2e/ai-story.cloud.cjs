@@ -147,8 +147,7 @@ let b;
   await p.evaluate(() => document.querySelector('#moment-dialog').close());
 
   // 被拒絕：顯示溫和的訊息，次數退回
-  await p.fill('#quick-text', '拒絕測試');
-  await p.click('#quick-send');
+  await p.click('#quick-open'); await p.fill('#moment-form [name=text]', '拒絕測試'); await p.click('#moment-save');
   await p.waitForSelector('#letter-dialog .story-error', { timeout: 15000 });
   assert(await p.isVisible('#letter-dialog >> text=這則沒辦法寫成故事'), '被拒絕時顯示訊息');
   await sheetBtn(p, '關閉');
@@ -165,8 +164,7 @@ let b;
   await p.click('#pref-ai-story');
   await p.click('#settings-dialog [data-close] >> nth=-1');
   const before = calls.length;
-  await p.fill('#quick-text', '普通的一天');
-  await p.click('#quick-send');
+  await p.click('#quick-open'); await p.fill('#moment-form [name=text]', '普通的一天'); await p.click('#moment-save');
   await p.waitForTimeout(500);
   assert(!(await p.evaluate(() => document.querySelector('#letter-dialog').open)) && calls.length === before, '關掉設定就不會寫故事');
 
