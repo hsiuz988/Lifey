@@ -329,6 +329,14 @@ function renderMe() {
   $('#me-name').textContent = name;
   const tile = (n, label) => h('div', { class: 'me-stat' }, h('b', {}, String(n)), h('span', {}, label));
   $('#me-stats').replaceChildren(tile(state.moments.length, '則紀錄'), tile(photos, '張照片'), tile(`${ages.size}/${ageAt(birthday, today) + 1}`, '個年歲'));
+  // 家人與寵物：伴侶、家人在前，寵物在後；點了看人物卡
+  const order = (p) => (p.kind === 'pet' ? 2 : p.relation === '伴侶' ? 0 : 1);
+  const fam = state.people.slice().sort((a, b) => order(a) - order(b));
+  $('#me-family').replaceChildren(...(fam.length ? fam.slice(0, 12).map((p) => {
+    const pic = h('span', { class: `person-avatar${p.kind === 'pet' ? ' pet' : ''}` }); pic.innerHTML = personAvatarHtml(p);
+    return h('button', { type: 'button', class: 'family-item', onclick: () => openPerson(p.id) }, pic,
+      h('span', {}, personName(p)), p.relation && p.kind !== 'pet' ? h('small', {}, p.relation) : null);
+  }) : [h('p', { class: 'hint' }, '把伴侶、家人、朋友和寵物加進來，記一筆時可以標「和誰」，也能邀請他們一起用。')]));
   const pets = state.people.filter((p) => p.kind === 'pet').length;
   $('#me-people').textContent = state.people.length ? `${state.people.length - pets} 位 · ${pets} 隻` : '還沒有';
   const sealed = state.letters.filter((l) => !l.openedAt).length;
@@ -3075,6 +3083,8 @@ function bind() {
   $('#profile-card').addEventListener('click', () => settingsGo('profile'));
   $('#add-person-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
   $('#add-pet-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
+  $('#me-add-person').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
+  $('#me-add-pet').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
   $('#recall-event').addEventListener('click', () => openEventPicker('recall'));
   $('#pref-ai-story').addEventListener('change', async (e) => {
     if (e.target.checked && !cloud.me) {
