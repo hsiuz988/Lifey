@@ -2378,6 +2378,7 @@ function openSettings(page = 'home') {
   const form = $('#profile-form');
   form.name.value = state.profile.name;
   form.birthday.value = state.profile.birthday;
+  form.birthday.syncPicker();
   form.birthday.max = todayStr();
   resetExportButton();
   renderSettingsMenu();
@@ -2842,8 +2843,43 @@ function renderMembers() {
   body.replaceChildren(...(rows.length ? rows : [h('p', { class: 'hint' }, '還沒有可以對照的年紀。')]));
 }
 
+// 生日改成年／月／日三個下拉選單：iPhone 的日期面板選完月份會跳回月曆、要一路往回翻年份，選單比較快
+// 真正的值還是放在原本的 <input type=date>（藏起來），表單和測試都照舊用它
+function enhanceBirthday(input) {
+  const thisYear = new Date().getFullYear();
+  const opt = (v, label) => h('option', { value: v }, label);
+  const year = h('select', { 'aria-label': '出生年' }, opt('', '年'), ...Array.from({ length: thisYear - 1919 }, (_, i) => opt(String(thisYear - i), `${thisYear - i} 年`)));
+  const month = h('select', { 'aria-label': '出生月' }, opt('', '月'), ...Array.from({ length: 12 }, (_, i) => opt(String(i + 1), `${i + 1} 月`)));
+  const day = h('select', { 'aria-label': '出生日' }, opt('', '日'));
+  const fillDays = () => {
+    const n = year.value && month.value ? new Date(Number(year.value), Number(month.value), 0).getDate() : 31;
+    const keep = day.value;
+    day.replaceChildren(opt('', '日'), ...Array.from({ length: n }, (_, i) => opt(String(i + 1), `${i + 1} 日`)));
+    day.value = Number(keep) <= n ? keep : '';
+  };
+  const toInput = () => {
+    fillDays();
+    input.value = year.value && month.value && day.value ? `${year.value}-${pad(Number(month.value))}-${pad(Number(day.value))}` : '';
+  };
+  const fromInput = () => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.value);
+    year.value = m ? String(Number(m[1])) : '';
+    month.value = m ? String(Number(m[2])) : '';
+    fillDays();
+    day.value = m ? String(Number(m[3])) : '';
+  };
+  [year, month, day].forEach((s) => s.addEventListener('change', toInput));
+  input.addEventListener('input', fromInput);
+  input.addEventListener('change', fromInput);
+  input.syncPicker = fromInput;
+  fillDays();
+  input.after(h('div', { class: 'bday' }, year, month, day));
+  fromInput();
+}
+
 // ---------- 綁定事件 ----------
 function bind() {
+  document.querySelectorAll('input.bday-native').forEach(enhanceBirthday);
   $('#setup-form').birthday.max = todayStr();
   $('#setup-form').addEventListener('submit', async (e) => {
     e.preventDefault();

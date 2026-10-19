@@ -24,7 +24,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(await p.$eval('#avatar-options .pic-btn:has-text("馬尾")', e => e.classList.contains('on')), '隨機後復原回到馬尾');
   await p.click('#avatar-undo'); assert(await p.isDisabled('#avatar-undo'), '全部復原完就不能再按');
   await p.click('#avatar-options .pic-btn:has-text("包頭")');
-  answer = false; await p.click('#avatar-dialog [data-close]'); await p.waitForTimeout(150);
+  answer = false; await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   assert(await p.$eval('#avatar-dialog', d => d.open) && prompted.pop().includes('還沒存'), '有改過時，取消會先問，選否就留著');
   await p.click('#avatar-save'); answer = true;
   assert((await st(p)).profile.avatar.hairStyle === 'bun', '完成後存下包頭');

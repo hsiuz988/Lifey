@@ -91,7 +91,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   await C.waitForFunction(() => document.querySelector('#sync-btn') && !document.querySelector('#sync-btn').hidden, null, { timeout: 20000 });
   await C.waitForFunction(() => document.querySelector('#avatar-dialog').open, null, { timeout: 15000 });
   assert(true, '被邀請的人建立帳號後，自動打開捏小人');
-  await C.click('#avatar-dialog [data-close]');
+  await C.keyboard.press('Escape');
   const cMe = await C.evaluate(() => fetch('/api/me').then(r => r.json()));
   assert(cMe.links.length === 1 && cMe.links[0].name === 'Hsiu', 'Ken 建立帳號後自動和 Hsiu 連結');
   await synced(C);
@@ -126,7 +126,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   await setup(D, 'Mom', '1965-08-08', { signup: true });
   await D.waitForFunction(() => document.querySelector('#sync-btn') && !document.querySelector('#sync-btn').hidden, null, { timeout: 20000 });
   await D.waitForFunction(() => document.querySelector('#avatar-dialog').open, null, { timeout: 15000 });
-  await D.click('#avatar-dialog [data-close]');
+  await D.keyboard.press('Escape');
   await synced(D);
   // D 看不到 Ken（沒有直接連結）
   const kenId = me.links[0].id;

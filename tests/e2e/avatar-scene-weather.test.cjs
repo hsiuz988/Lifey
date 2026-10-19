@@ -50,7 +50,7 @@ async function newPage(b, opts = {}) {
   // 取消不會改到
   await p.click('#id-avatar');
   await p.click('#avatar-random');
-  await p.click('#avatar-dialog [data-close]');
+  await p.keyboard.press('Escape');
   s = await st(p);
   assert(JSON.stringify(s.profile.avatar) === JSON.stringify(av), '按取消，隨機出來的不會存');
 
@@ -94,7 +94,7 @@ async function newPage(b, opts = {}) {
   const q = await newPage(b);
   await q.goto(URL);
   await q.fill('#setup-form [name=name]', 'X'); await q.fill('#setup-form [name=birthday]', '1990-01-01'); await q.click('#setup-form button');
-  await q.waitForFunction(() => document.querySelector('#avatar-dialog').open); await q.click('#avatar-dialog [data-close]');
+  await q.waitForFunction(() => document.querySelector('#avatar-dialog').open); await q.keyboard.press('Escape');
   await q.click('#open-settings');
   await q.click('#weather-toggle');
   assert(await q.waitForFunction(() => /定位/.test(document.querySelector('#toast').textContent), null, { timeout: 20000 }).then(() => true, () => false), '沒給定位權限：提示怎麼開啟');
@@ -116,7 +116,7 @@ async function newPage(b, opts = {}) {
   const m = await newPage(b, { reducedMotion: 'reduce' });
   await m.goto(URL);
   await m.fill('#setup-form [name=name]', 'M'); await m.fill('#setup-form [name=birthday]', '1990-01-01'); await m.click('#setup-form button');
-  await m.waitForFunction(() => document.querySelector('#avatar-dialog').open); await m.click('#avatar-dialog [data-close]');
+  await m.waitForFunction(() => document.querySelector('#avatar-dialog').open); await m.keyboard.press('Escape');
   assert(await canvasBusy(m, '#scene-canvas') > 15, '減少動態效果：仍然畫出靜態場景');
 
   console.log('errors', errors);

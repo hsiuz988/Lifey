@@ -16,7 +16,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.addInitScript(() => { new MutationObserver(() => { const t = document.querySelector('#toast'); if (t && !t.hidden) window.logToast(t.textContent); }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true }); });
   await p.goto(URL);
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
-  await p.waitForFunction(() => document.querySelector('#avatar-dialog').open); await p.click('#avatar-dialog [data-close]');
+  await p.waitForFunction(() => document.querySelector('#avatar-dialog').open); await p.keyboard.press('Escape');
   const closed = (sel) => p.waitForFunction((s) => !document.querySelector(s).open, sel);
   const save = async () => { await p.click('#moment-save'); await closed('#moment-dialog'); await p.waitForTimeout(150); };
 
@@ -131,7 +131,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#export-btn')]); await dl.saveAs(S + '/people.zip');
   await p.click('#reset-btn'); await p.waitForSelector('#setup:not([hidden])');
   await p.fill('#setup-form [name=name]', 'X'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
-  await p.waitForFunction(() => document.querySelector('#avatar-dialog').open); await p.click('#avatar-dialog [data-close]');
+  await p.waitForFunction(() => document.querySelector('#avatar-dialog').open); await p.keyboard.press('Escape');
   await p.click('#open-settings'); await p.setInputFiles('#import-file', S + '/people.zip'); await closed('#settings-dialog');
   s = await st(p);
   assert(s.people.length === 3 && s.moments.find(x => x.event === 'wedding').people.length === 1, '匯出再匯入：人物與標記都在');

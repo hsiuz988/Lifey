@@ -248,6 +248,17 @@ dialog.sheet {
   overflow-y: auto;
 }
 dialog.sheet::backdrop { background: rgba(0, 0, 0, .6); }
+/* 抽屜打開時，捲動只捲抽屜，不會捲到後面的頁面 */
+dialog.sheet { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+html:has(dialog[open]), body:has(dialog[open]) { overflow: hidden; }
+
+/* 生日：年／月／日三個下拉選單（iPhone 上是滾輪），原本的日期欄藏在後面 */
+.bday { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; position: relative; }
+.bday select {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 8px; color: var(--text); font-size: 16px; min-height: 44px; width: 100%;
+}
+.bday-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 dialog h3 { margin: 0; font-size: 20px; }
 dialog h4 { margin: 0; }
 dialog hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
@@ -479,6 +490,7 @@ body.ptr-pulling .ptr { transition: none; } /* 拉的時候跟著手指，不要
 
 /* ---------- 捏小人 ---------- */
 dialog.avatar-dialog { display: none; flex-direction: column; gap: 12px; }
+dialog.avatar-dialog > * { flex-shrink: 0; } /* 內容太長時整個抽屜捲動，不要把選項擠扁 */
 dialog.avatar-dialog[open] { display: flex; }
 .avatar-stage {
   display: flex; justify-content: center; padding: 8px 0;
