@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fdeef3">
+<title>Lifey 試玩：我的房間</title>
+<style>
+:root { --ink: #5b3a3e; --pink: #f0708f; --soft: #fde6ed; --bg: #fdf3f7; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; }
+body { display: flex; flex-direction: column; overscroll-behavior: none; }
+.game { position: relative; height: min(54dvh, calc(82vw + 56px)); min-height: 300px; flex: none; overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, #fff8fb 0, #fdeef3 70%);
+  padding-top: env(safe-area-inset-top, 0px); }
+.game::before { content: ''; position: absolute; inset: 0; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cpath d='M22 29c-6-5-10-8-10-12a5 5 0 0 1 10-1.5A5 5 0 0 1 32 17c0 4-4 7-10 12z' fill='%23f7d7e3'/%3E%3C/svg%3E"); }
+#stage { position: absolute; inset: env(safe-area-inset-top, 0px) 0 0 0; width: 100%; height: calc(100% - env(safe-area-inset-top, 0px)); touch-action: manipulation; }
+.hud { position: absolute; left: 10px; top: calc(10px + env(safe-area-inset-top, 0px)); display: flex; gap: 6px; pointer-events: none; }
+.pill { background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 800; box-shadow: 0 2px 0 var(--ink); }
+.hint { position: absolute; right: 10px; top: calc(10px + env(safe-area-inset-top, 0px)); font-size: 11.5px; background: rgba(255,255,255,.85); border-radius: 999px; padding: 3px 10px; transition: opacity .6s; }
+.lower { flex: 1; overflow: auto; padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; background: #fff; border-radius: 22px 22px 0 0; margin-top: -14px; position: relative; box-shadow: 0 -4px 16px rgba(240,112,143,.12); }
+.card { border: 2px solid #f6d3de; border-radius: 16px; padding: 10px 14px; background: #fffafc; }
+.card small { display: block; color: #b07f8c; font-size: 12px; margin-bottom: 2px; }
+.rec { margin-top: auto; border: 2.5px solid var(--ink); background: var(--pink); color: #fff; font-size: 18px; font-weight: 900; border-radius: 18px; padding: 13px; text-align: center; box-shadow: 0 4px 0 var(--ink); cursor: pointer; user-select: none; }
+.rec:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+
+/* 小人動畫 */
+#me .walking .leg-l { animation: legA .36s infinite ease-in-out; }
+#me .walking .leg-r { animation: legB .36s infinite ease-in-out; }
+#me .walking .arm-l { animation: armA .36s infinite ease-in-out; transform-box: fill-box; transform-origin: 50% 0; }
+#me .walking .arm-r { animation: armB .36s infinite ease-in-out; transform-box: fill-box; transform-origin: 50% 0; }
+#me .walking .bodybob { animation: bob .18s infinite alternate ease-in-out; }
+#me .idle .bodybob { animation: breathe 2.4s infinite ease-in-out; }
+@keyframes legA { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+@keyframes legB { 0%,100% { transform: translateY(-3px) } 50% { transform: translateY(0) } }
+@keyframes armA { 0%,100% { transform: rotate(12deg) } 50% { transform: rotate(-12deg) } }
+@keyframes armB { 0%,100% { transform: rotate(-12deg) } 50% { transform: rotate(12deg) } }
+@keyframes bob { from { transform: translateY(0) } to { transform: translateY(-2px) } }
+@keyframes breathe { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1px) } }
+.twinkle { animation: tw 2.2s infinite ease-in-out; transform-box: fill-box; transform-origin: center; }
+@keyframes tw { 0%,100% { opacity: 0; transform: scale(.4) } 40%,60% { opacity: 1; transform: scale(1) } }
+.marker { animation: mk .5s ease-out; }
+@keyframes mk { from { opacity: 0; transform: translateY(-14px) } to { opacity: 1; transform: none } }
+.zz { animation: zz 1.6s infinite ease-out; }
+@keyframes zz { from { opacity: 0; transform: translate(0, 0) scale(.6) } 30% { opacity: 1 } to { opacity: 0; transform: translate(26px, -50px) scale(1.2) } }
+.night { transition: opacity .8s; pointer-events: none; }
+.hot { cursor: pointer; }
+.pop { animation: pop .25s ease-out; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes pop { from { transform: scale(.6); opacity: 0 } to { transform: none; opacity: 1 } }
+
+/* 面板 */
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 22px 22px 0 0; border-top: 2.5px solid var(--ink); padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateY(105%); transition: transform .28s cubic-bezier(.2,.8,.2,1); z-index: 10; max-height: 70dvh; overflow: auto; }
+.sheet.open { transform: none; }
+.sheet h3 { margin: 0 0 10px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+.sheet .x { border: 0; background: var(--soft); width: 30px; height: 30px; border-radius: 50%; font-size: 15px; color: var(--ink); }
+.sheet textarea { width: 100%; min-height: 110px; border: 2px solid #f6d3de; border-radius: 14px; padding: 12px; font-size: 17px; font-family: inherit; color: var(--ink); resize: none; }
+.sheet textarea:focus { outline: none; border-color: var(--pink); }
+.sheet .rec { margin-top: 12px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; font-size: 12px; }
+.cal b { color: #b07f8c; font-weight: 600; }
+.cal span { aspect-ratio: 1; border-radius: 10px; background: #fff3f7; display: grid; place-items: center; font-size: 17px; }
+.cal span.today { outline: 2px solid var(--pink); }
+.scrim { position: fixed; inset: 0; background: rgba(91,58,62,.25); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 9; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+</style>
+</head>
+<body>
+<div class="game">
+  <svg id="stage" viewBox="140 20 1260 990" preserveAspectRatio="xMidYMid meet"></svg>
+  <div class="hud"><span class="pill">28 歲 · 第 248 天</span><span class="pill">☀ 23°</span></div>
+  <div class="hint" id="hint">點地板走路，點東西看看 ✨</div>
+</div>
+<div class="lower">
+  <div class="card" id="today-card"><small>今天</small>還沒記錄喔。點書桌上的書，或下面的按鈕</div>
+  <div class="card"><small>📅 那年今日 · 3 年前</small>第一次自己煮了一鍋咖哩</div>
+  <div class="rec" id="rec-btn">✏️ 記下今天</div>
+</div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><h3><span id="sheet-title"></span><button class="x" id="sheet-x" aria-label="關閉">✕</button></h3><div id="sheet-body"></div></div>
+<script type="module" src="play.js"></script>
+</body>
+</html>
