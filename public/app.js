@@ -2518,6 +2518,28 @@ async function withBusy(btn, fn) {
   try { await fn(); } catch (e) { toast(e.message); } finally { btn.disabled = false; }
 }
 
+// 剛填完名字生日：如果可以建立帳號，跳出一個大按鈕，按了直接跳 Face ID 存登入金鑰；略過就照常繼續
+async function offerFaceIdSignup(next) {
+  let signup = { open: false, invite: false };
+  if (cloudApi.passkeySupported()) { try { signup = await cloudApi.signupStatus(cloud.invite); } catch (e) { /* 離線就略過 */ } }
+  if (!signup.open && !signup.invite) { next(); return; }
+  const close = (go) => { $('#letter-dialog').close(); if (go) next(); };
+  const btn = h('button', { type: 'button', class: 'btn primary' }, '用 Face ID 建立帳號');
+  btn.addEventListener('click', () => withBusy(btn, async () => {
+    const result = await cloudApi.register(state.profile.name, cloud.invite);
+    cloud.invite = null;
+    close(false);
+    await afterLogin(result);
+    next();
+  }));
+  $('#letter-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, signup.invite ? `💞 ${signup.inviter} 邀請你` : '☁︎ 要開啟雲端同步嗎？')),
+    h('p', {}, signup.invite ? '用 Face ID 建立帳號，就會和對方連結，也能換手機不怕遺失。' : '用 Face ID 建立帳號，紀錄和照片會備份到雲端，換手機、手機壞掉都不怕遺失。'),
+    h('p', { class: 'hint' }, '按下去會跳出 Face ID，確認就好，不用密碼。也可以之後再到「設定 → 雲端」開啟。'),
+    h('div', { class: 'sheet-actions' }, h('button', { type: 'button', class: 'btn', onclick: () => close(true) }, '之後再說'), h('span', { class: 'spacer' }), btn));
+  if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
+}
+
 function cloudLoginButton() {
   const btn = h('button', { type: 'button', class: 'btn' }, '用 Face ID 登入');
   btn.addEventListener('click', () => withBusy(btn, async () => afterLogin(await cloudApi.login())));
@@ -2828,8 +2850,8 @@ function bind() {
     if (await saveProfile(e.target)) {
       requestPersist();
       render();
-      if (cloud.invite) openSettings('cloud'); // 被邀請的人：接著建立帳號
-      else { ui.onboarding = true; openAvatarEditor(); } // 第一次使用：接著捏自己的小人，捏完看歡迎頁
+      // 還能建立帳號（第一個人或被邀請的人）：先問要不要用 Face ID 建立，一個按鈕就好
+      offerFaceIdSignup(() => { ui.onboarding = true; openAvatarEditor(); }); // 接著捏自己的小人，捏完看歡迎頁
     }
   });
 
@@ -3037,6 +3059,8 @@ async function init() {
   loadWeather();
   setInterval(() => { if (!document.hidden) loadWeather(); }, 10 * 60 * 1000);
   if (!cloudApi.passkeySupported()) $('#setup-login').hidden = true;
+  // 還沒有任何帳號時，不顯示「已經有帳號了？用 Face ID 登入」（按了只會跳出掃條碼）
+  else if (!state.profile) cloudApi.signupStatus().then((s) => { if (s.open) $('#setup-login').closest('.setup-login').hidden = true; }).catch(() => {});
   try {
     cloud.me = await cloudApi.fetchMe();
   } catch (e) { /* 離線：照樣可以用，之後再同步 */ }

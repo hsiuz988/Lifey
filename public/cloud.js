@@ -39,7 +39,7 @@ const toB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace
 export const passkeySupported = () => typeof window.PublicKeyCredential === 'function' && !!navigator.credentials;
 
 function friendlyWebAuthnError(e) {
-  if (e.name === 'NotAllowedError') return new ApiError(0, '已取消，或這支手機沒有可用的登入金鑰');
+  if (e.name === 'NotAllowedError') return new ApiError(0, '已取消，或這支手機在這個網址還沒有帳號。第一次使用請先開始記錄，再用 Face ID 建立帳號');
   if (e.name === 'InvalidStateError') return new ApiError(0, '這支手機已經有這個帳號的登入金鑰了');
   return e instanceof ApiError ? e : new ApiError(0, e.message || 'Face ID 驗證失敗');
 }
@@ -53,6 +53,7 @@ export async function register(name, invite) {
         ...options,
         challenge: toBuf(options.challenge),
         user: { ...options.user, id: toBuf(options.user.id) },
+        hints: ['client-device'],
         excludeCredentials: (options.excludeCredentials || []).map((c) => ({ ...c, id: toBuf(c.id) })),
       },
     });
@@ -80,6 +81,7 @@ export async function login() {
       publicKey: {
         ...options,
         challenge: toBuf(options.challenge),
+        hints: ['client-device'], // 請瀏覽器直接用這支手機的 Face ID，不要先跳出掃條碼或安全金鑰
         allowCredentials: (options.allowCredentials || []).map((c) => ({ ...c, id: toBuf(c.id) })),
       },
     });

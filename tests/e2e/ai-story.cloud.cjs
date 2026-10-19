@@ -49,8 +49,11 @@ let b;
     protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
 
   await p.goto(URL);
+  assert(await p.waitForFunction(() => document.querySelector('.setup-login').hidden, null, { timeout: 5000 }).then(() => true).catch(() => false), '還沒有任何帳號時，不顯示「用 Face ID 登入」');
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1998-03-02'); await p.click('#setup-form button');
   await p.waitForTimeout(300);
+  await p.waitForFunction(() => document.querySelector('#letter-dialog').open, null, { timeout: 4000 }).catch(() => {});
+  await p.click('#letter-dialog button:text-is("之後再說")').catch(() => {});
   await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d.open) d.close(); });
 
   // 沒登入不能開

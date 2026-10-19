@@ -28,9 +28,18 @@ async function copyPasskeys(from, to) {
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 const photoCount = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('photos').objectStore('photos').count(); t.onsuccess = () => r(t.result); }; }));
 const synced = (p) => p.waitForFunction(() => { const b = document.querySelector('#sync-btn'); return b && !b.hidden && b.classList.contains('ok') && !b.classList.contains('syncing'); }, null, { timeout: 20000 });
+// 填完名字生日後，可以建立帳號時會跳出「用 Face ID 建立帳號」；signup 為 true 就直接按，否則按「之後再說」
+async function signupSheet(p, signup = false) {
+  const up = await p.waitForFunction(() => { const d = document.querySelector('#letter-dialog'); return d.open && d.textContent.includes('用 Face ID 建立帳號'); }, null, { timeout: 4000 }).then(() => true).catch(() => false);
+  if (!up) return false;
+  await p.click(`#letter-dialog button:text-is("${signup ? '用 Face ID 建立帳號' : '之後再說'}")`);
+  return true;
+}
 async function setup(p, name, birthday) {
   await p.fill('#setup-form [name=name]', name); await p.fill('#setup-form [name=birthday]', birthday); await p.click('#setup-form button');
   await p.waitForTimeout(300);
+  p.sheetShown = await signupSheet(p, false);
+  await p.waitForTimeout(200);
   await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d.open) d.close(); });
 }
 async function addMoment(p, text, { photo, share, date } = {}) {
@@ -50,6 +59,7 @@ async function addMoment(p, text, { photo, share, date } = {}) {
   const A = await device(b, 'A');
   await A.goto(URL);
   await setup(A, 'Hsiu', '1995-03-02');
+  assert(A.sheetShown, '還沒有任何帳號時，第一個人填完資料就問要不要用 Face ID 建立帳號');
   await addMoment(A, '花蓮看海', { photo: FIXTURES + '/rotated.jpg' });
   await addMoment(A, '私人日記', { date: '2026-01-01' });
   await A.click('#open-settings');

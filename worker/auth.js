@@ -93,7 +93,8 @@ export async function registerOptions(request, env) {
     userName: name,
     userDisplayName: name,
     attestationType: 'none',
-    authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+    // 存在這支手機（iCloud 鑰匙圈會同步到同一個 Apple ID 的其他裝置），不跳出掃條碼或安全金鑰
+    authenticatorSelection: { residentKey: 'required', userVerification: 'preferred', authenticatorAttachment: 'platform' },
   });
   const flowId = await saveChallenge(env, 'reg', options.challenge, { userId, name, invite: invite && invite.code });
   return json({ flowId, options });

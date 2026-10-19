@@ -19,9 +19,19 @@ async function device(b, label) {
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 const synced = (p) => p.waitForFunction(() => { const b = document.querySelector('#sync-btn'); return b && !b.hidden && b.classList.contains('ok'); }, null, { timeout: 20000 });
 const closed = (p, sel) => p.waitForFunction((s) => !document.querySelector(s).open, sel);
-async function setup(p, name, bday, { keepEditor = false } = {}) {
+// 填完名字生日後，可以建立帳號時會跳出「用 Face ID 建立帳號」；signup 為 true 就直接按，否則按「之後再說」
+async function signupSheet(p, signup = false) {
+  const up = await p.waitForFunction(() => { const d = document.querySelector('#letter-dialog'); return d.open && d.textContent.includes('用 Face ID 建立帳號'); }, null, { timeout: 4000 }).then(() => true).catch(() => false);
+  if (!up) return false;
+  await p.click(`#letter-dialog button:text-is("${signup ? '用 Face ID 建立帳號' : '之後再說'}")`);
+  return true;
+}
+async function setup(p, name, bday, { keepEditor = false, signup = false } = {}) {
   await p.fill('#setup-form [name=name]', name); await p.fill('#setup-form [name=birthday]', bday); await p.click('#setup-form button');
   await p.waitForTimeout(300);
+  p.sheetShown = await signupSheet(p, signup);
+  if (signup) return;
+  await p.waitForTimeout(200);
   if (!keepEditor) await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d.open) d.close(); });
 }
 async function register(p) {
@@ -76,8 +86,9 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   const C = await device(b, 'C');
   await C.goto(kenLink);
   await C.waitForFunction(() => document.querySelector('#setup-invite').textContent.includes('Hsiu 邀請你'));
-  await setup(C, 'Ken', '1993-05-05');
-  await register(C);
+  await setup(C, 'Ken', '1993-05-05', { signup: true });
+  assert(C.sheetShown, '被邀請的人填完名字生日，直接跳出「用 Face ID 建立帳號」');
+  await C.waitForFunction(() => document.querySelector('#sync-btn') && !document.querySelector('#sync-btn').hidden, null, { timeout: 20000 });
   await C.waitForFunction(() => document.querySelector('#avatar-dialog').open, null, { timeout: 15000 });
   assert(true, '被邀請的人建立帳號後，自動打開捏小人');
   await C.click('#avatar-dialog [data-close]');
@@ -112,8 +123,8 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
 
   const D = await device(b, 'D');
   await D.goto(momLink);
-  await setup(D, 'Mom', '1965-08-08');
-  await register(D);
+  await setup(D, 'Mom', '1965-08-08', { signup: true });
+  await D.waitForFunction(() => document.querySelector('#sync-btn') && !document.querySelector('#sync-btn').hidden, null, { timeout: 20000 });
   await D.waitForFunction(() => document.querySelector('#avatar-dialog').open, null, { timeout: 15000 });
   await D.click('#avatar-dialog [data-close]');
   await synced(D);
