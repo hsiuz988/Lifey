@@ -34,12 +34,14 @@ const sheet = (p) => p.waitForFunction(() => { const d = document.querySelector(
 const sheetBtn = (p, label) => p.click(`#letter-dialog button:text-is("${label}")`);
 const closed = (p) => p.waitForFunction(() => !document.querySelector('#letter-dialog').open);
 
+let b;
 (async () => {
   await new Promise((r) => fake.listen(AI_PORT, '127.0.0.1', r));
-  const b = await chromium.launch();
+  b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const p = await ctx.newPage(); await require('./adapt.cjs')(p);
   p.on('pageerror', e => errors.push(e.message));
+  if (process.env.DEBUG_REQ) p.on('request', r => { if (r.url().includes('/api/')) console.log('REQ', r.method(), r.url().replace(/.*\/api/, '/api')); });
   p.on('dialog', d => d.accept());
   const cdp = await ctx.newCDPSession(p);
   await cdp.send('WebAuthn.enable');
@@ -103,9 +105,13 @@ const closed = (p) => p.waitForFunction(() => !document.querySelector('#letter-d
   await p.waitForTimeout(300);
 
   // 同步到雲端
-  await synced(p);
-  const remote = await p.evaluate(() => fetch('/api/sync').then(r => r.json()));
-  assert(remote.doc.moments[0].story && remote.doc.moments[0].story.title === '淡水的夕陽2', '故事版有同步到雲端');
+  // 存檔後隔一下才同步，等雲端出現這一則
+  const remoteStory = await p.waitForFunction(() => fetch('/api/sync').then(r => r.json()).then(r => {
+    const m = r.doc && r.doc.moments[0];
+    return m && m.story ? m.story.title : null;
+  }), null, { timeout: 20000, polling: 1000 }).then(h => h.jsonValue()).catch(() => null);
+  assert(remoteStory === '淡水的夕陽2', '故事版有同步到雲端');
+  if (remoteStory !== '淡水的夕陽2') console.log('DEBUG', JSON.stringify(await p.evaluate(() => fetch('/api/sync').then(r => r.json()))).slice(0, 800), await p.evaluate(() => document.querySelector('#sync-btn') && document.querySelector('#sync-btn').className + ' ' + document.querySelector('#sync-btn').title));
 
   // 改了事件 → 舊故事拿掉、重新問；選保留原文
   await p.click('#timeline .moment-body');
@@ -162,4 +168,9 @@ const closed = (p) => p.waitForFunction(() => !document.querySelector('#letter-d
   assert(errors.length === 0, `沒有 JS 錯誤 ${errors.join(' | ')}`);
   await b.close();
   fake.close();
-})().catch((e) => { console.log('💥', e); process.exitCode = 1; fake.close(); });
+})().catch(async (e) => {
+  console.log('💥', e); process.exitCode = 1;
+  if (process.env.LIFEY_OUT && b) await Promise.all(b.contexts().flatMap((c) => c.pages()).map((pg) => pg.screenshot({ path: `${process.env.LIFEY_OUT}/ai-story-fail.png` }).catch(() => {})));
+  if (b) await b.close();
+  fake.close();
+});
