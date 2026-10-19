@@ -186,7 +186,7 @@ export class Scene {
     this.canvas = canvas;
     this.bubble = bubble;
     this.ctx = canvas.getContext('2d');
-    this.state = { stageKey: 'adult', age: 30, avatar: null, props: [], weather: null, birthday: null, messages: () => [], companions: [], pets: [] };
+    this.state = { stageKey: 'adult', age: 30, avatar: null, props: [], weather: null, birthday: null, messages: () => [], companions: [], pets: [], garden: 0, quiet: false, mail: false };
     this.frames = null;
     this.companionActors = [];
     this.petActors = [];
@@ -346,7 +346,7 @@ export class Scene {
 
     // 散步：發呆幾秒 → 走到附近另一個點 → 再發呆
     if (a.mode === 'idle' && now > a.until && a.jumpsLeft === 0) {
-      if (Math.random() < 0.6) {
+      if (Math.random() < (this.state.quiet ? 0 : 0.6)) {
         let t = a.x;
         while (Math.abs(t - a.x) < 5) t = WALK_MIN + Math.floor(Math.random() * (WALK_MAX - WALK_MIN));
         a.target = t;
@@ -606,6 +606,8 @@ export class Scene {
       if (this.season === 'spring' && x % 2) { ctx.fillStyle = dim(x % 4 === 1 ? '#f7b6cb' : '#ffe27a'); ctx.fillRect(x + 4, HORIZON + 17, 1, 1); }
     }
 
+    this.drawGarden(st, dim, t);
+
     // ---- 節日道具（地面） ----
     if (this.festival === 'birthday') {
       sprite(ctx, CAKE, 40, FEET - 6, { x: '#f6b3c8', w: '#fff5e8', y: '#ffd36b', o: OUTLINE });
@@ -717,6 +719,37 @@ export class Scene {
     }
   }
 
+  // 院子會跟著紀錄長大：記得越多，花越多，還會多出長椅和信箱；很久沒記錄時花會合起來
+  drawGarden(st, dim, t) {
+    const ctx = this.ctx;
+    const O = dim(OUTLINE, 0.3);
+    const level = st.garden || 0;
+    if (level >= 2) { // 長椅
+      sprite(ctx, ['oooooooooo', 'oxxxxxxxxo', 'oooooooooo', 'oyo....oyo', '.o......o.'], 18, HORIZON, { x: dim('#d8a77a'), y: dim('#a87a52'), o: O }); // 在兩棵樹中間
+    }
+    if (level >= 3) { // 信箱：有信可以拆時旗子會舉起來
+      const flag = st.mail;
+      ctx.fillStyle = O; ctx.fillRect(90, HORIZON - 4, 1, 8);
+      sprite(ctx, ['ooooo', 'oxxxo', 'oxxxo', 'ooooo'], 88, HORIZON - 7, { x: dim('#8fb8e0'), o: O });
+      ctx.fillStyle = flag ? '#e0607e' : dim('#c9a27a');
+      if (flag) { ctx.fillRect(93, HORIZON - 10, 1, 4); ctx.fillRect(94, HORIZON - 10, 2, 2); } else ctx.fillRect(93, HORIZON - 6, 3, 1);
+    }
+    // 前景的花：每一級多 6 朵，位置固定
+    const r = rng(23);
+    const colors = ['#ffb3c8', '#ffe27a', '#ffffff', '#c9b6ff', '#ffc08a'];
+    const sway = Math.floor(t / 1500) % 2;
+    for (let i = 0; i < level * 6; i++) {
+      const x = 2 + Math.floor(r() * (W - 6));
+      const y = HORIZON + 16 + Math.floor(r() * 3);
+      const c = colors[i % colors.length];
+      ctx.fillStyle = dim('#5aa65a'); ctx.fillRect(x, y + 1, 1, 2);
+      if (st.quiet) { ctx.fillStyle = dim(mix(c, '#7ca56f', 0.5)); ctx.fillRect(x, y, 1, 1); continue; } // 花苞
+      const dx = i % 3 === 0 ? sway : 0;
+      ctx.fillStyle = dim(c); ctx.fillRect(x - 1 + dx, y, 3, 1); ctx.fillRect(x + dx, y - 1, 1, 3);
+      ctx.fillStyle = dim('#ffd36b'); ctx.fillRect(x + dx, y, 1, 1);
+    }
+  }
+
   drawTrees(sc, dim, t, snowy) {
     const ctx = this.ctx;
     const O = dim(OUTLINE, 0.3);
@@ -761,7 +794,7 @@ export class Scene {
       }
     }
     // 小樹叢
-    sprite(ctx, BUSH, 86, HORIZON - 3, { x: dim('#86c873'), y: dim('#aee09a'), o: O });
+    sprite(ctx, BUSH, 76, HORIZON - 3, { x: dim('#86c873'), y: dim('#aee09a'), o: O });
   }
 
   // 路燈：晚上會亮，地上有一圈光

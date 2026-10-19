@@ -52,3 +52,14 @@ export function eventDateLabel(e) {
   if (!e.m) return `${e.y} 年`;
   return e.d ? `${e.y}/${p(e.m)}/${p(e.d)}` : `${e.y}/${p(e.m)}`;
 }
+
+// 「那年今日」：某月某日、從某一年之後發生的事（只算有確切日期的）
+export function eventsOnDay(month, day, fromYear, onReady) {
+  const decs = decadesBetween(fromYear, new Date().getFullYear());
+  const missing = decs.filter((d) => !loaded.has(d));
+  if (missing.length) {
+    Promise.all(missing.map(loadDecade)).then(() => onReady && onReady());
+    return null;
+  }
+  return decs.flatMap((d) => loaded.get(d)).filter((e) => e.y >= fromYear && e.m === month && e.d === day);
+}

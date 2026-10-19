@@ -4,7 +4,7 @@ import { processPhoto, makeThumb } from './photos.js';
 import { STATS, statsFor, countsToward, ACHIEVEMENTS, unlockedNow } from './game.js';
 import {
   SKINS, HAIRS, OUTFIT_COLORS, GENDERS, HAIR_STYLES, EYES, BEARDS, OUTFITS,
-  normalizeAvatar, randomAvatar, composeAvatar, drawAvatar, avatarSvg,
+  normalizeAvatar, randomAvatar, composeAvatar, drawAvatar, avatarSvg, W as AVATAR_W,
 } from './avatar.js';
 import { Scene, propsForTags, festivalOf } from './scene.js';
 import * as weather from './weather.js';
@@ -48,7 +48,7 @@ const thumbUrls = new Map(); // photoId -> Promise<objectURL|null>
 let scene = null;
 
 function emptyState() {
-  return { version: DATA_VERSION, profile: null, moments: [], years: {}, people: [], prefs: {}, lastExportAt: null, achievements: {} };
+  return { version: DATA_VERSION, profile: null, moments: [], years: {}, people: [], letters: [], prefs: {}, lastExportAt: null, achievements: {} };
 }
 
 // 升級舊版資料並補齊欄位
@@ -67,6 +67,7 @@ function normalize(data) {
     createdAt: m.createdAt || m.updatedAt || new Date().toISOString(),
   }));
   out.people = Array.isArray(data.people) ? data.people : [];
+  out.letters = Array.isArray(data.letters) ? data.letters : [];
   out.prefs = data.prefs && typeof data.prefs === 'object' ? data.prefs : {};
   delete out.photos;
   return out;
@@ -258,6 +259,8 @@ function render() {
   if (!hasProfile) return;
   renderHeader();
   renderNow();
+  renderQuickNote();
+  renderToday();
   renderIdCard();
   renderBackupBanner();
   renderLifeMap();
@@ -320,6 +323,7 @@ function renderNow() {
     scene.update({
       stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday,
       props: propsForTags(new Set(list.flatMap((m) => m.tags))), weather: ui.weather, messages: sceneMessages, pets: scenePets(),
+      garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0,
     });
   }
   const w = ui.weather;
@@ -362,6 +366,10 @@ function sceneMessages() {
   const hour = now.getHours();
   const age = ageAt(birthday, todayStr());
   const out = ['今天有什麼值得記住的嗎？', '要記一筆嗎？✏️', `你已經記了 ${state.moments.length} 則回憶了`];
+  const gap = daysSinceLastRecord();
+  if (gap != null && gap >= 3) out.push('好想你，最近過得好嗎？', '想到什麼就記一句吧，我在這裡等你 🌱');
+  if (readyLetters().length) out.push('信箱裡有一封信在等你 ✉️', '信箱裡有一封信在等你 ✉️');
+  if (gardenLevel() >= 1) out.push('院子裡的花是你一則一則記出來的 🌼');
   const fest = {
     birthday: '生日快樂！🎂 又長大一歲了', lny: '新年快樂！🧧', midautumn: '中秋節快樂 🥮', christmas: '聖誕快樂 🎄', newyear: '新年快樂！🎆',
   }[festivalOf(now, birthday)];
@@ -457,6 +465,7 @@ function renderLifeMap() {
   const current = ageAt(state.profile.birthday, todayStr());
   const byAge = groupByAge(state.moments);
   let happiest = null;
+  let lit = 0;
   const cells = [];
 
   for (let age = 0; age < MAP_YEARS; age++) {
@@ -468,13 +477,18 @@ function renderLifeMap() {
     const big = list.map((m) => eventById(m.event)).find((e) => e && e.big) || list.map((m) => eventById(m.event)).find(Boolean);
     if (avg && (!happiest || avg > happiest.avg)) happiest = { age, avg };
 
+    if (list.length >= LIT_AT) lit++;
     const cls = ['cell',
       age > current && 'future', age === current && 'now',
-      (list.length || title) && 'filled', stars && 'starred'].filter(Boolean).join(' ');
+      (list.length || title) && 'filled', list.length >= LIT_AT && 'lit', stars && 'starred'].filter(Boolean).join(' ');
     const style = avg ? `--c:${MOOD_COLORS[Math.round(avg) - 1]};--c-text:#10131a` : null;
 
     if (age > current) {
-      cells.push(h('span', { class: cls, 'aria-hidden': 'true' }, age));
+      const sealed = state.letters.filter((l) => !l.openedAt && l.toAge === age).length;
+      cells.push(h('button', {
+        type: 'button', class: `${cls}${sealed ? ' has-letter' : ''}`, 'aria-label': `寫信給 ${age} 歲的自己${sealed ? `（已封存 ${sealed} 封）` : ''}`,
+        onclick: () => openLetterEditor(age),
+      }, sealed ? '✉️' : age));
     } else {
       const label = `${age} 歲${big ? ` ${big.label}` : ''}${title ? `：${title}` : ''} · ${list.length} 則${stars ? ` · ☆${stars}` : ''}`;
       cells.push(h('button', {
@@ -489,7 +503,7 @@ function renderLifeMap() {
   const resume = state.recall && state.recall.age > 0 && state.recall.age <= current;
   $('#recall-btn').textContent = resume ? `🕰 繼續回憶（${state.recall.age} 歲）` : '🕰 回憶模式';
   const recorded = new Set([...byAge.keys(), ...Object.keys(state.years).filter((k) => state.years[k].title).map(Number)]).size;
-  $('#map-summary').textContent = `已記錄 ${recorded} / ${current + 1} 個年歲${happiest ? ` · 最幸福的一歲：${happiest.age} 歲` : ''}`;
+  $('#map-summary').textContent = `已記錄 ${recorded} / ${current + 1} 個年歲 · 點亮 ${lit} 格（一歲記滿 ${LIT_AT} 則就會亮）${happiest ? ` · 最幸福的一歲：${happiest.age} 歲` : ''}`;
 }
 
 function allTags() {
@@ -557,8 +571,10 @@ function renderTimeline() {
   events = (events || []).filter((e) => (mode === 'all' || e.region === mode) && (showSad || !e.sad));
 
   // 只知道年份的時事排在這一歲最前面；同一天時，自己的紀錄排在時事後面
+  const letters = state.letters.filter((l) => l.openedAt && ageAt(birthday, l.openOn) === age);
   const rows = [
     ...mine.map((m) => ({ t: parseDate(m.date).getTime() + 1, el: () => renderMoment(m) })),
+    ...letters.map((l) => ({ t: parseDate(l.openOn).getTime() + 2, el: () => renderLetterItem(l) })),
     ...events.map((e) => ({ t: e.m ? world.eventDate(e).getTime() : start.getTime() - 1, el: () => renderWorldEvent(e, age) })),
   ].sort((a, b) => a.t - b.t);
 
@@ -990,6 +1006,331 @@ async function deleteMoment() {
   $('#moment-dialog').close();
   toast('已刪除');
   render();
+}
+
+// ---------- 留存：小世界、一秒日記、今天的小卡片 ----------
+const LIT_AT = 3; // 一歲記滿幾則，人生地圖那一格就會亮
+// 院子的等級：記得越多，花越多、還有長椅和信箱
+function gardenLevel() {
+  const n = state.moments.length;
+  return n >= 100 ? 5 : n >= 50 ? 4 : n >= 25 ? 3 : n >= 10 ? 2 : n >= 3 ? 1 : 0;
+}
+function daysSinceLastRecord() {
+  if (!state.moments.length) return null;
+  const last = state.moments.reduce((a, m) => ((m.createdAt || '') > a ? m.createdAt : a), '');
+  return last ? Math.max(0, daysBetween(new Date(last), new Date())) : null;
+}
+const isQuiet = () => { const d = daysSinceLastRecord(); return d != null && d >= 7; };
+const readyLetters = () => state.letters.filter((l) => !l.openedAt && l.openOn <= todayStr());
+
+// 一秒日記：一句話或一個心情就算記過
+function renderQuickNote() {
+  $('#quick-moods').replaceChildren(...MOODS.map((emoji, i) => h('button', {
+    type: 'button', class: `mood small-mood${ui.quickMood === i + 1 ? ' on' : ''}`, 'aria-label': `心情 ${i + 1}`,
+    onclick: () => { ui.quickMood = ui.quickMood === i + 1 ? null : i + 1; renderQuickNote(); },
+  }, emoji)));
+  const n = state.moments.filter((m) => m.date === todayStr()).length;
+  $('#quick-done').hidden = !n;
+  $('#quick-done').textContent = n ? `今天記了 ${n} 則 ✓ 想到什麼再記一句` : '';
+}
+
+async function saveQuickNote(e) {
+  e.preventDefault();
+  const text = $('#quick-text').value.trim();
+  if (!text && !ui.quickMood) { $('#quick-text').focus(); return; }
+  const now = new Date().toISOString();
+  const m = {
+    id: newId(), date: todayStr(), text: text || `今天的心情 ${MOODS[ui.quickMood - 1]}`, mood: ui.quickMood || null, tags: [], photoIds: [],
+    starred: false, approx: false, people: [], event: null, createdAt: now, updatedAt: now,
+  };
+  state.moments.push(m);
+  if (!(await saveState())) { state.moments.pop(); return; }
+  $('#quick-text').value = '';
+  $('#quick-text').blur();
+  ui.quickMood = null;
+  ui.selAge = ageAt(state.profile.birthday, m.date);
+  toast('記下來了');
+  render();
+  if (scene) scene.celebrate();
+}
+
+// 每週回憶題：從記得最少的幾歲裡輪流挑一題，每週換一次
+function weeklyQuestion() {
+  const { birthday } = state.profile;
+  const current = ageAt(birthday, todayStr());
+  if (current < 1) return null;
+  const counts = Array(current).fill(0);
+  for (const m of state.moments) { const a = ageAt(birthday, m.date); if (a < current) counts[a]++; }
+  const order = [...counts.keys()].sort((a, b) => counts[a] - counts[b] || a - b).slice(0, 6);
+  const week = Math.floor(Date.now() / (7 * 86400000));
+  const age = order[week % order.length];
+  const qs = PROMPTS[lifeStage(age).key];
+  const qi = Math.floor(week / order.length) % qs.length;
+  return { age, qi, q: qs[qi] };
+}
+
+function openRecallAt(age, q) {
+  ui.recallDone = false;
+  setRecallAge(age);
+  ui.recall.q = q;
+  renderRecall();
+  $('#recall-dialog').showModal();
+}
+
+function todayCard(kind, icon, title, body, actions) {
+  return h('div', { class: `today-card ${kind}` },
+    h('div', { class: 'today-icon', 'aria-hidden': 'true' }, icon),
+    h('div', { class: 'today-main' },
+      h('b', {}, title),
+      body ? h('p', {}, body) : null,
+      h('div', { class: 'row' }, actions.map(([label, fn], i) => h('button', { type: 'button', class: `btn small${i === 0 ? ' primary' : ''}`, onclick: fn }, label)))));
+}
+
+function renderToday() {
+  const root = $('#today-panel');
+  const { birthday } = state.profile;
+  const today = todayStr();
+  const age = ageAt(birthday, today);
+  const cards = [];
+  if (birthday.slice(5) === today.slice(5) && age > 0) {
+    cards.push(todayCard('birthday', '🎂', `生日快樂！${age} 歲了`, `來看看 ${age - 1} 歲的你，做一張年度卡留作紀念。`,
+      [[`🎴 ${age - 1} 歲的年度卡`, () => showYearCard(age - 1)]]));
+  }
+  for (const l of readyLetters()) {
+    cards.push(todayCard('letter', '✉️', `一封來自 ${ageAt(birthday, l.writtenOn)} 歲的信`, `寫於 ${fmtDate(parseDate(l.writtenOn))}，今天可以打開了。`,
+      [['打開信', () => openLetter(l.id)]]));
+  }
+  // 那年今日：先找自己的紀錄，沒有的話找那天的時事
+  const md = today.slice(5);
+  const past = state.moments.filter((m) => !m.approx && m.date < today && m.date.slice(5) === md).sort((a, b) => b.date.localeCompare(a.date));
+  if (past.length) {
+    const m = past[0];
+    const a = ageAt(birthday, m.date);
+    cards.push(todayCard('onthisday', '📅', `那年今日 · ${Number(today.slice(0, 4)) - Number(m.date.slice(0, 4))} 年前（${a} 歲）`, m.text,
+      [['看那一歲', () => selectAge(a, true)], ['打開', () => openMoment(m.id)]]));
+  } else {
+    const [mm, dd] = md.split('-').map(Number);
+    const evs = world.eventsOnDay(mm, dd, Number(birthday.slice(0, 4)), () => renderToday());
+    const fit = (evs || []).filter((e) => (state.prefs.worldSad !== false || !e.sad) && `${e.y}-${md}` >= birthday && e.y < Number(today.slice(0, 4)));
+    if (fit.length) {
+      const e = fit[Number(today.slice(0, 4)) % fit.length];
+      const a = ageAt(birthday, `${e.y}-${md}`);
+      cards.push(todayCard('onthisday', world.CATS[e.cat] || '🌏', `那年今日 · ${Number(today.slice(0, 4)) - e.y} 年前（你 ${a} 歲）`, `${e.title}。${e.text || ''}`,
+        [['✏️ 我記得', () => rememberWorldEvent(e, a)], ['看那一歲', () => selectAge(a, true)]]));
+    }
+  }
+  const wq = weeklyQuestion();
+  if (wq) cards.push(todayCard('weekly', '🕰', `本週回憶題 · ${wq.age} 歲`, wq.q, [['回答', () => openRecallAt(wq.age, wq.qi)]]));
+  root.hidden = !cards.length;
+  root.replaceChildren(...cards);
+}
+
+// ---------- 給未來的信 ----------
+function openLetterEditor(age) {
+  const { birthday } = state.profile;
+  const openOn = toDateStr(ageRange(birthday, age)[0]);
+  const sealed = state.letters.filter((l) => !l.openedAt && l.toAge === age);
+  const text = h('textarea', { rows: '7', maxlength: '2000', placeholder: `想對 ${age} 歲的自己說什麼？現在的煩惱、期待、想記得的事…`, 'aria-label': '信的內容' });
+  const save = h('button', { type: 'button', class: 'btn primary' }, '封存');
+  save.addEventListener('click', async () => {
+    const body = text.value.trim();
+    if (!body) { text.focus(); return; }
+    const now = new Date().toISOString();
+    state.letters.push({ id: newId(), toAge: age, writtenOn: todayStr(), openOn, text: body, createdAt: now, updatedAt: now, openedAt: null });
+    if (!(await saveState())) return;
+    $('#letter-dialog').close();
+    toast(`已封存，${fmtDate(parseDate(openOn))} 才能打開 ✉️`);
+    render();
+  });
+  $('#letter-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `✉️ 寫給 ${age} 歲的自己`)),
+    h('p', { class: 'hint' }, `信會封存到 ${fmtDate(parseDate(openOn))}（你 ${age} 歲生日）才能打開，在那之前誰都看不到內容。`),
+    text,
+    sealed.length ? h('div', { class: 'field' }, h('span', { class: 'field-label' }, `已經封存 ${sealed.length} 封`), h('ul', { class: 'sealed-list' }, sealed.map((l) => h('li', {},
+      h('span', {}, `寫於 ${fmtDate(parseDate(l.writtenOn))}`),
+      h('button', { type: 'button', class: 'link-btn', onclick: async () => {
+        if (!confirm('確定要刪除這封還沒打開的信嗎？')) return;
+        state.letters = state.letters.filter((x) => x.id !== l.id);
+        await saveState(); render(); openLetterEditor(age);
+      } }, '刪除'))))) : null,
+    h('div', { class: 'sheet-actions' }, h('button', { type: 'button', class: 'btn', onclick: () => $('#letter-dialog').close() }, '取消'), h('span', { class: 'spacer' }), save));
+  if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
+}
+
+async function openLetter(id) {
+  const l = state.letters.find((x) => x.id === id);
+  if (!l || l.openOn > todayStr()) return;
+  const { birthday } = state.profile;
+  if (!l.openedAt) { l.openedAt = new Date().toISOString(); l.updatedAt = l.openedAt; await saveState(); render(); }
+  const current = ageAt(birthday, todayStr());
+  $('#letter-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `✉️ 來自 ${ageAt(birthday, l.writtenOn)} 歲的你`)),
+    h('p', { class: 'hint' }, `寫於 ${fmtDate(parseDate(l.writtenOn))}，給 ${l.toAge} 歲的自己`),
+    h('div', { class: 'letter-paper pre' }, l.text),
+    h('div', { class: 'sheet-actions' },
+      h('button', { type: 'button', class: 'btn', onclick: () => $('#letter-dialog').close() }, '關閉'),
+      h('span', { class: 'spacer' }),
+      h('button', { type: 'button', class: 'btn primary', onclick: () => openLetterEditor(current + 1) }, '回信給未來的自己')));
+  if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
+  if (scene) scene.celebrate();
+}
+
+function renderLetterItem(l) {
+  return h('li', { class: 'moment letter-item' },
+    h('span', { class: 'moment-date' }, l.openOn.slice(5).replace('-', '/')),
+    h('div', { class: 'moment-main' }, h('button', { type: 'button', class: 'moment-body', onclick: () => openLetter(l.id) },
+      h('span', { class: 'moment-text' }, `✉️ 來自 ${ageAt(state.profile.birthday, l.writtenOn)} 歲的信`),
+      h('span', { class: 'world-text' }, l.text.length > 40 ? `${l.text.slice(0, 40)}…` : l.text))));
+}
+
+// ---------- 年度卡 ----------
+// 某一歲的時事（還沒載入就等載入完）
+const worldFor = (start, end) => new Promise((resolve) => {
+  const ev = world.eventsBetween(start, end, () => resolve(world.eventsBetween(start, end) || []));
+  if (ev) resolve(ev);
+});
+
+async function makeYearCard(age) {
+  const { birthday } = state.profile;
+  const [start, end] = ageRange(birthday, age);
+  const list = state.moments.filter((m) => ageAt(birthday, m.date) === age);
+  const stats = statsFor(list);
+  const stage = lifeStage(age);
+  const Wc = 1080;
+  const Hc = 1350;
+  const c = document.createElement('canvas');
+  c.width = Wc; c.height = Hc;
+  const ctx = c.getContext('2d');
+  const font = (size, weight = 400) => `${weight} ${size}px -apple-system, "PingFang TC", "Noto Sans TC", "Noto Sans CJK TC", sans-serif`;
+  const g = ctx.createLinearGradient(0, 0, 0, Hc);
+  g.addColorStop(0, '#fff6e6'); g.addColorStop(1, '#f3ecff');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, Wc, Hc);
+  ctx.fillStyle = '#2a2230';
+  ctx.font = font(34, 600); ctx.fillText('人生紀錄 · LIFE LOG', 80, 110);
+  ctx.font = font(120, 800); ctx.fillText(`${age} 歲`, 80, 250);
+  ctx.font = font(36); ctx.fillStyle = '#6b6476';
+  ctx.fillText(`${fmtDate(start)} – ${fmtDate(end)} · ${stage.key === 'adult' ? '出社會' : stage.label}`, 80, 310);
+  // 那一歲的小人
+  const { grid } = composeAvatar(myAvatar(), age, stage.key);
+  const px = 16;
+  grid.forEach((r, y) => r.forEach((col, x) => { if (col) { ctx.fillStyle = col; ctx.fillRect(Wc - 80 - AVATAR_W * px + x * px, 120 + y * px - 4 * px, px, px); } }));
+  let y = 400;
+  const title = yearTitle(age);
+  if (title) { ctx.fillStyle = '#2a2230'; ctx.font = font(48, 700); ctx.fillText(`「${title}」`, 70, y); y += 40; }
+  // 狀態
+  y += 40;
+  ctx.font = font(34);
+  STATS.forEach((s, i) => {
+    const yy = y + i * 64;
+    ctx.fillStyle = '#2a2230'; ctx.fillText(s.label, 80, yy + 28);
+    ctx.fillStyle = 'rgba(42,34,48,.1)'; ctx.fillRect(280, yy + 6, 600, 26);
+    ctx.fillStyle = s.color; ctx.fillRect(280, yy + 6, 6 * (stats[s.key] || 0), 26);
+    ctx.fillStyle = '#2a2230'; ctx.fillText(String(stats[s.key] || 0), 910, yy + 30);
+  });
+  y += 64 * STATS.length + 30;
+  // 數字
+  const photos = list.reduce((n, m) => n + m.photoIds.length, 0);
+  const counts = new Map();
+  for (const m of list) for (const id of m.people) counts.set(id, (counts.get(id) || 0) + 1);
+  const top = [...counts].sort((a, b) => b[1] - a[1]).map(([id]) => personById(id)).find(Boolean);
+  ctx.font = font(36, 600); ctx.fillStyle = '#2a2230';
+  ctx.fillText(`記了 ${list.length} 則 · ☆ ${list.filter((m) => m.starred).length} · 照片 ${photos} 張${top ? ` · 最常一起：${personName(top)}` : ''}`, 80, y);
+  y += 70;
+  const best = [...list].sort((a, b) => (b.starred - a.starred) || ((b.mood || 0) - (a.mood || 0)))[0];
+  const wrap = (text, x, yy, max, lh) => {
+    let line = '';
+    for (const ch of text) {
+      if (ctx.measureText(line + ch).width > max) { ctx.fillText(line, x, yy); yy += lh; line = ch; } else line += ch;
+    }
+    if (line) { ctx.fillText(line, x, yy); yy += lh; }
+    return yy;
+  };
+  if (best) {
+    ctx.font = font(30); ctx.fillStyle = '#6b6476'; ctx.fillText('這一歲最想記得的事', 80, y); y += 52;
+    ctx.font = font(40, 700); ctx.fillStyle = '#2a2230';
+    y = wrap(`${best.date.slice(5).replace('-', '/')}　${best.text}`, 80, y, 920, 54) + 20;
+  }
+  const events = (await worldFor(start, end)).filter((e) => !e.sad).slice(0, 3);
+  if (events.length) {
+    ctx.font = font(30); ctx.fillStyle = '#6b6476'; ctx.fillText('那一年的世界', 80, y); y += 50;
+    ctx.font = font(34); ctx.fillStyle = '#2a2230';
+    for (const e of events) { if (y > Hc - 120) break; y = wrap(`${world.CATS[e.cat] || '🌏'} ${e.title}`, 80, y, 920, 48); }
+  }
+  ctx.font = font(28); ctx.fillStyle = '#9a93a6'; ctx.fillText(`${state.profile.name} 的人生紀錄`, 80, Hc - 70);
+  return new Promise((resolve) => c.toBlob((b) => resolve(b), 'image/png'));
+}
+
+// 兩段式：先產生圖片給你看，再按一次分享或儲存（iPhone 的分享選單要由點擊直接觸發）
+async function showYearCard(age) {
+  $('#letter-body').replaceChildren(h('div', { class: 'sheet-top' }, h('h3', {}, `🎴 ${age} 歲的年度卡`)), h('p', { class: 'hint' }, '產生中…'));
+  if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
+  const blob = await makeYearCard(age);
+  const url = URL.createObjectURL(blob);
+  const file = new File([blob], `lifey-${age}歲.png`, { type: 'image/png' });
+  const share = h('button', { type: 'button', class: 'btn primary' }, '分享或儲存');
+  share.addEventListener('click', async () => {
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: `${age} 歲的我` });
+      else h('a', { href: url, download: file.name }).click();
+    } catch (e) { if (e.name !== 'AbortError') toast('分享失敗'); }
+  });
+  $('#letter-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `🎴 ${age} 歲的年度卡`)),
+    h('img', { class: 'year-card-img', src: url, alt: `${age} 歲的年度卡` }),
+    h('div', { class: 'sheet-actions' }, h('button', { type: 'button', class: 'btn', onclick: () => $('#letter-dialog').close() }, '關閉'), h('span', { class: 'spacer' }), share));
+}
+
+// ---------- 人生重播：小人從 0 歲長到現在，一歲一歲播過你記下的事 ----------
+let replay = null;
+function openReplay() {
+  if (!replay) replay = { scene: new Scene($('#replay-canvas'), $('#replay-bubble')) };
+  replay.age = 0;
+  replay.paused = false;
+  replay.current = ageAt(state.profile.birthday, todayStr());
+  $('#replay-toggle').textContent = '暫停';
+  $('#replay-dialog').showModal();
+  replay.scene.resize();
+  replay.scene.start();
+  stepReplay();
+}
+
+async function stepReplay() {
+  clearTimeout(replay.timer);
+  if (!$('#replay-dialog').open) return;
+  const { birthday } = state.profile;
+  const age = replay.age;
+  const stage = lifeStage(age);
+  const [start, end] = ageRange(birthday, age);
+  const list = state.moments.filter((m) => ageAt(birthday, m.date) === age);
+  const picks = [...list].sort((a, b) => (!!eventById(b.event) - !!eventById(a.event)) || (b.starred - a.starred) || a.date.localeCompare(b.date)).slice(0, 3);
+  replay.scene.update({
+    stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday, props: propsForTags(new Set(list.flatMap((m) => m.tags))),
+    weather: null, messages: () => [], pets: [], garden: Math.min(5, Math.floor(age / 6)), quiet: false, mail: false,
+  });
+  $('#replay-age').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : stage.label}`;
+  $('#replay-bar').style.width = `${((age + 1) / (replay.current + 1)) * 100}%`;
+  const ev = (await worldFor(start, end > parseDate(todayStr()) ? parseDate(todayStr()) : end)).filter((e) => !e.sad);
+  const lines = [
+    yearTitle(age) ? h('p', { class: 'replay-title' }, `「${yearTitle(age)}」`) : null,
+    ...picks.map((m) => h('p', {}, `${eventById(m.event) ? eventById(m.event).icon : m.starred ? '★' : '·'} ${m.text}`)),
+    ev.length ? h('p', { class: 'replay-world' }, `那一年：${ev[age % ev.length].title}`) : null,
+  ].filter(Boolean);
+  $('#replay-caption').replaceChildren(...lines);
+  if (picks.length) replay.scene.jump(1);
+  if (replay.paused) return;
+  replay.timer = setTimeout(() => {
+    if (replay.age < replay.current) { replay.age++; stepReplay(); return; }
+    $('#replay-caption').replaceChildren(h('p', { class: 'replay-title' }, '這就是到現在的你 🌱'), h('p', {}, '未完待續…繼續記下去，重播就會越來越長。'));
+    replay.done = true;
+    $('#replay-toggle').textContent = '重播';
+  }, picks.length || yearTitle(age) ? 3200 : 1100);
+}
+
+function toggleReplay() {
+  if (replay.done) { replay.done = false; replay.age = 0; replay.paused = false; $('#replay-toggle').textContent = '暫停'; stepReplay(); return; }
+  replay.paused = !replay.paused;
+  $('#replay-toggle').textContent = replay.paused ? '繼續' : '暫停';
+  if (!replay.paused) { replay.age = Math.min(replay.age + 1, replay.current); stepReplay(); }
 }
 
 // ---------- 人物卡 ----------
@@ -1447,6 +1788,7 @@ function validateImport(data) {
     if (m.people != null && !Array.isArray(m.people)) return '紀錄格式不正確';
   }
   if (data.people != null && !Array.isArray(data.people)) return '人物格式不正確';
+  if (data.letters != null && !Array.isArray(data.letters)) return '信件格式不正確';
   for (const x of data.people || []) {
     if (!x || typeof x.id !== 'string' || typeof x.name !== 'string') return '人物格式不正確';
   }
@@ -1521,6 +1863,12 @@ async function importData(file) {
         if (!cur || (x.updatedAt || '') > (cur.updatedAt || '')) people.set(x.id, x);
       }
       state.people = [...people.values()];
+      const letters = new Map(state.letters.map((x) => [x.id, x]));
+      for (const x of incoming.letters) {
+        const cur = letters.get(x.id);
+        if (!cur || (x.updatedAt || '') > (cur.updatedAt || '')) letters.set(x.id, x);
+      }
+      state.letters = [...letters.values()];
       if (!state.profile) state.profile = incoming.profile;
     }
   } catch (e) {
@@ -1792,6 +2140,10 @@ function bind() {
   });
 
   $('#recall-btn').addEventListener('click', openRecall);
+  $('#replay-btn').addEventListener('click', openReplay);
+  $('#replay-toggle').addEventListener('click', toggleReplay);
+  $('#replay-dialog').addEventListener('close', () => { if (replay) { clearTimeout(replay.timer); replay.scene.stop(); } });
+  $('#quick-note').addEventListener('submit', saveQuickNote);
   $('#recall-save').addEventListener('click', recallSave);
   $('#recall-prev').addEventListener('click', () => recallGo(-1));
   $('#recall-next').addEventListener('click', () => recallGo(1));
@@ -1807,6 +2159,7 @@ function bind() {
 
   $('#year-form').addEventListener('submit', saveYear);
   $('#year-add').addEventListener('click', addMomentInYear);
+  $('#year-card').addEventListener('click', () => { $('#year-dialog').close(); showYearCard(ui.yearAge); });
   $('#year-view').addEventListener('click', viewYear);
 
   $('#lightbox').addEventListener('click', (e) => { if (!e.target.closest('.lb-nav')) $('#lightbox').close(); });
@@ -1924,6 +2277,10 @@ async function init() {
   ui.weather = weather.weatherEnabled() ? weather.cachedWeather() : null;
   render();
   scene.start();
+  // 小人會想你：好幾天沒記錄時，打開就先打個招呼
+  const gap = daysSinceLastRecord();
+  if (gap != null && gap >= 3) setTimeout(() => scene.say(gap >= 14 ? '好久不見！好想你，最近好嗎？' : `${gap} 天沒見了，今天過得好嗎？`), 1200);
+  else if (readyLetters().length) setTimeout(() => scene.say('信箱裡有一封信在等你 ✉️'), 1200);
   cleanupOrphanPhotos().catch(() => {});
   loadWeather();
   setInterval(() => { if (!document.hidden) loadWeather(); }, 10 * 60 * 1000);

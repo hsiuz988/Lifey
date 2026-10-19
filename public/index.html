@@ -56,6 +56,16 @@
         <canvas id="scene-canvas" aria-label="今年的場景，點小人會說話"></canvas>
         <div id="scene-bubble" class="scene-bubble" role="status"></div>
       </div>
+      <!-- 一秒日記：一句話或一個心情就算記過 -->
+      <form id="quick-note" class="quick-note" autocomplete="off">
+        <input id="quick-text" maxlength="500" placeholder="今天過得怎麼樣？一句話就好" aria-label="今天過得怎麼樣">
+        <div class="quick-row">
+          <div id="quick-moods" class="quick-moods"></div>
+          <span class="spacer"></span>
+          <button id="quick-send" class="btn primary small" type="submit">記下來</button>
+        </div>
+        <div id="quick-done" class="hint" hidden></div>
+      </form>
       <div id="avatar-banner" class="avatar-banner" hidden>
         <span>🎨 小人可以自己捏了！性別、髮型、衣服、配件都能選</span>
         <button id="avatar-banner-btn" class="btn small" type="button">來捏</button>
@@ -84,6 +94,9 @@
       </details>
     </section>
 
+    <!-- 今天的小卡片：那年今日、未來的信、每週回憶題、生日 -->
+    <section id="today-panel" class="today-cards" hidden></section>
+
     <section class="panel idcard">
       <div class="idcard-head"><span>身分紀錄 · LIFE LOG</span><span id="id-year"></span></div>
       <div class="idcard-body">
@@ -107,7 +120,10 @@
         <span class="muted small-text">一格一年 · 點格子補回憶</span>
       </div>
       <div id="map-summary" class="map-summary"></div>
-      <button id="recall-btn" class="btn recall-btn" type="button">🕰 回憶模式</button>
+      <div class="row map-actions">
+        <button id="recall-btn" class="btn recall-btn" type="button">🕰 回憶模式</button>
+        <button id="replay-btn" class="btn recall-btn" type="button">🎬 人生重播</button>
+      </div>
       <div id="life-map" class="life-map"></div>
       <div class="map-legend">
         <span>心情</span>
@@ -214,6 +230,7 @@
       <div class="row">
         <button id="year-add" class="btn" type="button">＋ 在這一歲記一筆</button>
         <button id="year-view" class="btn" type="button">看這一歲的紀錄</button>
+        <button id="year-card" class="btn" type="button">🎴 年度卡</button>
       </div>
       <div class="sheet-actions">
         <span class="spacer"></span>
@@ -297,6 +314,28 @@
   <!-- 人物卡 -->
   <dialog id="person-dialog" class="sheet person-dialog">
     <div id="person-body"></div>
+  </dialog>
+
+  <!-- 給未來的信 -->
+  <dialog id="letter-dialog" class="sheet letter-dialog">
+    <div id="letter-body"></div>
+  </dialog>
+
+  <!-- 人生重播 -->
+  <dialog id="replay-dialog" class="sheet replay-dialog">
+    <div class="sheet-top"><h3>🎬 人生重播</h3></div>
+    <div class="replay-stage">
+      <canvas id="replay-canvas" aria-label="人生重播"></canvas>
+      <div id="replay-bubble" class="scene-bubble" role="status"></div>
+    </div>
+    <div id="replay-age" class="replay-age"></div>
+    <div id="replay-caption" class="replay-caption"></div>
+    <div class="replay-progress"><div id="replay-bar"></div></div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" data-close>關閉</button>
+      <span class="spacer"></span>
+      <button id="replay-toggle" class="btn primary" type="button">暫停</button>
+    </div>
   </dialog>
 
   <!-- 看大圖 -->

@@ -576,3 +576,51 @@ dialog.person-dialog > div { gap: 14px; }
 .world-item.sad .world-title { font-weight: 500; }
 .remember-btn { flex-shrink: 0; align-self: center; font-size: 12px; padding: 2px 8px; background: transparent; color: var(--muted); border-style: dashed; }
 .year-add { margin-top: 12px; justify-content: center; }
+
+/* ---------- 一秒日記 ---------- */
+.quick-note { gap: 8px; margin: 0 0 14px; }
+.quick-note input { width: 100%; }
+.quick-row { display: flex; align-items: center; gap: 6px; }
+.quick-moods { display: flex; gap: 4px; }
+.mood.small-mood { width: 36px; height: 36px; font-size: 19px; padding: 0; }
+.quick-note .hint { margin: 0; }
+
+/* ---------- 今天的小卡片 ---------- */
+.today-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.today-card { display: flex; gap: 12px; padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.today-card.birthday, .today-card.letter { border-color: var(--yellow); }
+.today-icon { font-size: 26px; line-height: 1.2; }
+.today-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.today-main b { font-size: 14px; color: var(--muted); font-weight: 600; }
+.today-main p { margin: 0 0 6px; font-size: 15px; word-break: break-word; }
+.today-main .row { gap: 6px; }
+
+/* ---------- 人生地圖：點亮、未來的信 ---------- */
+.cell.lit { box-shadow: 0 0 0 1px rgba(255, 230, 150, .7), 0 0 10px rgba(255, 220, 120, .45); }
+.cell.lit:not(.has-event)::before { content: "✦"; position: absolute; left: 2px; top: 0; font-size: 8px; color: #fff3c4; }
+button.cell.future { cursor: pointer; }
+.cell.has-letter { opacity: 1; border-style: solid; border-color: var(--yellow); font-size: 13px; }
+.map-actions { gap: 8px; margin-top: 12px; }
+.map-actions .recall-btn { flex: 1; margin-top: 0; }
+
+/* ---------- 給未來的信、年度卡 ---------- */
+.letter-dialog > div { display: flex; flex-direction: column; gap: 12px; }
+.letter-dialog textarea { width: 100%; }
+.letter-paper { padding: 16px; background: #fbf6ea; color: #3a3240; border-radius: var(--radius); line-height: 1.8; font-size: 16px; }
+.sealed-list { list-style: none; margin: 0; padding: 0; }
+.sealed-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.letter-item .moment-text { color: var(--yellow); }
+.year-card-img { width: 100%; border-radius: 12px; display: block; }
+
+/* ---------- 人生重播 ---------- */
+dialog.replay-dialog { display: none; flex-direction: column; gap: 10px; }
+dialog.replay-dialog[open] { display: flex; }
+.replay-stage { position: relative; line-height: 0; border-radius: var(--radius); overflow: hidden; }
+.replay-stage canvas { width: 100%; height: auto; aspect-ratio: 160 / 72; display: block; image-rendering: pixelated; }
+.replay-age { font-size: 22px; font-weight: 700; text-align: center; }
+.replay-caption { min-height: 110px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.replay-caption p { margin: 0; font-size: 15px; }
+.replay-title { font-weight: 700; }
+.replay-world { color: var(--muted); font-size: 13px !important; }
+.replay-progress { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; }
+#replay-bar { height: 100%; background: var(--accent); transition: width .4s; }
