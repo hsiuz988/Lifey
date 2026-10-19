@@ -22,6 +22,8 @@
 - **成就**：17 個徽章，預設隱藏（背後照樣記錄），可在設定打開
 - 篩選（全部／☆／有照片／標籤）與搜尋
 - 身分紀錄卡（含護照式 MRZ 裝飾）
+- **雲端同步**：用 Face ID（Passkey）登入，文字與照片同步到自己的 Cloudflare（D1＋R2）；兩台手機同時改也會逐筆合併，刪除會同步
+- **另一半**：用邀請連結建立帳號並自動連結；只會看到對方標成「💞 分享」的紀錄與照片，可對照「我們在同一個年紀」
 - 匯出／匯入 ZIP 備份（含照片，可整個取代或合併），也能匯入階段 1 的 JSON 備份
 - 可加入主畫面、離線使用
 
@@ -47,17 +49,31 @@ lifey-YYYY-MM-DD.zip
 ## 本機試用
 
 ```bash
-cd public
-python3 -m http.server 8000
-# 打開 http://localhost:8000
+npm install
+npx wrangler dev
+# 打開 http://localhost:8787
 ```
 
-## 部署（Cloudflare）
+## 架構
 
-網站檔案都在 `public/`，不需要建置。每次推到 `main` 會自動重新發布。
+```
+public/        網站（PWA），離線也能用，資料存在手機的 IndexedDB
+worker/        Cloudflare Worker，只處理 /api/*
+  auth.js      Face ID／Passkey 登入（@simplewebauthn/server）、session cookie
+  data.js      同步（整份文字資料＋樂觀鎖）、照片、邀請與另一半檢視
+  schema.js    D1 資料表（第一次請求時自動建立）
+```
 
-- **Workers 流程**（Cloudflare 現在的預設）：專案名稱填 `lifey`，Build command 留空，Deploy command 用預設的 `npx wrangler deploy`，會讀 `wrangler.jsonc`
-- **Pages 流程**：Framework preset 選 None，Build command 留空，Build output directory 填 `public`
+- 同步：先拿雲端版本，逐筆合併（較新的 `updatedAt` 勝出，刪除留墓碑），再用版本號寫回；兩台同時寫入會重新合併
+- 第一個帳號可直接建立，之後只能用邀請連結建立（避免陌生人註冊）
+- 另一半只拿得到 `shared` 的紀錄與其照片；另一半的照片不快取，取消分享立刻生效
+
+## 部署（Cloudflare Workers）
+
+每次推到 `main` 會自動重新發布（Workers Builds 會自動 `npm install`，再 `npx wrangler deploy`）。
+`wrangler.jsonc` 需要填入 D1 資料庫 ID，照片存在 R2 bucket `lifey-photos`。
+
+本機開發：`npm install && npx wrangler dev`（會用本機模擬的 D1／R2）
 
 ## 更新程式後
 
@@ -68,4 +84,4 @@ python3 -m http.server 8000
 1. ✅ 階段 1：記錄、時間軸、☆、備份
 2. 階段 2：✅ 照片、✅ 人生地圖與這一歲的一句話、✅ 回憶模式；人生重播、年度總結卡（之後再做）
 3. ✅ 階段 3：四項狀態養成、成就、年度重心、像素頭像與場景
-4. 階段 4：LINE 推播提醒、跨裝置同步、和另一半共享
+4. ✅ 階段 4：雲端同步（Face ID 登入）、和另一半互看（LINE 提醒暫不做）

@@ -10,7 +10,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, acceptDownloads: true });
-  const p = await ctx.newPage(); await require('./adapt.js')(p);
+  const p = await ctx.newPage(); await require('./adapt.cjs')(p);
   p.on('pageerror', e => errors.push(e.message)); p.on('dialog', d => (d.type() === 'prompt' ? d.accept('清除') : d.accept()));
   await p.exposeFunction('logToast', t => toasts.push(t));
   await p.addInitScript(() => { new MutationObserver(() => { const t = document.querySelector('#toast'); if (t && !t.hidden) window.logToast(t.textContent); }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true }); });

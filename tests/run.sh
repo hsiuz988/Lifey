@@ -11,7 +11,7 @@ SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
 sleep 1
 failed=0
-for t in tests/e2e/*.test.js; do
+for t in tests/e2e/*.test.cjs; do
   out=$(node "$t" 2>&1)
   if echo "$out" | grep -q "❌\|💥\|Error"; then
     echo "✗ $(basename "$t")"; echo "$out" | grep "❌\|💥\|Error" | head -5; failed=$((failed + 1))

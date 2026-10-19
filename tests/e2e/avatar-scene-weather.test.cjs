@@ -12,7 +12,7 @@ const RAIN = { current: { temperature_2m: 22.4, weather_code: 63, cloud_cover: 9
 
 async function newPage(b, opts = {}) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, ...opts });
-  const p = await ctx.newPage(); await require('./adapt.js')(p);
+  const p = await ctx.newPage(); await require('./adapt.cjs')(p);
   p.on('pageerror', e => errors.push(e.message)); p.on('dialog', d => d.accept());
   p.apiCalls = [];
   await ctx.route('https://api.open-meteo.com/**', (route) => { p.apiCalls.push(route.request().url()); route.fulfill({ json: RAIN }); });

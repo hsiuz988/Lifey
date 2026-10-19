@@ -11,5 +11,14 @@ tests/run.sh
 
 - 每支測試會印出 ✅／❌，`run.sh` 最後列出失敗的檔案，全部通過時結束碼是 0。
 - 測試過程的截圖存在 `$LIFEY_OUT`（預設是暫存資料夾）。
-- 要測其他網址（例如測試環境）：`LIFEY_URL=https://xxx-lifey.xxx.workers.dev/ node tests/e2e/ux-flows.test.js`
+- 要測其他網址（例如測試環境）：`LIFEY_URL=https://xxx-lifey.xxx.workers.dev/ node tests/e2e/ux-flows.test.cjs`
 - `fixtures/` 是測試用的照片（含旋轉、透明背景）。
+- 測試檔用 `.cjs`，因為專案的 package.json 是 ES module。
+
+## 雲端功能
+
+```bash
+tests/run-cloud.sh
+```
+
+會為每支測試開一個空的本機雲端（`wrangler dev --local`，本機模擬 D1 和 R2），用虛擬的 Face ID（WebAuthn）建立帳號，測跨裝置同步、刪除、照片、給未來的信、家人邀請與互看。不會碰到真的 Cloudflare 資料。

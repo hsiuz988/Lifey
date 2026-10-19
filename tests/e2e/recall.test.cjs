@@ -8,7 +8,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
-  const p = await ctx.newPage(); await require('./adapt.js')(p);
+  const p = await ctx.newPage(); await require('./adapt.cjs')(p);
   const errors = [];
   p.on('pageerror', e => errors.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto(URL);

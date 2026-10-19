@@ -12,7 +12,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, acceptDownloads: true });
-  const p = await ctx.newPage(); await require('./adapt.js')(p);
+  const p = await ctx.newPage(); await require('./adapt.cjs')(p);
   const errors = [];
   p.on('pageerror', e => errors.push(e.message));
   p.on('console', m => m.type() === 'error' && errors.push(m.text()));
