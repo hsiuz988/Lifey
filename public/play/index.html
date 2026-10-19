@@ -60,12 +60,12 @@ body { display: flex; flex-direction: column; overscroll-behavior: none; }
 <body>
 <div class="game">
   <svg id="stage" viewBox="130 0 1330 1015" preserveAspectRatio="xMidYMid meet"></svg>
-  <div class="hud"><span class="pill">28 歲 · 第 248 天</span><span class="pill">☀ 23°</span></div>
+  <div class="hud"><span class="pill" id="age-pill">…</span><span class="pill">☀ 23°</span></div>
   <div class="hint" id="hint">點地板走路、點東西互動、點自己換裝 ✨</div>
 </div>
 <div class="lower">
   <div class="card" id="today-card"><small>今天</small>還沒記錄喔。點書桌上的日記本，或下面的按鈕</div>
-  <div class="card"><small>📅 那年今日 · 3 年前</small>第一次自己煮了一鍋咖哩</div>
+  <div class="card" id="memory-card" hidden></div>
   <div class="rec" id="rec-btn">✏️ 記下今天</div>
 </div>
 <div class="scrim" id="scrim"></div>

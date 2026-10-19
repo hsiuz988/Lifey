@@ -1,3 +1,4 @@
+import * as data from './data.js';
 // 試玩版：一間房間、會走路的小人、可以點的東西
 const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (parent) parent.append(e); return e; };
@@ -211,22 +212,29 @@ function compose() {
     btn.onclick = () => {
       const text = ta.value.trim(); if (!text) { ta.focus(); return; }
       closeSheet();
-      document.getElementById('today-card').innerHTML = '<small>今天</small>';
-      document.getElementById('today-card').append(text);
-      setTimeout(() => { feel('happy', 3000); jump(); say('記下來了！✨'); sparkle(950, 400, 8); }, 300);
+      data.addMoment(text).then((emo) => {
+        renderCards(text);
+        const face = EMO_FACE[emo] || 'happy';
+        setTimeout(() => { feel(face, 3000); if (face !== 'angry') jump(); say(face === 'angry' ? '記下來了，氣消一點了嗎？' : '記下來了！✨'); sparkle(950, 400, 8); }, 300);
+      });
     };
     b.append(ta, btn); setTimeout(() => ta.focus(), 250);
   });
 }
 function calendar() {
-  const moods = ['😊', '😌', '🥰', '😪', '🤩', '😢', '😊', '', '😌', '😊'];
-  openSheet('📅 十月的心情', (b) => {
+  const now = new Date(), y = now.getFullYear(), mo = now.getMonth() + 1, today = now.getDate();
+  const moods = data.monthMoods(y, mo);
+  openSheet(`📅 ${mo} 月的心情`, (b) => {
     const g = html('div', { className: 'cal' });
     '日一二三四五六'.split('').forEach((d) => g.append(html('b', {}, d)));
-    for (let i = 0; i < 4; i++) g.append(html('span'));
-    const today = new Date().getDate();
-    for (let d = 1; d <= 31; d++) { const s = html('span', {}, d < today ? moods[(d * 7) % moods.length] || '·' : d === today ? '✏️' : ''); if (d === today) s.className = 'today'; g.append(s); }
-    b.append(g, html('p', { style: 'font-size:13px;color:#b07f8c;margin:10px 2px 0' }, '試玩版：之後接上你真的心情紀錄'));
+    for (let i = 0; i < new Date(y, mo - 1, 1).getDay(); i++) g.append(html('span', { style: 'background:none' }));
+    for (let d = 1; d <= new Date(y, mo, 0).getDate(); d++) {
+      const s = html('span', { title: `${mo}/${d}` }, moods[d] || (d < today ? '·' : d === today ? '✏️' : ''));
+      if (d === today) s.className = 'today';
+      g.append(s);
+    }
+    const n = Object.keys(moods).length;
+    b.append(g, html('p', { style: 'font-size:13px;color:#b07f8c;margin:10px 2px 0' }, n ? `這個月記了 ${n} 天的心情` : '這個月還沒有心情紀錄，點書桌上的日記本寫一句吧'));
   });
 }
 function rooms() {
@@ -241,10 +249,7 @@ function rooms() {
 
 async function worldNews() {
   tvOn.setAttribute('opacity', 1);
-  const born = 1995;
-  let items = [];
-  try { items = await (await fetch(`../world/${Math.floor(born / 10) * 10}s.json`)).json(); } catch {}
-  items = items.filter((e) => e.y === born);
+  const { year: born, items } = await data.birthYearNews();
   openSheet(`📺 你出生那年：${born}`, (b) => {
     if (!items.length) b.append(html('p', {}, '還沒有這一年的新聞'));
     for (const e of items.slice(0, 6)) {
@@ -257,12 +262,13 @@ async function worldNews() {
 }
 function letter() {
   openSheet('💌 寫給未來的自己', (b) => {
-    const when = html('div', { style: 'font-size:13px;color:#b07f8c;margin:0 2px 8px' }, '一年後的今天，這封信會出現在信箱裡');
-    const ta = html('textarea', { placeholder: '親愛的一年後的我…' });
+    const when = html('div', { style: 'font-size:13px;color:#b07f8c;margin:0 2px 8px' }, '信會封存到你下一個生日才能打開');
+    const ta = html('textarea', { placeholder: '親愛的下一歲的我…' });
     const btn = html('div', { className: 'rec' }, '封好寄出');
     btn.onclick = () => {
       if (!ta.value.trim()) { ta.focus(); return; }
-      closeSheet(); setTimeout(() => { feel('happy', 2500); say('寄出去了，一年後見 💌'); sparkle(1255, 610, 6); }, 300);
+      closeSheet();
+      data.addLetter(ta.value.trim()).then(({ age }) => setTimeout(() => { feel('happy', 2500); say(`封好了，${age} 歲生日見 💌`); sparkle(1255, 610, 6); }, 300));
     };
     b.append(when, ta, btn); setTimeout(() => ta.focus(), 250);
   });
@@ -296,13 +302,13 @@ const HOTS = [
   { name: 'clock', r: [768, 110, 82, 92], act: () => say(`現在 ${now()} ⏰`) },
   { name: 'window', r: [410, 105, 255, 270], act: () => say('今天天氣很好 ☀️ 23°') },
   { name: 'door', r: [1285, 355, 115, 315], go: [.95, .3, 1], act: rooms },
-  { name: 'shelf', r: [195, 340, 175, 300], go: [.17, .82, -1], act: () => { feel('happy'); say('3 年前的今天：第一次煮咖哩 🍛', 3200); } },
+  { name: 'shelf', r: [195, 340, 175, 300], go: [.17, .82, -1], act: () => { const m = data.onThisDay(); if (m) { feel('happy'); say(`${m.years} 年前的今天：${m.text.length > 14 ? m.text.slice(0, 14) + '…' : m.text}`, 3600); } else say('以前的今天還沒有紀錄，從今天開始寫吧 📖', 3000); } },
   { name: 'plant', r: [715, 220, 80, 100], act: () => { say('澆水 💧 長大一點了'); sparkle(755, 260, 5); } },
   { name: 'photos', r: [865, 188, 95, 100], act: () => say('之後這裡會放你的照片 📷') },
 ];
 for (const h of HOTS) {
   const [x, y, w, hh] = h.r;
-  const node = el('rect', { x, y, width: w, height: hh, fill: DEBUG ? 'rgba(0,200,0,.2)' : 'transparent', class: 'hot' }, hotLayer);
+  const node = el('rect', { x, y, width: w, height: hh, fill: DEBUG ? 'rgba(0,200,0,.2)' : 'transparent', class: 'hot', 'data-name': h.name }, hotLayer);
   node.addEventListener('click', (e) => {
     e.stopPropagation(); hideHint();
     if (me.hidden && h.name !== 'bed') { wake(); return; }
@@ -332,6 +338,19 @@ document.getElementById('rec-btn').onclick = () => { hideHint(); const h = HOTS[
 const hint = document.getElementById('hint');
 function hideHint() { hint.style.opacity = 0; }
 
+const EMO_FACE = { happy: 'happy', excited: 'happy', love: 'happy', moved: 'happy', angry: 'angry' };
+function renderCards(justWrote) {
+  document.getElementById('age-pill').textContent = data.ageLine();
+  const card = document.getElementById('today-card');
+  const list = data.todayMoments();
+  card.replaceChildren(html('small', {}, '今天'));
+  if (list.length) card.append(list.map((m) => m.text).filter(Boolean).slice(-2).join('、') || '放了一張照片');
+  else card.append(justWrote || '還沒記錄喔。點書桌上的日記本，或下面的按鈕');
+  const mc = document.getElementById('memory-card'), m = data.onThisDay();
+  mc.hidden = !m;
+  if (m) mc.replaceChildren(html('small', {}, `📅 那年今日 · ${m.years} 年前`), m.text);
+}
+data.load().then(() => renderCards());
 placeMe();
 requestAnimationFrame(tick);
 setTimeout(() => say('歡迎來我的房間！'), 600);
