@@ -33,8 +33,8 @@ const SYSTEM = `你是「人生紀錄」App 的旁白。使用者會給你一則
 
 // 情緒和小圖的清單要和 public/garden.js 一致
 const EMOS = ['happy', 'excited', 'calm', 'moved', 'love', 'tired', 'sad', 'angry', 'nervous', 'miss'];
-const ITEMS = ['coffee', 'milktea', 'cake', 'ramen', 'hotpot', 'bento', 'beer', 'icecream', 'run', 'swim', 'gym', 'book', 'movie', 'game',
-  'music', 'paint', 'camera', 'suitcase', 'mountain', 'beach', 'bike', 'scooter', 'train', 'laptop', 'document', 'exam', 'gradcap',
+const ITEMS = ['coffee', 'milktea', 'cake', 'ramen', 'hotpot', 'bento', 'beer', 'icecream', 'run', 'gym', 'book', 'movie', 'game',
+  'music', 'paint', 'camera', 'suitcase', 'bike', 'scooter', 'laptop', 'document', 'exam', 'gradcap',
   'umbrella', 'bouquet', 'gift', 'balloon', 'box', 'medicine', 'shopping', 'bone', 'plant', 'pan', 'star', 'letter', 'heart'];
 
 const SCHEMA = {

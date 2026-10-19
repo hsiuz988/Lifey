@@ -50,54 +50,51 @@ export function detectEmotion(feel, text, mood) {
 }
 
 // ---------- 今天的小東西 ----------
+// at：放在哪裡才合理 —— hand 拿在手上、table 放在長椅旁的小桌子、ground 放在地上、head 戴在頭上、float 飄在頭旁邊、wear 換上衣服（跑步換運動服）
 const S = (rows, colors) => ({ rows, colors: { o: OUTLINE, ...colors } });
 const W_ = '#f5f0e6';
 export const ITEMS = {
-  coffee: { label: '咖啡', words: ['咖啡', '拿鐵', '美式', '星巴克', 'cafe', 'coffee'], ...S(['.ooo..', 'owwwoo', 'oxxxo.o', 'oxxxoo', '.ooo.'], { x: '#8a5a3c', w: W_ }) },
-  milktea: { label: '奶茶', words: ['奶茶', '珍奶', '手搖', '飲料', '綠茶', '紅茶'], ...S(['...o.', '...o.', 'ooooo', 'owwwo', 'oxxxo', 'oxyxo', 'ooooo'], { x: '#d9b38c', y: '#3a2a20', w: W_ }) },
-  cake: { label: '蛋糕', words: ['蛋糕', '甜點', '慶生', '生日'], ...S(['...y...', '...o...', 'ooooooo', 'oxxxxxo', 'owwwwwo', 'oxxxxxo', 'ooooooo'], { x: '#f6b3c8', w: '#fff5e8', y: '#ffd36b' }) },
-  ramen: { label: '拉麵', words: ['拉麵', '牛肉麵', '麵', '湯'], ...S(['.w.w.w.', 'ooooooo', 'oyyyyyo', 'oxxxxxo', '.oxxxo.', '..ooo..'], { x: '#e05a3a', y: '#f3d27a', w: '#ffffff' }) },
-  hotpot: { label: '火鍋', words: ['火鍋', '麻辣鍋', '涮涮鍋', '燒肉', '烤肉'], ...S(['o.....o', 'ooooooo', 'oyryryo', 'oxxxxxo', '.ooooo.'], { x: '#8a8f99', y: '#ffd36b', r: '#e05a3a' }) },
-  bento: { label: '便當', words: ['便當', '午餐', '晚餐', '早餐', '吃飯', '餐廳', '吃了'], ...S(['ooooooo', 'owwoyyo', 'owwoggo', 'ooooooo'], { w: '#ffffff', y: '#ffd36b', g: '#7fbf6a' }) },
-  beer: { label: '啤酒', words: ['啤酒', '喝酒', '調酒', '酒吧', '乾杯', '紅酒'], ...S(['.www.', 'ooooo.', 'oyyyoo', 'oyyyo.o', 'oyyyoo', 'ooooo.'], { y: '#f3b33d', w: '#ffffff' }) },
-  icecream: { label: '冰淇淋', words: ['冰淇淋', '霜淇淋', '冰', '剉冰'], ...S(['.ooo.', 'oxxxo', 'oxxxo', '.oyo.', '.oyo.', '..o..'], { x: '#f6b3c8', y: '#d9a45b' }) },
-  run: { label: '跑步', words: ['跑步', '慢跑', '馬拉松', '路跑', '跑了'], ...S(['oooo...', 'oxxxo..', 'oxxxxoo', 'owwwwwo', 'ooooooo'], { x: '#e05a3a', w: '#ffffff' }) },
-  swim: { label: '游泳', words: ['游泳', '泳池', '潛水'], ...S(['.ooooo.', 'orwrwro', 'ow...wo', 'or...ro', 'ow...wo', 'orwrwro', '.ooooo.'], { r: '#e05a3a', w: '#ffffff' }) },
-  gym: { label: '健身', words: ['健身', '重訓', '運動', '瑜珈', '有氧', '打球', '籃球', '羽球'], ...S(['oo.....oo', 'oxo...oxo', 'oxoooooxo', 'oxo...oxo', 'oo.....oo'], { x: '#8a8f99' }) },
-  book: { label: '書', words: ['看書', '閱讀', '小說', '書店', '圖書館', '讀了'], ...S(['ooooooo', 'oxxwxxo', 'oxxwxxo', 'oxxwxxo', 'ooooooo'], { x: '#3f7fd1', w: W_ }) },
-  movie: { label: '電影', words: ['電影', '看片', '影集', '追劇', 'netflix', '戲院'], ...S(['.w.w.', 'wwwww', 'ororo', 'orwro', 'ororo', 'ooooo'], { r: '#e05a3a', w: '#ffffff' }) },
-  game: { label: '遊戲', words: ['遊戲', '打電動', '電玩', 'switch', '手遊', '桌遊'], ...S(['.ooooo.', 'oxxxxxo', 'oyxxxro', 'oxxxxxo', '.oo.oo.'], { x: '#b8bcc8', y: '#ffd36b', r: '#e05a3a' }) },
-  music: { label: '音樂', words: ['音樂', '唱歌', 'ktv', '演唱會', '聽歌', '樂團', '鋼琴', '吉他'], ...S(['..ooo', '..oxo', '..o..', '..o..', 'ooo..', 'oxo..', 'ooo..'], { x: '#c9b6ff' }) },
-  paint: { label: '畫畫', words: ['畫畫', '繪畫', '畫了', '手作', '插畫'], ...S(['.oooo.', 'oxrxxo', 'oxxbxo', 'oyxxo.', '.ooo..'], { x: '#f5e6c8', r: '#e05a3a', b: '#3f7fd1', y: '#ffd36b' }) },
-  camera: { label: '相機', words: ['拍照', '相機', '攝影', '照片', '合照'], ...S(['.oo....', 'ooooooo', 'oxxwwxo', 'oxwbwxo', 'oxxwwxo', 'ooooooo'], { x: '#8a8f99', w: '#ffffff', b: '#3f7fd1' }) },
-  suitcase: { label: '行李箱', words: ['旅行', '出國', '行李', '飛機', '機場', '出差', '旅遊'], ...S(['..ooo..', 'ooyoyoo', 'oxxxxxo', 'oyyyyyo', 'oxxxxxo', 'ooooooo'], { x: '#9a6634', y: '#d9a45b' }) },
-  mountain: { label: '山', words: ['爬山', '登山', '山上', '健行', '步道'], ...S(['...o...', '..owo..', '.oxxxo.', 'oxxxxxo', 'ooooooo'], { x: '#6cb67a', w: '#ffffff' }) },
-  beach: { label: '海邊', words: ['海邊', '沙灘', '衝浪', '看海', '海'], ...S(['..ooo..', '.orwro.', 'orwrwro', 'ooooooo', '...o...', '...o...', 'yyyyyyy'], { r: '#e05a3a', w: '#ffffff', y: '#f3d27a' }) },
-  bike: { label: '腳踏車', words: ['腳踏車', '單車', 'ubike', '騎車'], ...S(['....oo.', '.o..o..', '.ooooo.', 'ooo.ooo', 'o.o.o.o', 'ooo.ooo'], {}) },
-  scooter: { label: '機車', words: ['機車', '騎機車', '摩托車'], ...S(['....oo', '...oo.', 'ooooo.', 'oxxxxo', 'oxxxxxo', '.o..o.'], { x: '#3fa89a' }) },
-  train: { label: '捷運', words: ['捷運', '火車', '高鐵', '通勤', '公車'], ...S(['.ooooo.', 'owwwwwo', 'oxxxxxo', 'oxxxxxo', 'ooooooo', '.o...o.'], { x: '#4f86a6', w: '#bfe6ff' }) },
-  laptop: { label: '筆電', words: ['上班', '工作', '電腦', '開會', '簡報', '加班', '寫程式', '專案', '主管'], ...S(['.ooooo.', 'obbbbbo', 'obbbbbo', '.ooooo.', 'ooooooo'], { b: '#9fd3ff' }) },
-  document: { label: '文件', words: ['文件', '報告', '作業', '論文', '企劃'], ...S(['oooo.', 'owwoo', 'owwwo', 'oxxwo', 'owwwo', 'ooooo'], { w: '#ffffff', x: '#9aa6c8' }) },
-  exam: { label: '考卷', words: ['考試', '考卷', '讀書', '唸書', '期中', '期末', '補習'], ...S(['ooooo', 'owwwo', 'orwro', 'owrwo', 'owwwo', 'ooooo'], { w: '#ffffff', r: '#e05a3a' }) },
-  gradcap: { label: '畢業帽', words: ['畢業', '學位', '學士', '碩士'], ...S(['...o...', '.ooooo.', 'ooooooo', '..ooo.y', '..ooo.y'], { y: '#ffd36b' }) },
-  umbrella: { label: '雨傘', words: ['下雨', '雨傘', '颱風', '淋雨'], ...S(['..ooo..', '.oxxxo.', 'oxxxxxo', 'ooooooo', '...o...', '...o...', '..oo...'], { x: '#4f86a6' }) },
-  bouquet: { label: '花束', words: ['花束', '送花', '買花', '花'], ...S(['.r.p.', 'rpypr', '.ryr.', '..g..', '.ogo.', '.ooo.'], { r: '#e0607e', p: '#f6b3c8', y: '#ffd36b', g: '#7fbf6a' }) },
-  gift: { label: '禮物', words: ['禮物', '收到', '驚喜', '交換禮物'], ...S(['.o.o.', 'ooroo', 'oxrxo', 'ooroo', 'oxrxo', 'ooooo'], { x: '#9fd3ff', r: '#e0607e' }) },
-  balloon: { label: '氣球', words: ['派對', '慶祝', '聚會', '聚餐', '同學會'], ...S(['.ooo.', 'oxwxo', 'oxxxo', 'oxxxo', '.ooo.', '..o..'], { x: '#e0607e', w: '#f6b3c8' }) },
-  box: { label: '紙箱', words: ['搬家', '紙箱', '打包', '整理', '大掃除'], ...S(['ooooooo', 'oxxyxxo', 'oxxyxxo', 'oxxxxxo', 'ooooooo'], { x: '#d9a45b', y: '#f3d27a' }) },
-  medicine: { label: '藥袋', words: ['看醫生', '生病', '感冒', '醫院', '發燒', '吃藥', '診所', '牙醫'], ...S(['.ooo.', 'owwwo', 'owrwo', 'orrro', 'owrwo', 'ooooo'], { w: '#ffffff', r: '#e05a3a' }) },
-  shopping: { label: '購物袋', words: ['逛街', '購物', '買了', '網購', '百貨', '超市'], ...S(['..o.o..', '.o...o.', 'ooooooo', 'oxxxxxo', 'oxxxxxo', 'ooooooo'], { x: '#f6b3c8' }) },
-  bone: { label: '骨頭', words: ['狗', '貓', '寵物', '遛狗', '毛孩'], ...S(['oo...oo', 'owoooow', 'owwwwwo', 'owoooow', 'oo...oo'], { w: '#ffffff' }) },
-  plant: { label: '盆栽', words: ['種花', '植物', '盆栽', '園藝', '澆花'], ...S(['..g..', '.ggg.', 'g.g.g', '..g..', 'ooooo', 'oxxxo', '.ooo.'], { g: '#5aa65a', x: '#c97a4a' }) },
-  pan: { label: '平底鍋', words: ['煮飯', '做菜', '料理', '烘焙', '下廚', '煮了'], ...S(['.ooooo....', 'owwwwwoooo', 'owwyywo...', 'owwwwwo...', '.ooooo....'], { w: '#ffffff', y: '#ffd36b' }) },
-  star: { label: '星星', words: ['升職', '得獎', '完成', '成功', '錄取', '考上', '加薪', '達成'], ...S(['...o...', '..oyo..', 'ooyyyoo', '.oyyyo.', '.oyoyo.', 'oo...oo'], { y: '#ffd36b' }) },
-  letter: { label: '信', words: ['寫信', '卡片', '信', '明信片'], ...S(['ooooooo', 'owoooow', 'owwowwo', 'owwwwwo', 'ooooooo'], { w: '#ffffff' }) },
-  heart: { label: '愛心', words: ['約會', '告白', '紀念日', '交往', '情人節'], ...S(['.o.o.', 'oxoxo', 'oxxxo', '.oxo.', '..o..'], { x: '#e0607e' }) },
+  coffee: { at: 'hand', label: '咖啡', words: ['咖啡', '拿鐵', '美式', '星巴克', 'cafe', 'coffee'], ...S(['.ooo..', 'owwwoo', 'oxxxo.o', 'oxxxoo', '.ooo.'], { x: '#8a5a3c', w: W_ }) },
+  milktea: { at: 'hand', label: '奶茶', words: ['奶茶', '珍奶', '手搖', '飲料', '綠茶', '紅茶'], ...S(['...o.', '...o.', 'ooooo', 'owwwo', 'oxxxo', 'oxyxo', 'ooooo'], { x: '#d9b38c', y: '#3a2a20', w: W_ }) },
+  cake: { at: 'table', label: '蛋糕', words: ['蛋糕', '甜點', '慶生', '生日'], ...S(['...y...', '...o...', 'ooooooo', 'oxxxxxo', 'owwwwwo', 'oxxxxxo', 'ooooooo'], { x: '#f6b3c8', w: '#fff5e8', y: '#ffd36b' }) },
+  ramen: { at: 'table', label: '拉麵', words: ['拉麵', '牛肉麵', '麵', '湯'], ...S(['.w.w.w.', 'ooooooo', 'oyyyyyo', 'oxxxxxo', '.oxxxo.', '..ooo..'], { x: '#e05a3a', y: '#f3d27a', w: '#ffffff' }) },
+  hotpot: { at: 'table', label: '火鍋', words: ['火鍋', '麻辣鍋', '涮涮鍋', '燒肉', '烤肉'], ...S(['o.....o', 'ooooooo', 'oyryryo', 'oxxxxxo', '.ooooo.'], { x: '#8a8f99', y: '#ffd36b', r: '#e05a3a' }) },
+  bento: { at: 'table', label: '便當', words: ['便當', '午餐', '晚餐', '早餐', '吃飯', '餐廳', '吃了'], ...S(['ooooooo', 'owwoyyo', 'owwoggo', 'ooooooo'], { w: '#ffffff', y: '#ffd36b', g: '#7fbf6a' }) },
+  beer: { at: 'table', label: '啤酒', words: ['啤酒', '喝酒', '調酒', '酒吧', '乾杯', '紅酒'], ...S(['.www.', 'ooooo.', 'oyyyoo', 'oyyyo.o', 'oyyyoo', 'ooooo.'], { y: '#f3b33d', w: '#ffffff' }) },
+  icecream: { at: 'hand', label: '冰淇淋', words: ['冰淇淋', '霜淇淋', '冰', '剉冰'], ...S(['.ooo.', 'oxxxo', 'oxxxo', '.oyo.', '.oyo.', '..o..'], { x: '#f6b3c8', y: '#d9a45b' }) },
+  run: { at: 'wear', label: '跑步', words: ['跑步', '慢跑', '馬拉松', '路跑', '跑了'], ...S(['oooo...', 'oxxxo..', 'oxxxxoo', 'owwwwwo', 'ooooooo'], { x: '#e05a3a', w: '#ffffff' }) },
+  gym: { at: 'ground', label: '健身', words: ['健身', '重訓', '運動', '瑜珈', '有氧', '打球', '籃球', '羽球'], ...S(['oo.....oo', 'oxo...oxo', 'oxoooooxo', 'oxo...oxo', 'oo.....oo'], { x: '#8a8f99' }) },
+  book: { at: 'hand', label: '書', words: ['看書', '閱讀', '小說', '書店', '圖書館', '讀了'], ...S(['ooooooo', 'oxxwxxo', 'oxxwxxo', 'oxxwxxo', 'ooooooo'], { x: '#3f7fd1', w: W_ }) },
+  movie: { at: 'table', label: '電影', words: ['電影', '看片', '影集', '追劇', 'netflix', '戲院'], ...S(['.w.w.', 'wwwww', 'ororo', 'orwro', 'ororo', 'ooooo'], { r: '#e05a3a', w: '#ffffff' }) },
+  game: { at: 'table', label: '遊戲', words: ['遊戲', '打電動', '電玩', 'switch', '手遊', '桌遊'], ...S(['.ooooo.', 'oxxxxxo', 'oyxxxro', 'oxxxxxo', '.oo.oo.'], { x: '#b8bcc8', y: '#ffd36b', r: '#e05a3a' }) },
+  music: { at: 'float', label: '音樂', words: ['音樂', '唱歌', 'ktv', '演唱會', '聽歌', '樂團', '鋼琴', '吉他'], ...S(['..ooo', '..oxo', '..o..', '..o..', 'ooo..', 'oxo..', 'ooo..'], { x: '#c9b6ff' }) },
+  paint: { at: 'table', label: '畫畫', words: ['畫畫', '繪畫', '畫了', '手作', '插畫'], ...S(['.oooo.', 'oxrxxo', 'oxxbxo', 'oyxxo.', '.ooo..'], { x: '#f5e6c8', r: '#e05a3a', b: '#3f7fd1', y: '#ffd36b' }) },
+  camera: { at: 'hand', label: '相機', words: ['拍照', '相機', '攝影', '照片', '合照'], ...S(['.oo....', 'ooooooo', 'oxxwwxo', 'oxwbwxo', 'oxxwwxo', 'ooooooo'], { x: '#8a8f99', w: '#ffffff', b: '#3f7fd1' }) },
+  suitcase: { at: 'ground', label: '行李箱', words: ['旅行', '出國', '行李', '飛機', '機場', '出差', '旅遊'], ...S(['..ooo..', 'ooyoyoo', 'oxxxxxo', 'oyyyyyo', 'oxxxxxo', 'ooooooo'], { x: '#9a6634', y: '#d9a45b' }) },
+  bike: { at: 'ground', label: '腳踏車', words: ['腳踏車', '單車', 'ubike', '騎車'], ...S(['....oo.', '.o..o..', '.ooooo.', 'ooo.ooo', 'o.o.o.o', 'ooo.ooo'], {}) },
+  scooter: { at: 'ground', label: '機車', words: ['機車', '騎機車', '摩托車'], ...S(['....oo', '...oo.', 'ooooo.', 'oxxxxo', 'oxxxxxo', '.o..o.'], { x: '#3fa89a' }) },
+  laptop: { at: 'table', label: '筆電', words: ['上班', '工作', '電腦', '開會', '簡報', '加班', '寫程式', '專案', '主管'], ...S(['.ooooo.', 'obbbbbo', 'obbbbbo', '.ooooo.', 'ooooooo'], { b: '#9fd3ff' }) },
+  document: { at: 'table', label: '文件', words: ['文件', '報告', '作業', '論文', '企劃'], ...S(['oooo.', 'owwoo', 'owwwo', 'oxxwo', 'owwwo', 'ooooo'], { w: '#ffffff', x: '#9aa6c8' }) },
+  exam: { at: 'table', label: '考卷', words: ['考試', '考卷', '讀書', '唸書', '期中', '期末', '補習'], ...S(['ooooo', 'owwwo', 'orwro', 'owrwo', 'owwwo', 'ooooo'], { w: '#ffffff', r: '#e05a3a' }) },
+  gradcap: { at: 'head', label: '畢業帽', words: ['畢業', '學位', '學士', '碩士'], ...S(['.ooooooooo.', 'oxxxxxxxxxo', '.oooxxxoooy', '...oxxxo..y', '...ooooo...'], { x: '#4a5c9a', y: '#ffd36b' }) },
+  umbrella: { at: 'hand', label: '雨傘', words: ['下雨', '雨傘', '颱風', '淋雨'], ...S(['..ooo..', '.oxxxo.', 'oxxxxxo', 'ooooooo', '...o...', '...o...', '..oo...'], { x: '#4f86a6' }) },
+  bouquet: { at: 'hand', label: '花束', words: ['花束', '送花', '買花', '花'], ...S(['.r.p.', 'rpypr', '.ryr.', '..g..', '.ogo.', '.ooo.'], { r: '#e0607e', p: '#f6b3c8', y: '#ffd36b', g: '#7fbf6a' }) },
+  gift: { at: 'table', label: '禮物', words: ['禮物', '收到', '驚喜', '交換禮物'], ...S(['.o.o.', 'ooroo', 'oxrxo', 'ooroo', 'oxrxo', 'ooooo'], { x: '#9fd3ff', r: '#e0607e' }) },
+  balloon: { at: 'hand', label: '氣球', words: ['派對', '慶祝', '聚會', '聚餐', '同學會'], ...S(['.ooo.', 'oxwxo', 'oxxxo', 'oxxxo', '.ooo.', '..o..'], { x: '#e0607e', w: '#f6b3c8' }) },
+  box: { at: 'ground', label: '紙箱', words: ['搬家', '紙箱', '打包', '整理', '大掃除'], ...S(['ooooooo', 'oxxyxxo', 'oxxyxxo', 'oxxxxxo', 'ooooooo'], { x: '#d9a45b', y: '#f3d27a' }) },
+  medicine: { at: 'table', label: '藥袋', words: ['看醫生', '生病', '感冒', '醫院', '發燒', '吃藥', '診所', '牙醫'], ...S(['.ooo.', 'owwwo', 'owrwo', 'orrro', 'owrwo', 'ooooo'], { w: '#ffffff', r: '#e05a3a' }) },
+  shopping: { at: 'hand', label: '購物袋', words: ['逛街', '購物', '買了', '網購', '百貨', '超市'], ...S(['..o.o..', '.o...o.', 'ooooooo', 'oxxxxxo', 'oxxxxxo', 'ooooooo'], { x: '#f6b3c8' }) },
+  bone: { at: 'ground', label: '骨頭', words: ['狗', '貓', '寵物', '遛狗', '毛孩'], ...S(['oo...oo', 'owoooow', 'owwwwwo', 'owoooow', 'oo...oo'], { w: '#ffffff' }) },
+  plant: { at: 'table', label: '盆栽', words: ['種花', '植物', '盆栽', '園藝', '澆花'], ...S(['..g..', '.ggg.', 'g.g.g', '..g..', 'ooooo', 'oxxxo', '.ooo.'], { g: '#5aa65a', x: '#c97a4a' }) },
+  pan: { at: 'table', label: '平底鍋', words: ['煮飯', '做菜', '料理', '烘焙', '下廚', '煮了'], ...S(['.ooooo....', 'owwwwwoooo', 'owwyywo...', 'owwwwwo...', '.ooooo....'], { w: '#ffffff', y: '#ffd36b' }) },
+  star: { at: 'float', label: '星星', words: ['升職', '得獎', '完成', '成功', '錄取', '考上', '加薪', '達成'], ...S(['...o...', '..oyo..', 'ooyyyoo', '.oyyyo.', '.oyoyo.', 'oo...oo'], { y: '#ffd36b' }) },
+  letter: { at: 'hand', label: '信', words: ['寫信', '卡片', '信', '明信片'], ...S(['ooooooo', 'owoooow', 'owwowwo', 'owwwwwo', 'ooooooo'], { w: '#ffffff' }) },
+  heart: { at: 'float', label: '愛心', words: ['約會', '告白', '紀念日', '交往', '情人節'], ...S(['.o.o.', 'oxoxo', 'oxxxo', '.oxo.', '..o..'], { x: '#e0607e' }) },
 };
 export const ITEM_KEYS = Object.keys(ITEMS);
 
-// 從事件文字找出今天的小東西（最多 n 個，依出現的先後）
-export function detectItems(text, n = 2) {
+// 從事件文字找出今天的小東西（依出現的先後）
+export function detectItems(text, n = 3) {
   const src = (text || '').toLowerCase();
   const hits = [];
   for (const [key, it] of Object.entries(ITEMS)) {
@@ -219,4 +216,27 @@ export function dayFlower(moments) {
   const sorted = [...moments].sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
   const pick = [...sorted].reverse().find((m) => m.emo || m.mood) || sorted[sorted.length - 1];
   return { emo: pick.emo || detectEmotion(pick.feel, pick.text, pick.mood) || 'calm', mood: pick.mood || 3 };
+}
+
+// 場景角落花箱裡的小花（約 5×7）：花瓣顏色看心情、花心顏色看情緒；x 是花莖、yBottom 是花莖底部
+const MINI_CENTER = {
+  happy: '#9a6634', excited: '#e0607e', calm: '#ffd36b', moved: '#ffffff', love: '#c0405e',
+  tired: '#8f7fc8', sad: '#7c8db0', angry: '#e05a3a', nervous: '#5aa0d0', miss: '#f4f6fa',
+};
+export function drawMiniFlower(ctx, f, x, yBottom, dim = (c) => c) {
+  const px = (dx, dy, c) => { ctx.fillStyle = dim(c); ctx.fillRect(x + dx, yBottom + dy, 1, 1); };
+  if (f.stage === 'sprout') { px(0, 0, STEM); px(0, -1, STEM); px(-1, -2, LEAF); px(1, -2, LEAF); return; }
+  for (let dy = 0; dy >= -3; dy--) px(0, dy, STEM);
+  px(1, -1, LEAF);
+  const petal = MOOD_PETAL[(f.mood || 3) - 1];
+  if (f.stage === 'bud') { px(0, -4, OUTLINE); px(-1, -4, OUTLINE); px(1, -4, OUTLINE); px(0, -5, petal); px(-1, -5, OUTLINE); px(1, -5, OUTLINE); px(0, -6, OUTLINE); return; }
+  // 開花：十字形的花瓣、中間是花心，外面一圈深色邊
+  const head = [[0, -5], [-1, -5], [1, -5], [0, -4], [0, -6]];
+  const ring = new Set();
+  head.forEach(([hx, hy]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => ring.add(`${hx + a},${hy + b}`)));
+  head.forEach(([hx, hy]) => ring.delete(`${hx},${hy}`));
+  ring.delete('0,-3');
+  ring.forEach((k) => { const [a, b] = k.split(',').map(Number); px(a, b, OUTLINE); });
+  head.forEach(([hx, hy]) => px(hx, hy, petal));
+  px(0, -5, MINI_CENTER[f.emo] || '#ffd36b');
 }

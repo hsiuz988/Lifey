@@ -381,7 +381,7 @@ function todayInScene() {
   const mine = state.moments.filter((m) => m.date === today && !m.approx)
     .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   const withEmo = mine.find((m) => m.emo);
-  const items = [...new Set(mine.flatMap((m) => (m.item ? [m.item] : detectItems(m.text))))].filter((k) => ITEMS[k]).slice(0, 2);
+  const items = [...new Set(mine.flatMap((m) => (m.item ? [m.item] : detectItems(m.text))))].filter((k) => ITEMS[k]).slice(0, 4);
   return { emo: withEmo ? withEmo.emo : null, items, flowers: recentFlowers(3) };
 }
 
