@@ -21,7 +21,7 @@ const fake = http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
       id: `msg_${n}`, type: 'message', role: 'assistant', model: body.model,
-      content: refused ? [] : [{ type: 'text', text: JSON.stringify({ title: `淡水的夕陽${n}`, text: `你和小美沿著河岸慢慢走，心也跟著鬆了下來。（第 ${n} 版）` }) }],
+      content: refused ? [] : [{ type: 'text', text: JSON.stringify({ title: `淡水的夕陽${n}`, text: `你和小美沿著河岸慢慢走，心也跟著鬆了下來。（第 ${n} 版）`, emo: 'calm', item: 'beach' }) }],
       stop_reason: refused ? 'refusal' : 'end_turn', stop_sequence: null,
       usage: { input_tokens: 10, output_tokens: 10 },
     }));
@@ -94,6 +94,8 @@ let b;
   await closed(p);
   let m = (await st(p)).moments[0];
   assert(m.feel === '很放鬆，好久沒這樣' && m.story && m.story.title === '淡水的夕陽2', '故事版和心情都存起來');
+  assert(m.emo === 'calm' && m.item === 'beach', 'AI 順便選的情緒和小東西也存起來');
+  assert(c1.body.output_config.format.schema.properties.item.enum.length === 41, 'AI 只能從 40 個小圖裡選（或 none）');
   assert(await p.isVisible('#timeline .story-title >> text=淡水的夕陽2'), '時間軸顯示故事標題');
   assert(await p.isVisible('#timeline .moment-orig >> text=跟小美去淡水看夕陽'), '原文縮小留在下面');
 

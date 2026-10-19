@@ -3,6 +3,7 @@
 // 系統開了「減少動態效果」就只每分鐘更新一次靜態畫面
 import { composeAvatar, drawAvatar, W as AVATAR_W, H as AVATAR_H, OUTLINE } from './avatar.js';
 import { drawPet, petSize, BOWL } from './pets.js';
+import { ITEMS, flowerGrid, drawFlower, FLOWER_W, FLOWER_H } from './garden.js';
 
 export const W = 160;
 export const H = 72;
@@ -11,6 +12,10 @@ const FEET = 62; // 小人腳底所在列（在小路上）
 const FPS = 10;
 const WALK_MIN = 50;
 const WALK_MAX = 84;
+const BENCH_X = 13; // 累的時候坐在長椅上（小人左邊的 x）
+const BED_X = 116; // 右下角的小花圃，點了打開花園
+// 不同情緒走路的速度和發呆的時間
+const PACE = { tired: [3, 2.2], sad: [4, 1.8], calm: [5, 1.4], nervous: [12, 0.35], excited: [10, 0.6] };
 
 // ---------- 小工具 ----------
 const hex = (c) => { const n = parseInt(c.slice(1, 7), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
@@ -186,7 +191,8 @@ export class Scene {
     this.canvas = canvas;
     this.bubble = bubble;
     this.ctx = canvas.getContext('2d');
-    this.state = { stageKey: 'adult', age: 30, avatar: null, props: [], weather: null, birthday: null, messages: () => [], companions: [], pets: [], garden: 0, quiet: false, mail: false };
+    this.state = { stageKey: 'adult', age: 30, avatar: null, props: [], weather: null, birthday: null, messages: () => [], companions: [], pets: [], garden: 0, quiet: false, mail: false, emo: null, items: [], flowers: [] };
+    this.onGarden = null;
     this.frames = null;
     this.companionActors = [];
     this.petActors = [];
@@ -228,12 +234,14 @@ export class Scene {
     const prev = this.state;
     this.state = { ...prev, ...partial };
     const st = this.state;
-    if (!this.frames || st.avatar !== prev.avatar || st.age !== prev.age || st.stageKey !== prev.stageKey) {
+    if (!this.frames || st.avatar !== prev.avatar || st.age !== prev.age || st.stageKey !== prev.stageKey || st.emo !== prev.emo) {
+      const emo = st.emo || '';
       this.frames = {
-        base: composeAvatar(st.avatar, st.age, st.stageKey),
-        blink: composeAvatar(st.avatar, st.age, st.stageKey, { blink: true }),
-        step: composeAvatar(st.avatar, st.age, st.stageKey, { step: true }),
+        base: composeAvatar(st.avatar, st.age, st.stageKey, { emo }),
+        blink: composeAvatar(st.avatar, st.age, st.stageKey, { blink: true, emo }),
+        step: composeAvatar(st.avatar, st.age, st.stageKey, { step: true, emo }),
       };
+      if (st.emo !== prev.emo && this.actor.mode === 'sit') { this.actor.mode = 'idle'; this.actor.until = 0; }
     }
     // 連結的家人（最多 3 位），眨眼時間各自錯開
     if (st.companions !== prev.companions) {
@@ -291,6 +299,7 @@ export class Scene {
     const rect = this.canvas.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * W;
     const y = ((e.clientY - rect.top) / rect.height) * H;
+    if (x >= BED_X && y >= FEET - 8 && this.state.flowers.length && this.onGarden) { this.onGarden(); return; }
     const top = FEET - AVATAR_H + 2;
     if (x >= this.actor.x && x <= this.actor.x + AVATAR_W && y >= top - 2 && y <= FEET + 2) {
       this.jump(1);
@@ -345,24 +354,36 @@ export class Scene {
     const a = this.actor;
 
     // 散步：發呆幾秒 → 走到附近另一個點 → 再發呆
+    const emo = this.state.emo;
+    const [speed, rest] = PACE[emo] || [7, 1];
+    // 累的時候走去長椅坐著；興奮的時候發呆一下就跳
+    if (emo === 'excited' && a.mode === 'idle' && a.jumpsLeft === 0 && now > a.until - 1500 && Math.random() < 0.08) this.jump(1);
+    if (a.mode === 'sit' && now > a.until) { a.mode = 'idle'; a.until = 0; }
     if (a.mode === 'idle' && now > a.until && a.jumpsLeft === 0) {
-      if (Math.random() < (this.state.quiet ? 0 : 0.6)) {
+      if (emo === 'tired' && this.state.garden >= 2 && !this.state.quiet && Math.random() < 0.7) {
+        a.target = BENCH_X;
+        a.dir = a.target > a.x ? 1 : -1;
+        a.mode = Math.abs(a.target - a.x) < 1 ? 'sit' : 'walk';
+        a.sitAfter = true;
+        if (a.mode === 'sit') a.until = now + 20000;
+      } else if (Math.random() < (this.state.quiet ? 0 : 0.6)) {
+        a.sitAfter = false;
         let t = a.x;
         while (Math.abs(t - a.x) < 5) t = WALK_MIN + Math.floor(Math.random() * (WALK_MAX - WALK_MIN));
         a.target = t;
         a.dir = t > a.x ? 1 : -1;
         a.mode = 'walk';
       } else {
-        a.until = now + 3000 + Math.random() * 4000;
+        a.until = now + (3000 + Math.random() * 4000) * rest;
       }
     }
     if (a.mode === 'walk') {
-      a.x += a.dir * 7 * dt;
+      a.x += a.dir * speed * dt;
       if ((a.dir > 0 && a.x >= a.target) || (a.dir < 0 && a.x <= a.target)) {
         a.x = a.target;
-        a.mode = 'idle';
+        a.mode = a.sitAfter ? 'sit' : 'idle';
         a.step = false;
-        a.until = now + 3000 + Math.random() * 5000;
+        a.until = now + (a.sitAfter ? 20000 : (3000 + Math.random() * 5000) * rest);
       } else if (now > a.stepAt) {
         a.step = !a.step;
         a.stepAt = now + 250;
@@ -484,6 +505,7 @@ export class Scene {
       Object.assign(box.dataset, {
         period: light > 0.6 ? 'day' : light > 0.05 ? 'twilight' : 'night', season: this.season, weather: w ? w.kind : 'none',
         festival: this.festival || 'none', companions: String(this.companionActors.length), pets: String(this.petActors.length),
+        emo: st.emo || 'none', actor: this.actor.mode, items: (st.items || []).join(' '), flowers: String((st.flowers || []).length),
       });
     }
 
@@ -629,6 +651,12 @@ export class Scene {
       sprite(ctx, pr.rows, slots[i], HORIZON + 4 - pr.rows.length - bob, pr.colors);
     });
 
+    // ---- 今天記的事（長椅旁的草地上，最多兩個） ----
+    (st.items || []).slice(0, 2).forEach((key, i) => {
+      const it = ITEMS[key];
+      if (it) sprite(ctx, it.rows, 31 + i * 10, HORIZON + 5 - it.rows.length, it.colors);
+    });
+
     // ---- 小人、家人、寵物 ----
     const a = this.actor;
     let jumpY = 0;
@@ -658,9 +686,29 @@ export class Scene {
       });
       const frame = a.mode === 'walk' && a.step ? this.frames.step : t < a.blinkUntil ? this.frames.blink : this.frames.base;
       const breathe = a.mode === 'idle' && jumpY === 0 && Math.floor(t / 800) % 2 === 1;
-      shadow(Math.round(a.x) + 5, 10);
-      drawAvatar(ctx, frame, Math.round(a.x), spriteTop - jumpY, { flip: a.dir < 0, breathe });
+      if (a.mode === 'sit') {
+        // 坐在長椅上：腰以下藏在椅面後面，露出兩隻小腳
+        const seat = HORIZON + 1;
+        const top = seat - frame.waist - 1;
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, seat + 1); ctx.clip();
+        drawAvatar(ctx, frame, Math.round(a.x), top, { breathe });
+        ctx.restore();
+        this.drawBench(dim); // 椅面在身體前面
+        ctx.fillStyle = '#4a5578';
+        ctx.fillRect(Math.round(a.x) + 8, seat + 3, 2, 2); ctx.fillRect(Math.round(a.x) + 11, seat + 3, 2, 2);
+        this.drawMoodMark(st.emo, Math.round(a.x), top, t);
+      } else {
+        shadow(Math.round(a.x) + 5, 10);
+        drawAvatar(ctx, frame, Math.round(a.x), spriteTop - jumpY, { flip: a.dir < 0, breathe });
+        this.drawMoodMark(st.emo, Math.round(a.x), spriteTop - jumpY, t);
+      }
     }
+
+    // ---- 小花圃：最近記錄的三天，一天一朵，點了打開花園 ----
+    (st.flowers || []).slice(-3).forEach((f, i, list) => {
+      const x = BED_X + 2 + (3 - list.length + i) * (FLOWER_W + 1);
+      drawFlower(ctx, flowerGrid(f.emo, f.mood, f.stage), x, H - FLOWER_H, dim);
+    });
 
     // ---- 季節小東西、鳥 ----
     for (const p of this.ambient) {
@@ -719,13 +767,42 @@ export class Scene {
     }
   }
 
+  drawBench(dim) {
+    sprite(this.ctx, ['oooooooooo', 'oxxxxxxxxo', 'oooooooooo', 'oyo....oyo', '.o......o.'], 18, HORIZON, { x: dim('#d8a77a'), y: dim('#a87a52'), o: dim(OUTLINE, 0.3) });
+  }
+
+  // 今天的情緒：頭旁邊的小符號（x、y 是小人圖的左上角）
+  drawMoodMark(emo, x, y, t) {
+    const ctx = this.ctx;
+    const bob = Math.floor(t / 600) % 2;
+    const px = (dx, dy, c) => { ctx.fillStyle = c; ctx.fillRect(x + dx, y + dy, 1, 1); };
+    if (emo === 'excited') {
+      [[1, 4], [18, 2], [20, 8]].forEach(([dx, dy], i) => {
+        if ((Math.floor(t / 300) + i) % 3 === 0) return;
+        px(dx, dy, '#ffd36b'); px(dx - 1, dy, '#ffe9a8'); px(dx + 1, dy, '#ffe9a8'); px(dx, dy - 1, '#ffe9a8'); px(dx, dy + 1, '#ffe9a8');
+      });
+    } else if (emo === 'love' || emo === 'moved') {
+      sprite(ctx, HEART, x + 16, y - bob, { x: emo === 'love' ? '#e0607e' : '#f6b3c8', o: OUTLINE });
+    } else if (emo === 'tired') {
+      const c = '#dfe5ff';
+      sprite(ctx, ['oooo', '..o.', '.o..', 'oooo'], x + 16, y + 2 - bob, { o: c });
+      if (bob) sprite(ctx, ['ooo', '.o.', 'ooo'], x + 19, y - 2, { o: c });
+    } else if (emo === 'angry') {
+      sprite(ctx, ['.oo..', 'oxxoo', 'oxxxo', '.ooo.'], x + 15, y + 1 - bob, { x: '#e8eaee', o: '#8a8f99' });
+    } else if (emo === 'nervous') {
+      sprite(ctx, ['.o.', 'oxo', 'oxo', '.o.'], x + 16, y + 5 + bob, { x: '#bfe6ff', o: '#5aa0d0' });
+    } else if (emo === 'miss') {
+      sprite(ctx, ['..ooo..', '.oxxxoo', 'oxxxxxo', '.ooooo.'], x + 13 + bob, y - 4, { x: '#ffffff', o: '#9aa6bd' });
+    }
+  }
+
   // 院子會跟著紀錄長大：記得越多，花越多，還會多出長椅和信箱；很久沒記錄時花會合起來
   drawGarden(st, dim, t) {
     const ctx = this.ctx;
     const O = dim(OUTLINE, 0.3);
     const level = st.garden || 0;
     if (level >= 2) { // 長椅
-      sprite(ctx, ['oooooooooo', 'oxxxxxxxxo', 'oooooooooo', 'oyo....oyo', '.o......o.'], 18, HORIZON, { x: dim('#d8a77a'), y: dim('#a87a52'), o: O }); // 在兩棵樹中間
+      this.drawBench(dim); // 在兩棵樹中間
     }
     if (level >= 3) { // 信箱：有信可以拆時旗子會舉起來
       const flag = st.mail;
@@ -739,7 +816,7 @@ export class Scene {
     const colors = ['#ffb3c8', '#ffe27a', '#ffffff', '#c9b6ff', '#ffc08a'];
     const sway = Math.floor(t / 1500) % 2;
     for (let i = 0; i < level * 6; i++) {
-      const x = 2 + Math.floor(r() * (W - 6));
+      const x = 2 + Math.floor(r() * (BED_X - 6)); // 右下角留給小花圃
       const y = HORIZON + 16 + Math.floor(r() * 3);
       const c = colors[i % colors.length];
       ctx.fillStyle = dim('#5aa65a'); ctx.fillRect(x, y + 1, 1, 2);

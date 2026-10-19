@@ -724,3 +724,28 @@ select {
 .lineup-item.on { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
 .lineup-avatar { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #2a3040; border-radius: var(--radius); overflow: hidden; }
 .lineup-avatar svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- 情緒、心情花園 ---------- */
+.emo-picker .chip { font-size: 13px; padding: 4px 10px; }
+.garden-head { display: flex; align-items: center; gap: 8px; }
+.garden-head h3 { flex: 1; text-align: center; margin: 0; font-size: 17px; }
+.garden-head .icon-btn:disabled { opacity: .3; }
+.garden-sum { text-align: center; margin: 4px 0 8px; min-height: 1em; }
+.garden-week, .garden-bed { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.garden-week { text-align: center; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.garden-bed { background: linear-gradient(#5b4636, #4a3a2e); border-radius: 12px; padding: 6px; }
+.garden-day { position: relative; aspect-ratio: 15 / 18; border-radius: 6px; border: 0; padding: 0; background: rgba(0, 0, 0, .12); }
+.garden-day.empty { background: none; }
+.garden-day.future { opacity: .35; }
+.garden-day.has { cursor: pointer; }
+.garden-day.sel { outline: 2px solid var(--accent); }
+.garden-day canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.garden-num { position: absolute; left: 3px; top: 1px; font-size: 9px; color: rgba(255, 255, 255, .6); z-index: 1; }
+.garden-detail { margin-top: 12px; }
+.garden-card { border: 1.5px solid var(--accent); border-radius: 14px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+.garden-card small { color: var(--muted); }
+.garden-entry { display: flex; flex-direction: column; gap: 2px; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; line-height: 1.6; }
+.garden-legend { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.legend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; }
+.legend-grid span { display: flex; align-items: center; gap: 6px; }
+.legend-flower { width: 22px; height: 26px; image-rendering: pixelated; }

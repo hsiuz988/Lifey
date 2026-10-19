@@ -143,7 +143,7 @@ function sharedView(doc) {
   const deleted = doc.deleted || {};
   const moments = doc.moments
     .filter((m) => m.shared && !deleted[m.id])
-    .map(({ id, date, approx, text, feel, story, mood, tags, photoIds, starred }) => ({ id, date, approx, text, feel, story, mood, tags, photoIds, starred }));
+    .map(({ id, date, approx, text, feel, story, emo, mood, tags, photoIds, starred }) => ({ id, date, approx, text, feel, story, emo, mood, tags, photoIds, starred }));
   const profile = doc.profile || {};
   const years = {};
   if (profile.shareTitles !== false) {

@@ -145,6 +145,7 @@
       <div class="row map-actions">
         <button id="recall-btn" class="btn recall-btn" type="button">🕰 回憶模式</button>
         <button id="replay-btn" class="btn recall-btn" type="button">🎬 人生重播</button>
+        <button id="garden-btn" class="btn recall-btn" type="button">🌷 心情花園</button>
       </div>
       <div id="life-map" class="life-map"></div>
       <div class="map-legend">
@@ -230,6 +231,9 @@
       <div class="opt-sec field" data-sec="mood" hidden>
         <span class="field-label">心情</span>
         <div id="mood-picker" class="mood-picker"></div>
+        <span class="field-label">是什麼樣的情緒？</span>
+        <div id="emo-picker" class="chips emo-picker"></div>
+        <div id="emo-hint" class="hint"></div>
       </div>
       <div class="opt-sec field" data-sec="tags" hidden>
         <span class="field-label">標籤</span>
@@ -370,6 +374,11 @@
   <!-- 給未來的信 -->
   <dialog id="letter-dialog" class="sheet letter-dialog">
     <div id="letter-body"></div>
+  </dialog>
+
+  <!-- 心情花園：一個月一片花圃，一天一朵花 -->
+  <dialog id="garden-dialog" class="sheet garden-dialog">
+    <div id="garden-body"></div>
   </dialog>
 
   <!-- 人生重播 -->

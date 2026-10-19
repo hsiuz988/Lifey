@@ -11,6 +11,7 @@ import * as weather from './weather.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
 import * as world from './world.js';
+import { EMOTIONS, emotionByKey, detectEmotion, detectItems, ITEMS, flowerGrid, drawFlower, flowerStage, dayFlower, FLOWER_W, FLOWER_H } from './garden.js';
 import { PET_TYPES, PET_ICONS, PET_COLORS, petSvg, petSwatchStyle } from './pets.js';
 
 // ---------- 常數 ----------
@@ -336,7 +337,7 @@ function renderNow() {
     scene.update({
       stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday,
       props: propsForTags(new Set(list.flatMap((m) => m.tags))), weather: ui.weather, messages: sceneMessages, pets: scenePets(),
-      garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0,
+      garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0, ...todayInScene(),
     });
   }
   const w = ui.weather;
@@ -373,12 +374,115 @@ function scenePets() {
 }
 
 // 點小人時冒出來的話：節日、天氣、時間、今年的重心
+// ---------- 今天的心情、小東西與花園 ----------
+// 今天的情緒（最後一則有情緒的）、今天記的事配到的小圖（最多兩個）、最近三天的花
+function todayInScene() {
+  const today = todayStr();
+  const mine = state.moments.filter((m) => m.date === today && !m.approx)
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  const withEmo = mine.find((m) => m.emo);
+  const items = [...new Set(mine.flatMap((m) => (m.item ? [m.item] : detectItems(m.text))))].filter((k) => ITEMS[k]).slice(0, 2);
+  return { emo: withEmo ? withEmo.emo : null, items, flowers: recentFlowers(3) };
+}
+
+// 有紀錄的日子 → 那天的花（只算有確切日期的）
+function flowersByDay() {
+  const days = new Map();
+  for (const m of state.moments) {
+    if (m.approx) continue;
+    if (!days.has(m.date)) days.set(m.date, []);
+    days.get(m.date).push(m);
+  }
+  return days;
+}
+function recentFlowers(n) {
+  const today = parseDate(todayStr());
+  return [...flowersByDay()].sort((a, b) => a[0].localeCompare(b[0])).slice(-n)
+    .map(([date, list]) => ({ ...dayFlower(list), stage: flowerStage(daysBetween(parseDate(date), today)) }));
+}
+
+function flowerCanvas(f, cls = '') {
+  const cv = h('canvas', { class: cls, width: String(FLOWER_W + 2), height: String(FLOWER_H + 2), 'aria-hidden': 'true' });
+  drawFlower(cv.getContext('2d'), flowerGrid(f.emo, f.mood, f.stage), 1, 1);
+  return cv;
+}
+
+function openGarden(year, month) {
+  const now = parseDate(todayStr());
+  const birth = parseDate(state.profile.birthday);
+  if (year == null) { year = now.getFullYear(); month = now.getMonth(); }
+  const first = new Date(year, month, 1);
+  const days = flowersByDay();
+  const inMonth = [...days.keys()].filter((d) => d.startsWith(`${year}-${pad(month + 1)}-`));
+  const count = {};
+  inMonth.forEach((d) => { const f = dayFlower(days.get(d)); count[f.emo] = (count[f.emo] || 0) + 1; });
+  const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+  const go = (dm) => { const d = new Date(year, month + dm, 1); openGarden(d.getFullYear(), d.getMonth()); };
+  const canPrev = first > new Date(birth.getFullYear(), birth.getMonth(), 1);
+  const canNext = new Date(year, month + 1, 1) <= now;
+  const detail = h('div', { class: 'garden-detail' }, h('p', { class: 'hint' }, inMonth.length ? '點一朵花，看那天記了什麼' : '這個月還沒有花。記下一句話，就會種下一朵 🌱'));
+
+  const showDay = (date, cell) => {
+    $('#garden-body').querySelectorAll('.garden-day.sel').forEach((el) => el.classList.remove('sel'));
+    cell.classList.add('sel');
+    const list = days.get(date).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+    const f = dayFlower(list);
+    const emo = emotionByKey(f.emo);
+    const d = parseDate(date);
+    detail.replaceChildren(h('div', { class: 'garden-card' },
+      h('small', {}, `${pad(d.getMonth() + 1)}/${pad(d.getDate())}（${'日一二三四五六'[d.getDay()]}）· ${emo ? `${emo.icon} ${emo.label}` : ''}`),
+      ...list.map((m) => h('button', { type: 'button', class: 'garden-entry', onclick: () => { $('#garden-dialog').close(); openMoment(m.id); } },
+        m.story ? h('b', {}, m.story.title) : null,
+        h('span', {}, m.story ? m.story.text : m.text),
+        m.feel && !m.story ? h('span', { class: 'moment-feel' }, m.feel) : null))));
+  };
+
+  const cells = [];
+  for (let i = 0; i < first.getDay(); i++) cells.push(h('div', { class: 'garden-day empty' }));
+  const last = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= last; day++) {
+    const date = `${year}-${pad(month + 1)}-${pad(day)}`;
+    const d = new Date(year, month, day);
+    const list = days.get(date);
+    const label = h('span', { class: 'garden-num' }, String(day));
+    if (!list) { cells.push(h('div', { class: `garden-day${d > now ? ' future' : ''}` }, label)); continue; }
+    const f = { ...dayFlower(list), stage: flowerStage(daysBetween(d, now)) };
+    const emo = emotionByKey(f.emo);
+    const cell = h('button', { type: 'button', class: 'garden-day has', 'aria-label': `${month + 1} 月 ${day} 日 ${emo ? emo.label : ''}` }, label, flowerCanvas(f));
+    cell.addEventListener('click', () => showDay(date, cell));
+    cells.push(cell);
+  }
+
+  $('#garden-body').replaceChildren(
+    h('div', { class: 'sheet-top garden-head' },
+      h('button', { type: 'button', class: 'icon-btn', 'aria-label': '上個月', disabled: !canPrev, onclick: () => go(-1) }, '‹'),
+      h('h3', {}, `🌷 ${year} 年 ${month + 1} 月的花園`),
+      h('button', { type: 'button', class: 'icon-btn', 'aria-label': '下個月', disabled: !canNext, onclick: () => go(1) }, '›')),
+    h('p', { class: 'hint garden-sum' }, inMonth.length
+      ? `這個月開了 ${inMonth.length} 朵花${top ? `，最常出現的是「${emotionByKey(top[0]).label}」` : ''}` : ''),
+    h('div', { class: 'garden-week' }, ...'日一二三四五六'.split('').map((c) => h('span', {}, c))),
+    h('div', { class: 'garden-bed' }, ...cells),
+    detail,
+    h('details', { class: 'garden-legend' }, h('summary', {}, '每種花代表什麼？'),
+      h('p', { class: 'hint' }, '花的種類是那天的情緒，顏色是心情好壞（越開心越暖、越低落越灰藍）。今天種下的是小芽，過兩天才開花；沒記錄的日子不會有枯萎的花。'),
+      h('div', { class: 'legend-grid' }, ...EMOTIONS.map((e) => h('span', {}, flowerCanvas({ emo: e.key, mood: 4, stage: 'bloom' }, 'legend-flower'), `${e.flower}＝${e.label}`)))),
+    h('div', { class: 'sheet-actions' }, h('span', { class: 'spacer' }), h('button', { type: 'button', class: 'btn primary', onclick: () => $('#garden-dialog').close() }, '關閉')));
+  if (!$('#garden-dialog').open) $('#garden-dialog').showModal();
+}
+
 function sceneMessages() {
   const { birthday } = state.profile;
   const now = new Date();
   const hour = now.getHours();
   const age = ageAt(birthday, todayStr());
   const out = ['今天有什麼值得記住的嗎？', '要記一筆嗎？✏️', `你已經記了 ${state.moments.length} 則回憶了`];
+  // 今天寫成故事的那一句，小人會說出來；累或難過的時候說溫柔一點的話
+  const todays = state.moments.filter((m) => m.date === todayStr());
+  const story = todays.filter((m) => m.story).pop();
+  if (story) out.push(story.story.text, story.story.text, story.story.text);
+  const emo = todayInScene().emo;
+  const kind = { tired: '今天辛苦了，早點休息吧', sad: '不開心的時候，我陪你坐一下', nervous: '深呼吸，會沒事的', angry: '氣消了再說，先喝口水', miss: '想念的人，也會想著你吧', excited: '耶！今天好棒！', love: '心裡甜甜的 💗' }[emo];
+  if (kind) out.push(kind, kind);
   const gap = daysSinceLastRecord();
   if (gap != null && gap >= 3) out.push('好想你，最近過得好嗎？', '想到什麼就記一句吧，我在這裡等你 🌱');
   if (readyLetters().length) out.push('信箱裡有一封信在等你 ✉️', '信箱裡有一封信在等你 ✉️');
@@ -665,6 +769,9 @@ function renderSearchResults(root) {
   hydrateThumbs(root);
 }
 
+// 自己選的情緒，或寫了心情時自動判斷的情緒，顯示在心情前面
+const emoTag = (m) => { const e = emotionByKey(m.emo); return e && (m.feel || !m.emoAuto) ? `${e.icon} ${e.label}` : ''; };
+
 function renderMoment(m) {
   const d = parseDate(m.date);
   return h('li', { class: `moment${m.starred ? ' starred' : ''}` },
@@ -677,7 +784,7 @@ function renderMoment(m) {
         m.story ? h('span', { class: 'story-text' }, m.story.text) : null,
         // 有故事版時，原文和心情縮小放在下面；沒有時心情接在事件下面
         m.story ? h('span', { class: 'moment-orig' }, `✏️ ${m.text}${m.feel ? `　${m.feel}` : ''}`)
-          : m.feel ? h('span', { class: 'moment-feel' }, m.feel) : null,
+          : m.feel || (m.emo && !m.emoAuto) ? h('span', { class: 'moment-feel' }, [emoTag(m), m.feel].filter(Boolean).join(' ')) : null,
         m.tags.length ? h('span', { class: 'moment-tags' }, m.tags.map((t) => h('span', { class: 'tag' }, t))) : null),
       m.people.length ? h('div', { class: 'moment-people' }, m.people.map(personById).filter(Boolean).map((p) =>
         h('button', { type: 'button', class: 'person-chip', onclick: () => openPerson(p.id) }, personLabel(p)))) : null,
@@ -705,6 +812,8 @@ async function openMoment(id = null, preset = {}) {
   const m = id ? state.moments.find((x) => x.id === id) : null;
   ui.editingId = m ? m.id : null;
   ui.mood = m ? m.mood || null : null;
+  ui.emo = m ? m.emo || null : null;
+  ui.emoManual = !!(m && m.emo && !m.emoAuto);
   ui.tags = new Set(m ? m.tags : []);
   ui.people = new Set(m ? m.people : []);
   ui.event = m ? m.event : preset.event || null;
@@ -715,6 +824,7 @@ async function openMoment(id = null, preset = {}) {
   form.date.max = todayStr();
   form.text.value = m ? m.text : preset.text || '';
   form.feel.value = m ? m.feel || '' : '';
+  renderEmoPicker();
   form.starred.checked = m ? !!m.starred : false;
   form.approx.checked = m ? m.approx : !!preset.approx;
   $('#moment-menu').hidden = !m;
@@ -727,7 +837,7 @@ async function openMoment(id = null, preset = {}) {
   if (m) {
     if (m.people.length) ui.openSecs.add('people');
     if (m.photoIds.length) ui.openSecs.add('photos');
-    if (m.mood) ui.openSecs.add('mood');
+    if (m.mood || (m.emo && !m.emoAuto)) ui.openSecs.add('mood');
     if (m.tags.length) ui.openSecs.add('tags');
   } else if (preset.date) ui.openSecs.add('date');
   form.shared.checked = m ? m.shared : false;
@@ -753,7 +863,7 @@ async function openMoment(id = null, preset = {}) {
 // 用來判斷有沒有改過，關閉時才知道要不要問「放棄這筆嗎？」
 function momentSnapshot() {
   const form = $('#moment-form');
-  return JSON.stringify([form.text.value, form.feel.value, form.date.value, form.approx.checked, form.starred.checked, ui.mood, [...ui.tags], [...ui.people], ui.event, ui.photos.map((p) => p.id)]);
+  return JSON.stringify([form.text.value, form.feel.value, form.date.value, form.approx.checked, form.starred.checked, ui.mood, ui.emo, [...ui.tags], [...ui.people], ui.event, ui.photos.map((p) => p.id)]);
 }
 const momentDirty = () => $('#moment-dialog').open && ui.momentSnapshot != null && momentSnapshot() !== ui.momentSnapshot;
 
@@ -762,7 +872,7 @@ function renderOptBar() {
   const form = $('#moment-form');
   const filled = {
     date: form.date.value !== todayStr() || form.approx.checked,
-    people: ui.people.size > 0, photos: ui.photos.length > 0, mood: !!ui.mood, tags: ui.tags.size > 0,
+    people: ui.people.size > 0, photos: ui.photos.length > 0, mood: !!ui.mood || ui.emoManual, tags: ui.tags.size > 0,
   };
   const counts = { people: ui.people.size, photos: ui.photos.length, tags: ui.tags.size };
   document.querySelectorAll('#opt-bar .opt[data-sec]').forEach((btn) => {
@@ -773,6 +883,7 @@ function renderOptBar() {
     btn.setAttribute('aria-expanded', String(open));
     if (sec !== 'date') btn.lastElementChild.textContent = { people: '和誰', photos: '照片', mood: '心情', tags: '標籤' }[sec] + (counts[sec] ? ` ${counts[sec]}` : '');
     if (sec === 'mood' && ui.mood) btn.firstChild.textContent = `${MOODS[ui.mood - 1]} `;
+    else if (sec === 'mood' && ui.emo) btn.firstChild.textContent = `${emotionByKey(ui.emo).icon} `;
     else if (sec === 'mood') btn.firstChild.textContent = '😊 ';
   });
   document.querySelectorAll('#moment-form .opt-sec').forEach((el) => { el.hidden = !ui.openSecs.has(el.dataset.sec); });
@@ -912,8 +1023,26 @@ function renderMoodPicker() {
   $('#mood-picker').replaceChildren(...MOODS.map((emoji, i) =>
     h('button', {
       type: 'button', class: `mood${ui.mood === i + 1 ? ' on' : ''}`, 'aria-label': `心情 ${i + 1}`,
-      onclick: () => { ui.mood = ui.mood === i + 1 ? null : i + 1; renderMoodPicker(); },
+      onclick: () => { ui.mood = ui.mood === i + 1 ? null : i + 1; renderMoodPicker(); renderEmoPicker(); },
     }, emoji)));
+  if (ui.openSecs) renderOptBar();
+}
+
+// 情緒：沒自己選時，依心情欄（沒寫就看事件）自動判斷；點了就以自己選的為準，再點一次取消
+function renderEmoPicker() {
+  const form = $('#moment-form');
+  if (!ui.emoManual) ui.emo = detectEmotion(form.feel.value, form.text.value, ui.mood);
+  $('#emo-picker').replaceChildren(...EMOTIONS.map((e) => h('button', {
+    type: 'button', class: `chip${ui.emo === e.key ? ' on' : ''}`, 'aria-pressed': String(ui.emo === e.key),
+    onclick: () => {
+      const same = ui.emo === e.key && ui.emoManual;
+      ui.emoManual = !same;
+      ui.emo = same ? null : e.key;
+      renderEmoPicker();
+    },
+  }, `${e.icon} ${e.label}`)));
+  const cur = emotionByKey(ui.emo);
+  $('#emo-hint').textContent = !cur ? '寫下心情會自動判斷，也可以自己點一個' : ui.emoManual ? `你選了「${cur.label}」，再點一次可以取消` : `自動判斷是「${cur.label}」，不對的話點別的`;
   if (ui.openSecs) renderOptBar();
 }
 
@@ -976,6 +1105,7 @@ async function saveMoment(e) {
   const text = form.text.value.trim();
   const feel = form.feel.value.trim();
   if (!isValidDateStr(date) || !text) return;
+  if (!ui.emoManual) ui.emo = detectEmotion(feel, text, ui.mood);
   if (date < state.profile.birthday || date > todayStr()) {
     toast('日期要在生日到今天之間');
     return;
@@ -1001,12 +1131,12 @@ async function saveMoment(e) {
     }
 
     const fields = {
-      date, text, feel, mood: ui.mood, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, approx: form.approx.checked,
+      date, text, feel, mood: ui.mood, emo: ui.emo, emoAuto: !ui.emoManual, tags: [...ui.tags], photoIds: ui.photos.map((p) => p.id), starred: form.starred.checked, approx: form.approx.checked,
       shared: form.shared.checked, people: [...ui.people].filter(personById), event: ui.event, updatedAt: now,
     };
     // 事件或心情改了，舊的故事版就對不上了，拿掉（可以再寫一次）
     const rewrite = !prev || prev.text !== text || (prev.feel || '') !== feel;
-    if (prev && rewrite) fields.story = null;
+    if (prev && rewrite) { fields.story = null; fields.item = null; }
     if (prev) Object.assign(prev, fields);
     else state.moments.push({ id: momentId, createdAt: now, ...fields });
     if (!(await saveState())) return;
@@ -1076,7 +1206,8 @@ async function saveQuickNote(e) {
   if (!text && !ui.quickMood) { $('#quick-text').focus(); return; }
   const now = new Date().toISOString();
   const m = {
-    id: newId(), date: todayStr(), text: text || `今天的心情 ${MOODS[ui.quickMood - 1]}`, mood: ui.quickMood || null, tags: [], photoIds: [],
+    id: newId(), date: todayStr(), text: text || `今天的心情 ${MOODS[ui.quickMood - 1]}`, mood: ui.quickMood || null,
+    emo: detectEmotion('', text, ui.quickMood), emoAuto: true, tags: [], photoIds: [],
     starred: false, approx: false, people: [], event: null, createdAt: now, updatedAt: now,
   };
   state.moments.push(m);
@@ -1129,6 +1260,9 @@ async function openStory(id) {
     const cur = state.moments.find((x) => x.id === id);
     if (!cur) { close(); return; }
     cur.story = { title: story.title, text: story.text, at: new Date().toISOString() };
+    // AI 順便判斷的情緒和小東西：自己選過情緒的不覆蓋
+    if (story.emo && emotionByKey(story.emo) && (!cur.emo || cur.emoAuto)) { cur.emo = story.emo; cur.emoAuto = true; }
+    if (story.item && ITEMS[story.item]) cur.item = story.item;
     cur.updatedAt = cur.story.at;
     if (!(await saveState())) return;
     close();
@@ -2734,6 +2868,9 @@ function bind() {
 
   $('#recall-btn').addEventListener('click', openRecall);
   $('#replay-btn').addEventListener('click', openReplay);
+  $('#garden-btn').addEventListener('click', () => openGarden());
+  $('#moment-form').feel.addEventListener('input', () => { if (!ui.emoManual) renderEmoPicker(); });
+  $('#moment-form').text.addEventListener('input', () => { if (!ui.emoManual) renderEmoPicker(); });
   $('#replay-toggle').addEventListener('click', toggleReplay);
   $('#replay-dialog').addEventListener('close', () => { if (replay) { clearTimeout(replay.timer); replay.scene.stop(); } });
   $('#quick-note').addEventListener('submit', saveQuickNote);
@@ -2888,6 +3025,7 @@ async function init() {
     return;
   }
   scene = new Scene($('#scene-canvas'), $('#scene-bubble'));
+  scene.onGarden = () => openGarden();
   ui.weather = weather.weatherEnabled() ? weather.cachedWeather() : null;
   render();
   scene.start();
