@@ -250,7 +250,7 @@ dialog.sheet {
 dialog.sheet::backdrop { background: rgba(0, 0, 0, .6); }
 /* 抽屜打開時，捲動只捲抽屜，不會捲到後面的頁面 */
 dialog.sheet { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-html:has(dialog[open]), body:has(dialog[open]) { overflow: hidden; }
+/* 注意：不要在打開抽屜時把 html/body 設成 overflow: hidden——iPhone 跳出鍵盤時要捲動頁面讓輸入框露出來，鎖住會讓抽屜被推到畫面外 */
 
 /* 生日：年／月／日三個下拉選單（iPhone 上是滾輪），原本的日期欄藏在後面 */
 .bday { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; position: relative; }
