@@ -1145,7 +1145,7 @@ async function openWelcome() {
     h('div', { class: 'sheet-top' }, h('h3', {}, `歡迎，${name} 🌱`)),
     pick.length ? h('p', {}, `你出生的 ${y} 年，世界正在發生這些事：`) : null,
     pick.length ? h('ul', { class: 'welcome-events' }, pick.map((e) => h('li', {}, `${world.CATS[e.cat] || '🌏'} ${e.title}`))) : null,
-    h('p', {}, `你現在 ${age} 歲，在人生地圖的第 ${age + 1} 格。每一格是一年，一歲記滿 ${LIT_AT} 則就會點亮。`),
+    h('p', {}, `你現在 ${age} 歲，就是人生地圖上標著「${age}」的那一格。每一格是一年，從出生那年的「0」開始；一歲記滿 ${LIT_AT} 則就會點亮。`),
     h('p', { class: 'hint' }, '從今天的一句話開始就好。想補小時候的回憶，可以用「🕰 回憶模式」，一歲一歲慢慢來。'),
     h('div', { class: 'sheet-actions' },
       h('button', { type: 'button', class: 'btn', onclick: () => { $('#letter-dialog').close(); openRecall(); } }, '從小時候開始'),
