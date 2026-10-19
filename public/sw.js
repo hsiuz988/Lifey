@@ -1,5 +1,5 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v26';
+const CACHE = 'lifelog-v27';
 const ASSETS = [
   './',
   './index.html',
@@ -24,6 +24,18 @@ const ASSETS = [
   './world/2020s.json',
   './pets.js',
   './garden.js',
+  './room.js',
+  './room/room.webp',
+  './room/tv_on.webp',
+  './room/char/body.webp',
+  './room/char/cloth_hoodie.webp',
+  './room/char/cloth_tee.webp',
+  './room/char/face_angry.webp',
+  './room/char/face_happy.webp',
+  './room/char/face_smile.webp',
+  './room/char/hair_ponytail_back.webp',
+  './room/char/hair_ponytail_front.webp',
+  './room/char/sym_angry.webp',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

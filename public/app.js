@@ -7,6 +7,7 @@ import {
   normalizeAvatar, randomAvatar, composeAvatar, drawAvatar, avatarSvg, W as AVATAR_W,
 } from './avatar.js';
 import { Scene, propsForTags, festivalOf } from './scene.js';
+import { Room, lookHtml, LOOKS, normalizeLook, faceFor } from './room.js';
 import * as weather from './weather.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
@@ -18,7 +19,7 @@ import { PET_TYPES, PET_ICONS, PET_COLORS, petSvg, petSwatchStyle } from './pets
 const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
 const DATA_VERSION = 2;
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄']; // 對應 1–5
-const MOOD_COLORS = ['#56608f', '#4f86a6', '#3fa89a', '#7fbf6a', '#e6b84f'];
+const MOOD_COLORS = ['#cfcbe0', '#c4dbe9', '#c7e8dd', '#ffdcb2', '#f7b3c6'];
 const DEFAULT_TAGS = ['家人', '朋友', '愛情', '寵物', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
 // 依寫的字建議標籤（不會自動加上，點了才算）：每個詞有自己的小圖示，第一個是標籤本身的
 const TAG_WORDS = {
@@ -224,7 +225,7 @@ function personAvatarHtml(p) {
   if (p.kind === 'pet') return petSvg(p.petType, p.petColor || 0);
   const link = linkFor(p.id);
   const view = link && cloud.views.get(link.id);
-  if (view && view.profile && view.profile.avatar && view.profile.avatar.v === 2) return memberAvatarHtml(view);
+  if (memberReady(view)) return memberAvatarHtml(view);
   return `<span class="person-initial">${personName(p).slice(0, 1)}</span>`;
 }
 
@@ -297,7 +298,7 @@ function render() {
   renderNow();
   renderQuickNote();
   renderToday();
-  renderIdCard();
+  renderMe();
   renderBackupBanner();
   renderLifeMap();
   renderFilters();
@@ -314,31 +315,28 @@ function renderHeader() {
   const now = parseDate(today);
   const total = daysBetween(start, end) + 1;
   const passed = daysBetween(start, now) + 1;
-  $('#age-num').textContent = age;
-  $('#age-sub').textContent = `${now.getFullYear()}年 · ${age} 歲的第 ${passed} 天 · 距離 ${age + 1} 歲還有 ${total - passed} 天`;
-  $('#age-progress').style.width = `${Math.min(100, (passed / total) * 100)}%`;
+  $('#hud-age').textContent = `${age} 歲 · 第 ${passed} 天`;
+  $('#age-sub').textContent = `${fmtDate(parseDate(birthday))} · ${age} 歲 · 距離 ${age + 1} 歲還有 ${total - passed} 天`;
 }
 
-function renderIdCard() {
+// 我：個人卡（房間裡的小人）、三個數字、各項摘要
+function renderMe() {
   const { name, birthday } = state.profile;
   const today = todayStr();
   const ages = new Set(state.moments.map((m) => ageAt(birthday, m.date)));
-  const stars = state.moments.filter((m) => m.starred).length;
   const photos = state.moments.reduce((n, m) => n + m.photoIds.length, 0);
-  $('#id-year').textContent = new Date().getFullYear();
-  const myAge = ageAt(birthday, today);
-  $('#id-avatar').innerHTML = avatarSvg(myAvatar(), myAge, lifeStage(myAge).key);
-  $('#id-name').textContent = name;
-  $('#id-birth').textContent = fmtDate(parseDate(birthday));
-  $('#id-count').textContent = `${state.moments.length} 則 · 照片 ${photos} 張`;
-  $('#id-stars').textContent = `${stars} 則`;
-  $('#id-ages').textContent = `${ages.size} / ${ageAt(birthday, today) + 1} 個年歲`;
-
-  // 護照式機器可讀區（MRZ），純裝飾
-  const latin = name.toUpperCase().replace(/[^A-Z ]/g, '').trim().replace(/\s+/g, '<') || 'LIFE<LOG';
-  const line1 = `L<LOG${latin}`.padEnd(30, '<').slice(0, 30);
-  const line2 = `${birthday.replace(/-/g, '').slice(2)}<${String(state.moments.length).padStart(4, '0')}<${String(stars).padStart(3, '0')}`.padEnd(30, '<');
-  $('#id-mrz').textContent = `${line1}\n${line2}`;
+  $('#me-look').replaceChildren(lookHtml(state.profile.look, faceFor(todayInScene().emo), 'look look-head'));
+  $('#me-name').textContent = name;
+  const tile = (n, label) => h('div', { class: 'me-stat' }, h('b', {}, String(n)), h('span', {}, label));
+  $('#me-stats').replaceChildren(tile(state.moments.length, '則紀錄'), tile(photos, '張照片'), tile(`${ages.size}/${ageAt(birthday, today) + 1}`, '個年歲'));
+  const pets = state.people.filter((p) => p.kind === 'pet').length;
+  $('#me-people').textContent = state.people.length ? `${state.people.length - pets} 位 · ${pets} 隻` : '還沒有';
+  const sealed = state.letters.filter((l) => !l.openedAt).length;
+  $('#me-letters').textContent = readyLetters().length ? `${readyLetters().length} 封可以打開了` : sealed ? `封存 ${sealed} 封` : '寫一封';
+  $('#me-cloud').textContent = cloud.me ? (cloud.me.links.length ? `連結 ${cloud.me.links.length} 人` : '邀請家人或好友') : '要先開啟雲端';
+  $('#me-weather').textContent = weather.weatherEnabled() ? '已開啟' : '關閉';
+  const days = state.lastExportAt ? daysBetween(new Date(state.lastExportAt), new Date()) : null;
+  $('#me-backup').textContent = days == null ? '還沒備份' : days < 1 ? '今天備份過' : `${days} 天前備份`;
 }
 
 function renderStatBars(el, stats, focus) {
@@ -358,14 +356,15 @@ function renderNow() {
   if (scene) {
     scene.update({
       stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday,
-      props: propsForTags(new Set(list.flatMap((m) => m.tags))), weather: ui.weather, messages: sceneMessages, pets: scenePets(),
+      props: propsForTags(new Set(list.flatMap((m) => m.tags))), weather: ui.weather, messages: sceneMessages, pets: scenePets(), look: state.profile.look,
       garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0, ...todayInScene(),
     });
   }
   const w = ui.weather;
   $('#now-caption').textContent = `${age} 歲 · ${stage.key === 'adult' ? '出社會' : `大約是${stage.label}`} · 今年記了 ${list.length} 則`
     + (w ? ` · ${w.icon} ${w.temp}° ${w.label}` : '');
-  $('#avatar-banner').hidden = avatarSaved();
+  $('#hud-weather').hidden = !w;
+  if (w) $('#hud-weather').textContent = `${w.icon} ${w.temp}°`;
   renderStatBars($('#stat-bars'), statsFor(list), focus);
 
   $('#focus-chips').replaceChildren(...STATS.map((s) => h('button', {
@@ -569,7 +568,7 @@ function checkAchievements() {
   if (!state.prefs.showAchievements) return; // 隱藏時只在背後記錄，不打擾
   const first = ACHIEVEMENTS.find((a) => a.id === fresh[0]);
   toast(`🏅 解鎖成就：${first.icon} ${first.name}${fresh.length > 1 ? ` 等 ${fresh.length} 個` : ''}`, 3500);
-  if (scene) scene.celebrate({ star: true });
+  if (scene) scene.celebrate({ text: `解鎖成就：${first.icon} ${first.name}` });
 }
 
 function renderAchievements() {
@@ -621,7 +620,7 @@ function renderLifeMap() {
     const cls = ['cell',
       age > current && 'future', age === current && 'now',
       (list.length || title) && 'filled', list.length >= LIT_AT && 'lit', stars && 'starred'].filter(Boolean).join(' ');
-    const style = avg ? `--c:${MOOD_COLORS[Math.round(avg) - 1]};--c-text:#10131a` : null;
+    const style = avg ? `--c:${MOOD_COLORS[Math.round(avg) - 1]};--c-text:#2c2c30` : null;
 
     if (age > current) {
       const sealed = state.letters.filter((l) => !l.openedAt && l.toAge === age).length;
@@ -690,7 +689,7 @@ function selectAge(age, scroll = false) {
   renderLifeMap();
   renderFilters();
   renderTimeline();
-  if (scroll) document.getElementById('timeline-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (scroll) showTab('memories');
 }
 
 function renderTimeline() {
@@ -1180,7 +1179,7 @@ async function saveMoment(e) {
     // 難過的大事不慶祝，用溫和的語氣
     toast(prev ? '已更新' : ev && ev.sad ? '已經好好記下來了 🤍' : '記下來了');
     render();
-    if (!prev && scene && !(ev && ev.sad)) scene.celebrate({ star: fields.starred });
+    if (!prev && scene) scene.celebrate({ emo: fields.emo, sad: !!(ev && ev.sad) });
     if (rewrite && text && storyOn()) openStory(momentId);
   } finally {
     saveBtn.disabled = false;
@@ -1372,6 +1371,92 @@ function renderToday() {
   root.replaceChildren(...cards);
 }
 
+// ---------- 底部分頁 ----------
+function showTab(tab) {
+  document.querySelectorAll('#app .tab-page').forEach((p) => { p.hidden = p.dataset.tab !== tab; });
+  document.querySelectorAll('#tabbar [data-tab-btn]').forEach((b) => {
+    if (b.dataset.tabBtn === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  ui.tab = tab;
+  window.scrollTo(0, 0);
+  if (tab === 'home' && scene) scene.update({});
+}
+
+// ---------- 我的樣子（房間裡的小人） ----------
+function openLook({ onboarding = false } = {}) {
+  ui.look = { draft: normalizeLook(state.profile.look), onboarding };
+  $('#look-title').textContent = onboarding ? '選你的樣子' : '我的樣子';
+  $('#look-sub').textContent = onboarding ? '這就是住在房間裡的你，之後在「我」或點房間裡的自己都可以換。' : '點房間裡的自己也可以來這裡換裝。';
+  $('#look-save').textContent = onboarding ? '就是我了' : '好了';
+  renderLook();
+  if (!$('#look-dialog').open) $('#look-dialog').showModal();
+}
+function renderLook() {
+  const { draft } = ui.look;
+  $('#look-preview').replaceChildren(lookHtml(draft, 'happy', 'look look-full'));
+  const row = (label, key) => h('div', { class: 'field' }, h('span', { class: 'field-label' }, label),
+    h('div', { class: 'look-row' }, LOOKS[key].map(([v, name]) => {
+      const opt = { ...draft, [key]: v };
+      return h('button', {
+        type: 'button', class: `look-opt${draft[key] === v ? ' on' : ''}`, 'aria-pressed': String(draft[key] === v),
+        onclick: () => { ui.look.draft = opt; renderLook(); },
+      }, lookHtml(opt, 'smile', `look look-${key === 'hair' ? 'head' : 'body'}`), h('span', {}, name));
+    })));
+  $('#look-options').replaceChildren(row('頭髮', 'hair'), row('衣服', 'cloth'),
+    h('p', { class: 'hint' }, '更多髮型和衣服陸續加入中。'));
+}
+async function saveLook() {
+  state.profile = { ...state.profile, look: { ...ui.look.draft }, updatedAt: new Date().toISOString() };
+  if (!(await saveState())) return;
+  const onboarding = ui.look.onboarding;
+  $('#look-dialog').close();
+  render();
+  if (onboarding) setTimeout(openWelcome, 250); // 第一次：選好樣子後看看出生那年的世界
+}
+
+// ---------- 房間裡的東西 ----------
+// 電視：你出生那一年的世界
+async function openTv(done) {
+  const { birthday } = state.profile;
+  const y = Number(birthday.slice(0, 4));
+  ui.infoClosed = done || null;
+  $('#info-body').replaceChildren(h('div', { class: 'sheet-top' }, h('h3', {}, `📺 你出生的 ${y} 年`)), h('p', { class: 'hint' }, '載入中…'));
+  if (!$('#info-dialog').open) $('#info-dialog').showModal();
+  const evs = (await worldFor(new Date(y, 0, 1), new Date(y, 11, 31))).filter((e) => state.prefs.worldSad !== false || !e.sad);
+  $('#info-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `📺 你出生的 ${y} 年`)),
+    evs.length ? h('ul', { class: 'tv-list' }, evs.slice(0, 12).map((e) => h('li', {},
+      h('small', {}, `${world.eventDateLabel ? world.eventDateLabel(e) : e.y} · ${world.REGIONS[e.region] || ''}`),
+      h('b', {}, `${world.CATS[e.cat] || '🌏'} ${e.title}`), e.text ? h('span', {}, e.text) : null))) : h('p', { class: 'hint' }, '還沒有這一年的新聞。'),
+    h('button', { type: 'button', class: 'link-btn', onclick: () => { $('#info-dialog').close(); selectAge(0, true); } }, '在回憶裡看 0 歲那一年 →'));
+}
+// 書架：以前的今天；沒有就去回憶
+function shelfMemory() {
+  const today = todayStr(), md = today.slice(5);
+  const past = state.moments.filter((m) => !m.approx && m.date < today && m.date.slice(5) === md && !avoidInMemories(m) && m.text);
+  if (past.length) {
+    const m = past[Math.floor(Math.random() * past.length)];
+    const n = Number(today.slice(0, 4)) - Number(m.date.slice(0, 4));
+    scene.feel('happy');
+    scene.say(`${n} 年前的今天：${m.text.length > 16 ? `${m.text.slice(0, 16)}…` : m.text}`, 4000);
+  } else {
+    showTab('memories');
+    toast('以前的今天還沒有紀錄，這裡是你的回憶');
+  }
+}
+// 牆上的照片：最近的照片
+function wallPhotos() {
+  const ids = state.moments.slice().sort((a, b) => b.date.localeCompare(a.date)).flatMap((m) => m.photoIds).slice(0, 20);
+  if (ids.length) openLightbox(ids, 0);
+  else scene.say('記一筆時放照片，就會掛在這面牆上 📷');
+}
+// 給未來的信：可以打開的先打開，不然寫一封給下一歲
+function openLetters() {
+  const ready = readyLetters();
+  if (ready.length) openLetter(ready[0].id);
+  else openLetterEditor(ageAt(state.profile.birthday, todayStr()) + 1);
+}
+
 // ---------- 第一次使用：捏完小人後，看看出生那年的世界，寫下第一筆 ----------
 async function openWelcome() {
   const { birthday, name } = state.profile;
@@ -1440,7 +1525,7 @@ async function openLetter(id) {
       h('span', { class: 'spacer' }),
       h('button', { type: 'button', class: 'btn primary', onclick: () => openLetterEditor(current + 1) }, '回信給未來的自己')));
   if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
-  if (scene) scene.celebrate();
+  if (scene) scene.celebrate({ text: '收到一封來自過去的信 ✉️' });
 }
 
 function renderLetterItem(l) {
@@ -1608,10 +1693,10 @@ function personLinkBox(p) {
   const link = linkFor(p.id);
   if (link) {
     const view = cloud.views.get(link.id);
-    const ready = view && view.profile && view.profile.avatar && view.profile.avatar.v === 2;
+    const ready = memberReady(view);
     return h('div', { class: 'invite-box' },
       h('p', {}, `💞 已連結 ${link.name} 的帳號`),
-      h('p', { class: 'hint' }, ready ? '對方捏好小人了，會一起出現在你的場景裡。' : '對方捏好自己的小人後，就會出現在你的場景裡。'),
+      h('p', { class: 'hint' }, ready ? '對方選好自己的樣子了，可以看他分享的紀錄。' : '對方還沒選自己的樣子。'),
       h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn small', onclick: () => { $('#person-dialog').close(); openMembers(link.id); } }, `看 ${link.name} 分享的紀錄`)));
   }
   if (!cloud.me) return h('p', { class: 'hint' }, `登入雲端同步後，可以邀請${p.name}加入；對方捏好小人後，就會出現在你的場景裡。`);
@@ -1671,7 +1756,7 @@ function renderPersonDialog() {
           h('span', {}, eventById(m.event) ? `${eventById(m.event).icon} ` : '', m.text))))) : h('p', { class: 'hint' }, '還沒有一起的紀錄。記一筆時在「和誰」點選就會出現在這裡。'),
       h('div', { class: 'sheet-actions' },
         h('button', { type: 'button', class: 'btn', onclick: () => $('#person-dialog').close() }, '關閉'),
-        h('button', { type: 'button', class: 'btn', onclick: () => { ui.filter = `person:${p.id}`; $('#person-dialog').close(); $('#settings-dialog').close(); renderFilters(); renderTimeline(); document.getElementById('timeline').scrollIntoView({ behavior: 'smooth' }); } }, '篩選紀錄'),
+        h('button', { type: 'button', class: 'btn', onclick: () => { ui.filter = `person:${p.id}`; $('#person-dialog').close(); $('#settings-dialog').close(); renderFilters(); renderTimeline(); showTab('memories'); } }, '篩選紀錄'),
         h('span', { class: 'spacer' }),
         h('button', { type: 'button', class: 'btn primary', onclick: () => openPersonEditor(p.id) }, '編輯')));
     return;
@@ -2399,7 +2484,7 @@ function openSettings(page = 'home') {
 // 設定首頁：個人卡和每一項的摘要
 function renderSettingsMenu() {
   const age = ageAt(state.profile.birthday, todayStr());
-  $('#settings-avatar').innerHTML = avatarSvg(myAvatar(), age, lifeStage(age).key);
+  $('#settings-avatar').replaceChildren(lookHtml(state.profile.look, 'smile', 'look look-head'));
   $('#profile-card-name').textContent = state.profile.name;
   $('#profile-card-sub').textContent = `${fmtDate(parseDate(state.profile.birthday))} · ${age} 歲`;
   const pets = state.people.filter((p) => p.kind === 'pet').length;
@@ -2416,16 +2501,16 @@ function settingsGo(page) {
 }
 
 // ---------- 外觀：深色、淺色、跟隨系統（存在這支手機，每台裝置可以不同） ----------
-const THEMES = [['dark', '深色'], ['light', '淺色'], ['auto', '跟隨系統']];
+const THEMES = [['light', '淺色'], ['dark', '深色'], ['auto', '跟隨系統']];
 function themePref() {
-  try { return localStorage.getItem('lifey.theme') || 'dark'; } catch (e) { return 'dark'; }
+  try { return localStorage.getItem('lifey.theme') || 'light'; } catch (e) { return 'light'; }
 }
 function applyTheme() {
   const pref = themePref();
   const light = pref === 'light' || (pref === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
   document.documentElement.dataset.theme = light ? 'light' : 'dark';
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = light ? '#f7f6f3' : '#15171c';
+  if (meta) meta.content = light ? '#ffffff' : '#141215';
 }
 function renderThemeChips() {
   const pref = themePref();
@@ -2569,11 +2654,10 @@ async function renderCloudSection() {
         const result = await cloudApi.register(name.value.trim() || state.profile.name, cloud.invite);
         cloud.invite = null;
         await afterLogin(result);
-        // 被邀請的人：接著捏小人，才會出現在對方的場景裡
-        if (invited && !avatarSaved()) {
+        // 被邀請的人：接著選自己的樣子
+        if (invited && !state.profile.look) {
           $('#settings-dialog').close();
-          openAvatarEditor();
-          toast('捏好你的小人，就會出現在對方的場景裡', 4000);
+          openLook();
         }
       }));
       items.push(h('label', {}, '帳號名稱', name), h('div', { class: 'row' }, btn, cloudLoginButton()));
@@ -2730,7 +2814,7 @@ async function loadCompanions() {
   };
   const list = links
     .map((l) => ({ l, view: cloud.views.get(l.id) }))
-    .filter(({ view }) => view && view.profile && view.profile.birthday && view.profile.avatar && view.profile.avatar.v === 2)
+    .filter(({ view }) => memberReady(view))
     .sort((a, b) => rank(b.l) - rank(a.l))
     .slice(0, 3)
     .map(({ view }) => {
@@ -2754,8 +2838,11 @@ async function openMembers(userId = null) {
   loadCompanions();
 }
 
+// 家人選好樣子了沒（新的房間小人，或舊版捏過的像素小人）
+const memberReady = (view) => !!(view && view.profile && view.profile.birthday && (view.profile.look || (view.profile.avatar && view.profile.avatar.v === 2)));
 function memberAvatarHtml(view) {
-  if (!view || !view.profile || !view.profile.birthday || !view.profile.avatar || view.profile.avatar.v !== 2) return '<span class="person-initial">?</span>';
+  if (!memberReady(view)) return '<span class="person-initial">?</span>';
+  if (view.profile.look) return lookHtml(view.profile.look, 'smile', 'look look-head').outerHTML;
   const age = ageAt(view.profile.birthday, todayStr());
   return avatarSvg(normalizeAvatar(view.profile.avatar), age, lifeStageFor(view.profile.birthday, age).key);
 }
@@ -2787,7 +2874,7 @@ function renderMembers() {
   const pAge = ageAt(view.profile.birthday, todayStr());
   $('#partner-avatar').innerHTML = memberAvatarHtml(view);
   const bound = personById(link.personId);
-  $('#partner-sub').textContent = `${bound ? `${bound.relation} · ` : ''}${pAge} 歲 · 分享了 ${view.moments.length} 則${view.profile.avatar && view.profile.avatar.v === 2 ? '' : ' · 還沒捏小人'}`;
+  $('#partner-sub').textContent = `${bound ? `${bound.relation} · ` : ''}${pAge} 歲 · 分享了 ${view.moments.length} 則${memberReady(view) ? '' : ' · 還沒選樣子'}`;
 
   const pByAge = new Map();
   for (const m of view.moments) {
@@ -2888,7 +2975,7 @@ function bind() {
       requestPersist();
       render();
       // 還能建立帳號（第一個人或被邀請的人）：先問要不要用 Face ID 建立，一個按鈕就好
-      offerFaceIdSignup(() => { ui.onboarding = true; openAvatarEditor(); }); // 接著捏自己的小人，捏完看歡迎頁
+      offerFaceIdSignup(() => openLook({ onboarding: true })); // 接著選自己的樣子，選完看歡迎頁
     }
   });
 
@@ -2983,7 +3070,6 @@ function bind() {
   $('#sync-btn').addEventListener('click', () => openSettings('cloud'));
   $('#partner-btn').addEventListener('click', () => openMembers());
   $('#setup-login').addEventListener('click', (e) => withBusy(e.target, async () => afterLogin(await cloudApi.login())));
-  $('#avatar-banner-btn').addEventListener('click', openAvatarEditor);
   document.querySelectorAll('#settings-dialog [data-go]').forEach((btn) => btn.addEventListener('click', () => settingsGo(btn.dataset.go)));
   document.querySelectorAll('#settings-dialog [data-back]').forEach((btn) => btn.addEventListener('click', () => { renderSettingsMenu(); settingsGo('home'); }));
   $('#profile-card').addEventListener('click', () => settingsGo('profile'));
@@ -3009,8 +3095,17 @@ function bind() {
     await saveState();
     render();
   });
-  $('#id-avatar').addEventListener('click', openAvatarEditor);
-  $('#settings-avatar-btn').addEventListener('click', () => { $('#settings-dialog').close(); openAvatarEditor(); });
+  $('#settings-avatar-btn').addEventListener('click', () => { $('#settings-dialog').close(); openLook(); });
+  // 底部分頁
+  document.querySelectorAll('#tabbar [data-tab-btn]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tabBtn)));
+  $('#me-card').addEventListener('click', () => openLook());
+  document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {
+    const page = b.dataset.open;
+    if (page === 'letters') openLetters(); else openSettings(page);
+  }));
+  $('#look-save').addEventListener('click', saveLook);
+  $('#look-dialog').addEventListener('close', () => { ui.look = null; });
+  $('#info-dialog').addEventListener('close', () => { const f = ui.infoClosed; ui.infoClosed = null; if (f) f(); });
   $('#avatar-save').addEventListener('click', saveAvatar);
   $('#avatar-random').addEventListener('click', () => setAvatar({ ...randomAvatar(), v: 2 }));
   $('#avatar-undo').addEventListener('click', () => {
@@ -3099,8 +3194,16 @@ async function init() {
     document.body.prepend(h('p', { class: 'fatal' }, '無法開啟資料庫。請確認不是在無痕模式，或重新開啟 App。'));
     return;
   }
-  scene = new Scene($('#scene-canvas'), $('#scene-bubble'));
-  scene.onGarden = () => openGarden();
+  scene = new Room($('#scene'), {
+    diary: () => openMoment(),
+    calendar: () => openGarden(),
+    plant: () => openGarden(),
+    tv: (done) => openTv(done),
+    letter: () => { const ready = readyLetters(); if (ready.length) openLetter(ready[0].id); else openLetterEditor(ageAt(state.profile.birthday, todayStr()) + 1); },
+    shelf: () => shelfMemory(),
+    photos: () => wallPhotos(),
+    me: () => openLook(),
+  });
   ui.weather = weather.weatherEnabled() ? weather.cachedWeather() : null;
   render();
   scene.start();

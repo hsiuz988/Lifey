@@ -4,6 +4,7 @@ const URL = process.env.LIFEY_URL || 'http://localhost:8787/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = [];
 
@@ -40,7 +41,7 @@ async function setup(p, name, birthday) {
   await p.waitForTimeout(300);
   p.sheetShown = await signupSheet(p, false);
   await p.waitForTimeout(200);
-  await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d.open) d.close(); });
+  await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
 }
 async function addMoment(p, text, { photo, share, date } = {}) {
   await p.click('#add-btn');
@@ -62,7 +63,7 @@ async function addMoment(p, text, { photo, share, date } = {}) {
   assert(A.sheetShown, '還沒有任何帳號時，第一個人填完資料就問要不要用 Face ID 建立帳號');
   await addMoment(A, '花蓮看海', { photo: FIXTURES + '/rotated.jpg' });
   await addMoment(A, '私人日記', { date: '2026-01-01' });
-  await A.click('#open-settings');
+  await tab(A, 'me').then(() => A.click('#open-settings'));
   await A.waitForSelector('#cloud-section button:text-is("用 Face ID 建立帳號")');
   await A.click('#cloud-section button:text-is("用 Face ID 建立帳號")');
   await A.waitForSelector('#cloud-section >> text=已登入：Hsiu', { timeout: 20000 });
@@ -95,24 +96,24 @@ async function addMoment(p, text, { photo, share, date } = {}) {
 
   // B 新增、刪除 → A 同步後也看到
   await addMoment(B, '在 B 手機記的');
-  await B.click('#life-map .cell >> nth=30'); await B.click('.moment-body:has-text("私人日記")');
+  await tab(B, 'map').then(() => B.click('#life-map .cell >> nth=30')); await B.click('.moment-body:has-text("私人日記")');
   await B.click('#moment-menu-btn'); await B.click('#moment-delete');
   await B.waitForFunction(() => !document.querySelector('#moment-dialog').open);
   await B.waitForTimeout(2500); await synced(B);
   await A.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await A.click('#life-map .cell.now');
+  await tab(A, 'map').then(() => A.click('#life-map .cell.now'));
   await A.waitForFunction(() => document.body.textContent.includes('在 B 手機記的'), null, { timeout: 20000 });
   const sA = await st(A);
   assert(sA.moments.some(m => m.text === '在 B 手機記的') && !sA.moments.some(m => m.text === '私人日記'), 'A：同步到 B 的新增與刪除');
   assert(!!sA.deleted && Object.keys(sA.deleted).length === 1, '刪除留下墓碑，不會被同步長回來');
 
   // 給未來的信：A 封存一封，B 同步後也有；B 刪掉，A 也跟著消失
-  await A.click('#life-map .cell >> nth=40'); await A.fill('#letter-body textarea', '給 40 歲的我'); await A.click('#letter-body button:text-is("封存")');
+  await tab(A, 'map').then(() => A.click('#life-map .cell >> nth=40')); await A.fill('#letter-body textarea', '給 40 歲的我'); await A.click('#letter-body button:text-is("封存")');
   await A.waitForTimeout(2500); await synced(A);
   await B.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await B.waitForFunction(() => document.querySelector('#life-map .cell:nth-child(41)').textContent === '✉️', null, { timeout: 20000 });
   assert((await st(B)).letters.length === 1, '信同步到 B，而且還是封存的');
-  await B.click('#life-map .cell >> nth=40'); await B.click('#letter-body .sealed-list button'); await B.waitForTimeout(300);
+  await tab(B, 'map').then(() => B.click('#life-map .cell >> nth=40')); await B.click('#letter-body .sealed-list button'); await B.waitForTimeout(300);
   await B.evaluate(() => { const d = document.querySelector('#letter-dialog'); if (d.open) d.close(); });
   await B.waitForTimeout(2500); await synced(B);
   await A.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
@@ -130,7 +131,7 @@ async function addMoment(p, text, { photo, share, date } = {}) {
   assert(JSON.stringify(textsA) === JSON.stringify(textsB) && textsA.length === 4, `兩台同時新增都保留（${textsA.length} 則，兩邊一致）`);
 
   // 登出
-  await B.click('#open-settings');
+  await tab(B, 'me').then(() => B.click('#open-settings'));
   await B.click('#cloud-section button:text-is("登出")');
   await B.waitForSelector('#cloud-section button:text-is("用 Face ID 登入")');
   assert(await B.evaluate(() => fetch('/api/me').then(r => r.json()).then(j => j.user)) === null && (await st(B)).moments.length === 4, '登出：不再同步，手機上的資料保留');

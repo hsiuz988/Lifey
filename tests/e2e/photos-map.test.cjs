@@ -4,6 +4,7 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT, IMG = FIXTURES;
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const idb = (p, fn) => p.evaluate(fn);
 const photoCount = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('photos').objectStore('photos').count(); t.onsuccess = () => r(t.result); }; }));
@@ -23,11 +24,11 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   await p.evaluate(() => localStorage.setItem('lifelog.v1', JSON.stringify({ version: 1, profile: { name: 'Hsiu', birthday: '1995-03-02' }, lastExportAt: null,
     moments: [{ id: 'old1', date: '2013-09-01', text: '上大學第一天', mood: 4, tags: ['學習'], starred: true, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z' }] })));
   await p.reload();
-  await p.waitForSelector('#life-map .cell.filled'); await p.click('#life-map .cell >> nth=18');
+  await tab(p, 'map'); await p.waitForSelector('#life-map .cell.filled'); await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=18'));
   await p.waitForSelector('.moment');
   assert(await p.textContent('.moment') .then(t => t.includes('上大學第一天')), '階段 1 資料搬到 IndexedDB');
   assert(await p.evaluate(() => !localStorage.getItem('lifelog.v1') && !!localStorage.getItem('lifelog.v1.migrated')), '舊資料改名保留');
-  await p.reload(); await p.waitForSelector('#life-map .cell.filled'); await p.click('#life-map .cell >> nth=18'); await p.waitForSelector('.moment');
+  await p.reload(); await tab(p, 'map'); await p.waitForSelector('#life-map .cell.filled'); await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=18')); await p.waitForSelector('.moment');
   assert((await p.$$('.moment')).length === 1, '重新整理後不會重複搬家');
 
   // 2. 人生地圖
@@ -65,33 +66,33 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   assert(!(await p.evaluate(() => document.querySelector('#lightbox').open)), '點一下關閉大圖');
 
   // 5. 年歲的一句話 + 在這一歲記一筆
-  await p.click('#life-map .cell:nth-child(19)'); await p.click('#timeline .year-title-btn');
+  await tab(p, 'map').then(() => p.click('#life-map .cell:nth-child(19)')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   await p.fill('#year-form [name=summary]', '離家上大學的一年');
   await p.click('#year-form button[type=submit]');
   await p.waitForFunction(() => !document.querySelector('#year-dialog').open);
   assert((await p.textContent('#timeline .year-title-btn')).includes('離家上大學的一年'), '時間軸顯示這一歲的一句話');
-  await p.click('#life-map .cell:nth-child(8)'); // 7 歲
-  await p.click('#timeline .year-add button');
+  await tab(p, 'map').then(() => p.click('#life-map .cell:nth-child(8)')); // 7 歲
+  await tab(p, 'memories').then(() => p.click('#timeline .year-add button'));
   assert(await p.inputValue('#moment-form [name=date]') === '2002-03-02', '在 7 歲記一筆，日期預設 7 歲生日');
   await p.fill('#moment-form [name=text]', '小學一年級');
   await p.click('#moment-save');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
 
   // 6. 編輯：移除一張照片 + 加一張，取消不留垃圾
-  await p.click('#life-map .cell.now'); await p.click('.moment-body:has-text("花蓮")');
+  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 2);
   await p.setInputFiles('#photo-input', [IMG + '/p0.jpg']);
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 3);
   await p.click('#moment-dialog [data-close]');
   assert(await photoCount(p) === 2, '取消編輯不會多存照片');
-  await p.click('.moment-body:has-text("花蓮")');
+  await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 2);
   await p.click('#photo-picker .photo-remove >> nth=1');
   await p.click('#moment-save');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
   assert(await photoCount(p) === 1, '移除照片後資料庫只剩 1 張');
   // 上限 4 張
-  await p.click('.moment-body:has-text("花蓮")');
+  await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
   await p.setInputFiles('#photo-input', [IMG + '/p0.jpg', IMG + '/p1.jpg', IMG + '/p2.jpg', IMG + '/rotated.jpg']);
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 4 && !document.querySelector('.photo-item.busy'));
   assert(!(await p.$('.photo-add')), '滿 4 張就不能再加');
@@ -100,15 +101,15 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   assert(await photoCount(p) === 4, '存了 4 張');
 
   // 篩選
-  await p.click('.chip:text-is("📷 有照片")');
+  await tab(p, 'memories'); await p.click('.chip:text-is("📷 有照片")');
   assert((await p.$$('.moment')).length === 1, '「有照片」篩選');
-  await p.click('.chip:text-is("全部")');
+  await tab(p, 'memories'); await p.click('.chip:text-is("全部")');
 
-  await p.reload(); await p.waitForSelector('.thumb img[src^="blob:"]');
+  await p.reload(); await p.waitForSelector('#app:not([hidden])'); await tab(p, 'memories'); await p.waitForSelector('.thumb img[src^="blob:"]');
   await p.screenshot({ path: S + '/s2-main.png', fullPage: true });
 
   // 7. 匯出 ZIP（兩段式）
-  await p.click('#open-settings');
+  await tab(p, 'me').then(() => p.click('#open-settings'));
   await p.click('#export-btn');
   await p.waitForFunction(() => document.querySelector('#export-btn').textContent.startsWith('儲存備份檔'));
   console.log('  ', await p.textContent('#export-btn'), '|', await p.textContent('#storage-status'));
@@ -119,18 +120,18 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
 
   // 8. 刪除時刻會刪照片
   await p.click('#settings-dialog [data-close] >> nth=-1').catch(() => {});
-  await p.click('.moment-body:has-text("花蓮")');
+  await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
   await p.click('#moment-menu-btn'); await p.click('#moment-delete');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
   assert(await photoCount(p) === 0, '刪除時刻後照片也刪掉');
 
   // 9. 匯入 ZIP（取代）
-  await p.click('#open-settings');
+  await tab(p, 'me').then(() => p.click('#open-settings'));
   await p.setInputFiles('#import-file', S + '/backup.zip');
   await p.waitForFunction(() => !document.querySelector('#settings-dialog').open, null, { timeout: 15000 });
   assert(await photoCount(p) === 4, '匯入 ZIP 還原 4 張照片');
   await p.waitForFunction(() => [...document.querySelectorAll('.thumb img')].length === 4 && [...document.querySelectorAll('.thumb img')].every(i => i.complete && i.naturalWidth > 0));
-  await p.click('#life-map .cell:nth-child(19)'); assert((await p.textContent('#timeline .year-title-btn')).includes('離家上大學'), '匯入後這一歲的一句話也在');
+  await tab(p, 'map').then(() => p.click('#life-map .cell:nth-child(19)')); assert((await p.textContent('#timeline .year-title-btn')).includes('離家上大學'), '匯入後這一歲的一句話也在');
   console.log('errors', errors);
   await b.close();
 })();

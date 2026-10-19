@@ -4,6 +4,7 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 (async () => {
@@ -13,21 +14,15 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   let answer = true, prompted = []; p.on('dialog', d => { prompted.push(d.message()); d.type() === 'prompt' ? d.accept(answer === true ? '清除' : String(answer)) : (answer ? d.accept() : d.dismiss()); });
   await p.goto(URL);
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
-  await p.waitForFunction(() => document.querySelector('#avatar-dialog').open);
-  // 捏小人：沒有年紀拉桿、復原
-  assert(!(await p.$('#avatar-age')), '捏小人沒有預覽年紀');
-  assert((await p.textContent('#avatar-age-label')).includes('31 歲'), '直接顯示現在的年紀');
-  assert(await p.isDisabled('#avatar-undo'), '一開始不能復原');
-  await p.click('#avatar-tabs button:text-is("頭髮")'); await p.click('#avatar-options .pic-btn:has-text("馬尾")');
-  assert(await p.$eval('#avatar-options .pic-btn:has-text("馬尾")', e => e.classList.contains('on')), '選了馬尾');
-  await p.click('#avatar-random'); await p.click('#avatar-undo');
-  assert(await p.$eval('#avatar-options .pic-btn:has-text("馬尾")', e => e.classList.contains('on')), '隨機後復原回到馬尾');
-  await p.click('#avatar-undo'); assert(await p.isDisabled('#avatar-undo'), '全部復原完就不能再按');
-  await p.click('#avatar-options .pic-btn:has-text("包頭")');
-  answer = false; await p.keyboard.press('Escape'); await p.waitForTimeout(150);
-  assert(await p.$eval('#avatar-dialog', d => d.open) && prompted.pop().includes('還沒存'), '有改過時，取消會先問，選否就留著');
-  await p.click('#avatar-save'); answer = true;
-  assert((await st(p)).profile.avatar.hairStyle === 'bun', '完成後存下包頭');
+  await p.waitForFunction(() => document.querySelector('#look-dialog').open);
+  // 第一次使用：選自己的樣子（房間裡的小人）
+  assert((await p.textContent('#look-title')) === '選你的樣子' && (await p.textContent('#look-save')) === '就是我了', '註冊後接著選樣子');
+  assert(await p.$$eval('#look-preview img', (a) => a.length >= 4), '預覽是疊起來的小人');
+  await p.click('#look-options .look-opt:has-text("帽 T")');
+  assert(await p.$eval('#look-options .look-opt:has-text("帽 T")', e => e.classList.contains('on')), '選了帽 T');
+  assert(await p.$$eval('#look-preview img', (a) => a.some((i) => i.src.includes('cloth_hoodie'))), '預覽換成帽 T');
+  await p.click('#look-save');
+  assert((await st(p)).profile.look.cloth === 'hoodie', '存下帽 T');
   await p.waitForFunction(() => document.querySelector('#letter-dialog').open); await p.evaluate(() => document.querySelector('#letter-dialog').close());
 
   // 記一筆：一句話就能存
@@ -41,7 +36,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   let s = await st(p);
   assert(s.moments.length === 1 && s.moments[0].text === '只寫一句', '一句話直接存');
   // 只放一張照片也能存；什麼都沒有時不會存
-  await p.click('#quick-open');
+  await tab(p, 'home').then(() => p.click('#quick-open'));
   assert(await p.$eval('#moment-save', (e) => e.classList.contains('off')), '還沒寫也沒照片時，「記下來」是淡的');
   await p.click('#moment-save'); await p.waitForTimeout(150);
   assert(await p.$eval('#moment-dialog', d => d.open) && (await st(p)).moments.length === 1, '什麼都沒有時按了不會存');
@@ -70,7 +65,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(!(await p.$eval('#moment-dialog', d => d.open)), '確定放棄就關閉');
 
   // 設定：清單、人物名字選填
-  await p.click('#open-settings');
+  await tab(p, 'me').then(() => p.click('#open-settings'));
   assert((await p.textContent('#profile-card-name')) === 'Hsiu' && (await p.textContent('#menu-people')) === '還沒有', '設定首頁有個人卡與摘要');
   await p.click('[data-go=people]'); await p.click('#add-person-btn'); await p.click('#person-body button:text-is("媽媽")'); await p.click('#person-body button:text-is("儲存")');
   await p.waitForSelector('#person-body h3:text-is("媽媽")'); assert(true, '人物沒填名字，用關係「媽媽」顯示');

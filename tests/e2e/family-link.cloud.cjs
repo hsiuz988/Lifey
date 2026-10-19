@@ -4,6 +4,7 @@ const URL = process.env.LIFEY_URL || 'http://localhost:8787/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = [];
 async function device(b, label) {
@@ -32,7 +33,7 @@ async function setup(p, name, bday, { keepEditor = false, signup = false } = {})
   p.sheetShown = await signupSheet(p, signup);
   if (signup) return;
   await p.waitForTimeout(200);
-  if (!keepEditor) await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d.open) d.close(); });
+  if (!keepEditor) await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
 }
 async function register(p) {
   await p.waitForSelector('#cloud-section button:text-is("用 Face ID 建立帳號")', { timeout: 15000 });
@@ -48,9 +49,10 @@ async function addPerson(p, name, relation) {
   await p.click('#person-body button:text-is("關閉")');
 }
 async function makeAvatar(p, opts) {
-  await p.click('#id-avatar');
-  await p.click('#avatar-random');
-  await p.click('#avatar-save'); await closed(p, '#avatar-dialog');
+  await tab(p, 'me'); await p.click('#me-card');
+  await p.waitForSelector('#look-dialog[open]');
+  await p.click('#look-options .look-opt:has-text("帽 T")');
+  await p.click('#look-save'); await closed(p, '#look-dialog');
 }
 const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
 
@@ -60,7 +62,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   const A = await device(b, 'A');
   await A.goto(URL);
   await setup(A, 'Hsiu', '1995-03-02');
-  await A.click('#open-settings');
+  await tab(A, 'me').then(() => A.click('#open-settings'));
   await addPerson(A, 'Ken', '伴侶');
   await addPerson(A, '媽媽', '媽媽');
   await register(A);
@@ -73,7 +75,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   assert(remote.doc.people.length === 2, '人物卡同步到雲端');
 
   // 從 Ken 的人物卡發邀請
-  await A.click('#open-settings');
+  await tab(A, 'me').then(() => A.click('#open-settings'));
   await A.click('#people-section button:has-text("Ken")');
   await A.click('#person-body button:text-is("邀請Ken加入")');
   const kenLink = await A.inputValue('#person-body input[readonly]');
@@ -89,8 +91,8 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   await setup(C, 'Ken', '1993-05-05', { signup: true });
   assert(C.sheetShown, '被邀請的人填完名字生日，直接跳出「用 Face ID 建立帳號」');
   await C.waitForFunction(() => document.querySelector('#sync-btn') && !document.querySelector('#sync-btn').hidden, null, { timeout: 20000 });
-  await C.waitForFunction(() => document.querySelector('#avatar-dialog').open, null, { timeout: 15000 });
-  assert(true, '被邀請的人建立帳號後，自動打開捏小人');
+  await C.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 15000 });
+  assert(true, '被邀請的人建立帳號後，自動打開選樣子');
   await C.keyboard.press('Escape');
   const cMe = await C.evaluate(() => fetch('/api/me').then(r => r.json()));
   assert(cMe.links.length === 1 && cMe.links[0].name === 'Hsiu', 'Ken 建立帳號後自動和 Hsiu 連結');
@@ -102,16 +104,16 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   let me = await A.evaluate(() => fetch('/api/me').then(r => r.json()));
   assert(me.links.length === 1 && me.links[0].personId === kenCard.id, '連結自動對上「Ken」人物卡');
   await A.waitForTimeout(800);
-  assert(await sceneCompanions(A) === '0', 'Ken 還沒捏小人：還不會出現在場景');
+  assert(await sceneCompanions(A) === '0', 'Ken 還沒選樣子：還不會出現在場景');
 
   // Ken 捏好小人
   await makeAvatar(C);
   await C.waitForTimeout(2600); await synced(C);
   await A.reload(); await synced(A);
   await A.waitForFunction(() => document.querySelector('#scene').dataset.companions === '1', null, { timeout: 15000 });
-  assert(true, 'Ken 捏好小人後出現在 A 的場景');
-  await A.click('#open-settings'); await A.click('#people-section button:has-text("Ken")');
-  assert((await A.textContent('#person-body')).includes('已連結 Ken 的帳號') && await A.$eval('#person-body .person-avatar svg', e => e.querySelectorAll('rect').length > 40), 'Ken 的人物卡顯示已連結＋他的小人');
+  assert(true, 'Ken 選好樣子後算進 A 的家人');
+  await tab(A, 'me').then(() => A.click('#open-settings')); await A.click('#people-section button:has-text("Ken")');
+  assert((await A.textContent('#person-body')).includes('已連結 Ken 的帳號') && await A.$eval('#person-body .person-avatar', e => e.querySelectorAll('img').length >= 4), 'Ken 的人物卡顯示已連結＋他的小人');
   await A.click('#person-body button:text-is("關閉")');
 
   // 從設定邀請媽媽（下拉選人物卡）
@@ -125,7 +127,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   await D.goto(momLink);
   await setup(D, 'Mom', '1965-08-08', { signup: true });
   await D.waitForFunction(() => document.querySelector('#sync-btn') && !document.querySelector('#sync-btn').hidden, null, { timeout: 20000 });
-  await D.waitForFunction(() => document.querySelector('#avatar-dialog').open, null, { timeout: 15000 });
+  await D.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 15000 });
   await D.keyboard.press('Escape');
   await synced(D);
   // D 看不到 Ken（沒有直接連結）
@@ -155,7 +157,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   // Ken 分享一則 → A 的全家福
   await C.click('#add-btn'); await C.fill('#moment-form [name=text]', 'Ken 的分享'); await C.check('#moment-form [name=shared]');
   await C.click('#moment-save'); await closed(C, '#moment-dialog'); await C.waitForTimeout(2600); await synced(C);
-  await A.click('#partner-btn');
+  await tab(A, 'home').then(() => A.click('#partner-btn'));
   await A.waitForSelector('#partner-lineup .lineup-item >> nth=1');
   assert((await A.$$('#partner-lineup .lineup-item')).length === 2, '全家福列出 2 位');
   await A.click('#partner-lineup .lineup-item:has-text("Ken")');
@@ -172,7 +174,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   let sB = await st(B);
   assert(sB.people.length === 2 && sB.moments.find(m => m.text === '全家一起吃飯').people.length === 2, '第二支手機：人物卡與「和誰」都同步');
   // 刪除人物卡會同步（墓碑）
-  await A.click('#open-settings'); await A.click('#people-section button:has-text("媽媽")'); await A.click('#person-body button:text-is("編輯")'); await A.click('#person-body .danger-zone button');
+  await tab(A, 'me').then(() => A.click('#open-settings')); await A.click('#people-section button:has-text("媽媽")'); await A.click('#person-body button:text-is("編輯")'); await A.click('#person-body .danger-zone button');
   await closed(A, '#person-dialog'); await A.click('#settings-dialog [data-close] >> nth=-1');
   await A.waitForTimeout(2600); await synced(A);
   await B.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await B.waitForTimeout(1500); await synced(B);
@@ -182,7 +184,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   assert(me.links.find(l => l.name === 'Mom').personId === null, '刪掉人物卡後，媽媽的帳號連結還在但不再對應');
 
   // 解除連結
-  await A.click('#open-settings');
+  await tab(A, 'me').then(() => A.click('#open-settings'));
   await A.click('#cloud-section .member-row:has-text("Mom") button:text-is("解除連結")');
   await A.waitForFunction(() => document.querySelectorAll('#cloud-section .member-row').length === 1);
   await A.click('#settings-dialog [data-close] >> nth=-1');

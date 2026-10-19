@@ -1,6 +1,7 @@
 const { chromium } = require(process.env.PLAYWRIGHT || 'playwright');
 // 心情與花園：情緒自動判斷／自己選、場景的表情與小東西、小花圃、花園頁
 const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = [];
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
@@ -15,7 +16,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   await p.goto(URL);
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1998-03-02'); await p.click('#setup-form button');
   await p.waitForTimeout(300);
-  await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d.open) d.close(); });
+  await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
 
   // 寫了心情就自動判斷情緒
   await p.click('#add-btn');
@@ -28,6 +29,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
   let m = (await st(p)).moments[0];
   assert(m.emo === 'tired' && m.emoAuto === true, '存下情緒「累」（自動）');
+  await tab(p, 'memories');
   assert(await p.isVisible('#timeline .moment-feel >> text=😪 累 好累，有點懷疑自己'), '時間軸的心情前面有情緒');
   let sc = await scene(p);
   assert(sc.emo === 'tired', '場景的小人今天是「累」');
@@ -35,7 +37,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   assert(sc.flowers === '1', '小花圃有今天的一朵（小芽）');
 
   // 自己選的情緒優先，改了心情也不會被蓋掉
-  await p.click('#timeline .moment-body');
+  await tab(p, 'memories').then(() => p.click('#timeline .moment-body'));
   await p.click('#emo-picker .chip >> text=想念');
   await p.fill('#moment-form [name=feel]', '超開心');
   await p.waitForTimeout(100);
@@ -46,7 +48,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   m = (await st(p)).moments[0];
   assert(m.emo === 'miss' && m.emoAuto === false, '存下自己選的「想念」');
   // 再點一次取消，回到自動判斷
-  await p.click('#timeline .moment-body');
+  await tab(p, 'memories').then(() => p.click('#timeline .moment-body'));
   await p.click('#emo-picker .chip.on');
   await p.waitForTimeout(100);
   assert(await p.isVisible('#emo-picker .chip.on >> text=興奮'), '取消後回到自動判斷（超開心 → 興奮）');
@@ -54,7 +56,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
 
   // 一秒日記也會判斷
-  await p.click('#quick-open'); await p.fill('#moment-form [name=text]', '今天好緊張'); await p.click('#moment-save');
+  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '今天好緊張'); await p.click('#moment-save');
   await p.waitForTimeout(300);
   m = (await st(p)).moments.find((x) => x.text === '今天好緊張');
   assert(m && m.emo === 'nervous', '從首頁入口記的也判斷情緒（緊張）');
@@ -77,7 +79,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   await p.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close()));
   assert((await scene(p)).flowers === '3', '小花圃只放最近三天');
 
-  await p.click('#garden-btn');
+  await tab(p, 'map').then(() => p.click('#garden-btn'));
   await p.waitForSelector('#garden-dialog[open]');
   const now = new Date();
   const inMonth = [3, 6, 9].filter((ago) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - ago).getMonth() === now.getMonth()).length + 1;
@@ -99,13 +101,11 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   assert((await p.inputValue('#moment-form [name=text]')) === '今天好緊張', '從花園打開那一則紀錄');
   await p.evaluate(() => document.querySelector('#moment-dialog').close());
 
-  // 點場景右下角的小花圃也能打開花園
-  const canvas = p.locator('#scene-canvas');
-  await canvas.scrollIntoViewIfNeeded();
-  const box = await canvas.boundingBox();
-  await canvas.click({ position: { x: box.width * (140 / 160), y: box.height * (66 / 72) } });
-  await p.waitForTimeout(200);
-  assert(await p.evaluate(() => document.querySelector('#garden-dialog').open), '點場景的小花圃打開花園');
+  // 點房間牆上的月曆：小人走過去，打開心情花園
+  await tab(p, 'home');
+  await p.click('#scene .hot[data-name="calendar"]');
+  await p.waitForFunction(() => document.querySelector('#garden-dialog').open, null, { timeout: 8000 });
+  assert(true, '點房間的月曆打開心情花園');
 
   assert(errors.length === 0, `沒有 JS 錯誤 ${errors.join(' | ')}`);
   await b.close();

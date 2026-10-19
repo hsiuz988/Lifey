@@ -3,6 +3,7 @@ const http = require('http');
 // AI 故事：用假的 Claude API（FAKE_AI_PORT）測流程，不會真的花錢。用 tests/run-cloud.sh 執行
 const URL = process.env.LIFEY_URL || 'http://localhost:8787/';
 const AI_PORT = Number(process.env.FAKE_AI_PORT || 9787);
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = [];
 
@@ -54,10 +55,10 @@ let b;
   await p.waitForTimeout(300);
   await p.waitForFunction(() => document.querySelector('#letter-dialog').open, null, { timeout: 4000 }).catch(() => {});
   await p.click('#letter-dialog button:text-is("之後再說")').catch(() => {});
-  await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d.open) d.close(); });
+  await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
 
   // 沒登入不能開
-  await p.click('#open-settings');
+  await tab(p, 'me').then(() => p.click('#open-settings'));
   await p.click('#pref-ai-story');
   assert(!(await p.isChecked('#pref-ai-story')), '沒登入雲端時打不開 AI 故事');
   const anon = await p.evaluate(() => fetch('/api/story', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event: 'x' }) }).then(r => r.status));
@@ -99,14 +100,15 @@ let b;
   assert(m.feel === '很放鬆，好久沒這樣' && m.story && m.story.title === '淡水的夕陽2', '故事版和心情都存起來');
   assert(m.emo === 'calm' && m.item === 'coffee', 'AI 順便選的情緒和小東西也存起來');
   assert(c1.body.output_config.format.schema.properties.item.enum.length === 37, 'AI 只能從 36 個小圖裡選（或 none）');
+  await tab(p, 'memories');
   assert(await p.isVisible('#timeline .story-title >> text=淡水的夕陽2'), '時間軸顯示故事標題');
   assert(await p.isVisible('#timeline .moment-orig >> text=跟小美去淡水看夕陽'), '原文縮小留在下面');
 
   // 搜尋找得到故事內容
-  await p.fill('#search', '河岸');
+  await tab(p, 'memories').then(() => p.fill('#search', '河岸'));
   await p.waitForTimeout(300);
   assert(await p.isVisible('#timeline .story-title'), '搜尋找得到故事內容');
-  await p.fill('#search', '');
+  await tab(p, 'memories').then(() => p.fill('#search', ''));
   await p.waitForTimeout(300);
 
   // 同步到雲端
@@ -119,7 +121,7 @@ let b;
   assert(remoteStory === '淡水的夕陽2', '故事版有同步到雲端');
 
   // 改了事件 → 舊故事拿掉、重新問；選保留原文
-  await p.click('#timeline .moment-body');
+  await tab(p, 'memories').then(() => p.click('#timeline .moment-body'));
   await p.fill('#moment-form [name=text]', '跟小美去淡水看夕陽');
   await p.click('#moment-save');
   await sheet(p);
@@ -130,7 +132,7 @@ let b;
   assert(!(await p.isVisible('#timeline .story-title')), '時間軸回到原文');
 
   // 從 ⋯ 補寫故事、再拿掉
-  await p.click('#timeline .moment-body');
+  await tab(p, 'memories').then(() => p.click('#timeline .moment-body'));
   await p.click('#moment-menu-btn');
   assert(await p.isVisible('#moment-story >> text=✨ 寫成故事'), '⋯ 裡可以補寫故事');
   await p.click('#moment-story');
@@ -138,7 +140,7 @@ let b;
   await sheetBtn(p, '用這個');
   await closed(p);
   assert(!!(await st(p)).moments[0].story, '補寫的故事存起來');
-  await p.click('#timeline .moment-body');
+  await tab(p, 'memories').then(() => p.click('#timeline .moment-body'));
   await p.click('#moment-menu-btn');
   assert(await p.isVisible('#moment-story >> text=✨ 重寫故事'), '已經有故事時顯示「重寫故事」');
   await p.click('#moment-story-remove');
@@ -147,7 +149,7 @@ let b;
   await p.evaluate(() => document.querySelector('#moment-dialog').close());
 
   // 被拒絕：顯示溫和的訊息，次數退回
-  await p.click('#quick-open'); await p.fill('#moment-form [name=text]', '拒絕測試'); await p.click('#moment-save');
+  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '拒絕測試'); await p.click('#moment-save');
   await p.waitForSelector('#letter-dialog .story-error', { timeout: 15000 });
   assert(await p.isVisible('#letter-dialog >> text=這則沒辦法寫成故事'), '被拒絕時顯示訊息');
   await sheetBtn(p, '關閉');
@@ -160,11 +162,11 @@ let b;
   assert(empty === 400, '沒有事件不會呼叫');
 
   // 關掉設定就不會跳出來
-  await p.click('#open-settings');
+  await tab(p, 'me').then(() => p.click('#open-settings'));
   await p.click('#pref-ai-story');
   await p.click('#settings-dialog [data-close] >> nth=-1');
   const before = calls.length;
-  await p.click('#quick-open'); await p.fill('#moment-form [name=text]', '普通的一天'); await p.click('#moment-save');
+  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '普通的一天'); await p.click('#moment-save');
   await p.waitForTimeout(500);
   assert(!(await p.evaluate(() => document.querySelector('#letter-dialog').open)) && calls.length === before, '關掉設定就不會寫故事');
 

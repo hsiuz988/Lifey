@@ -149,7 +149,7 @@ function sharedView(doc) {
   if (profile.shareTitles !== false) {
     for (const [age, y] of Object.entries(doc.years || {})) if (y && y.title) years[age] = { title: y.title };
   }
-  return { profile: { name: profile.name, birthday: profile.birthday, avatar: profile.avatar }, moments, years };
+  return { profile: { name: profile.name, birthday: profile.birthday, avatar: profile.avatar, look: profile.look }, moments, years };
 }
 
 export async function getMember(user, env, otherId) {

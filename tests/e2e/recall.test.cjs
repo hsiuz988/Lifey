@@ -4,6 +4,7 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 (async () => {
   const b = await chromium.launch();
@@ -12,13 +13,13 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   const errors = [];
   p.on('pageerror', e => errors.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto(URL);
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button'); await p.waitForTimeout(200); await p.evaluate(() => { const d = document.querySelector('#avatar-dialog'); if (d && d.open) d.close(); });
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button'); await p.waitForTimeout(200); await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
   const st = () => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
   const age = () => p.textContent('#recall-age');
   const next = async () => { const a = await age(); await p.click('#recall-next'); await p.waitForFunction((a) => document.querySelector('#recall-age').textContent !== a || !document.querySelector('#recall-dialog').open, a); };
   const save = async () => { await p.click('#recall-save'); await p.waitForTimeout(400); };
 
-  await p.click('#recall-btn');
+  await tab(p, 'map').then(() => p.click('#recall-btn'));
   assert(await age() === '0 歲' && await p.textContent('#recall-stage') === '大約是嬰幼兒時期', '從 0 歲開始，嬰幼兒時期');
   const q1 = await p.textContent('#recall-question');
   await p.click('#recall-next-q');
@@ -72,9 +73,9 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   await p.waitForFunction(() => document.querySelector('#recall-btn').textContent.includes('18'));
   assert((await st()).moments.some(m => m.text === '第一次自己住'), '關閉時自動存');
   assert(await p.textContent('#recall-btn') === '🕰 繼續回憶（18 歲）', '地圖按鈕顯示繼續回憶');
-  await p.click('#life-map .cell >> nth=18'); assert((await p.textContent('#timeline')).includes('這一年'), '時間軸顯示「這一年」');
+  await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=18')); assert((await p.textContent('#timeline')).includes('這一年'), '時間軸顯示「這一年」');
   await p.reload();
-  await p.click('#recall-btn');
+  await tab(p, 'map').then(() => p.click('#recall-btn'));
   assert(await age() === '18 歲', '重新開啟後從 18 歲繼續');
 
   // 走到今年 → 完成
@@ -84,7 +85,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   await p.waitForFunction(() => !document.querySelector('#recall-dialog').open);
   assert(await p.textContent('#recall-btn') === '🕰 回憶模式', '完成後按鈕復原');
   // 完成後再開：從第一個空白年歲開始，關閉也照樣存
-  await p.click('#recall-btn');
+  await tab(p, 'map').then(() => p.click('#recall-btn'));
   assert(await age() === '1 歲', '再開時從第一個空白的年歲（1 歲）開始');
   await p.fill('#recall-summary', '學會走路');
   await p.keyboard.press('Escape');

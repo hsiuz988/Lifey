@@ -4,6 +4,7 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 (async () => {
   const b = await chromium.launch();
@@ -21,7 +22,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   await p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey', 1); q.onupgradeneeded = () => { q.result.createObjectStore('meta'); q.result.createObjectStore('photos', { keyPath: 'id' }); };
     q.onsuccess = () => { const tx = q.result.transaction('meta', 'readwrite'); tx.objectStore('meta').put({ version: 2, profile: { name: 'Hsiu', birthday: '1995-03-02' }, years: {}, lastExportAt: null,
       moments: [{ id: 'a', date: '2026-05-01', text: '花蓮', mood: 5, tags: ['旅行', '朋友'], photoIds: [], starred: true, createdAt: '2026-05-01T00:00:00Z', updatedAt: '2026-05-01T00:00:00Z' }] }, 'state'); tx.oncomplete = r; }; }));
-  await p.reload(); await p.waitForSelector('#stat-bars .stat');
+  await p.reload(); await p.waitForSelector('#app:not([hidden])'); await tab(p, 'me'); await p.waitForSelector('#stat-bars .stat');
   await p.waitForTimeout(300);
   let s = await st();
   assert(s.achievements && s.achievements.first && s.achievements.star, '舊資料自動補上已達成的成就');
@@ -33,7 +34,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   assert(v['人際關係'] === 49 && v['健康'] === 20 && v['知識'] === 20, '人際：朋友 ☆ 算兩倍（2 點）→ 49；其他 20');
   assert(v['幸福'] === 94, '幸福：心情 😄 (90) + 旅行 ☆ 加分 (4) → 94');
   assert(await p.textContent('#now-caption') === '31 歲 · 出社會 · 今年記了 1 則', '今年說明文字');
-  assert(await p.$eval('#scene-canvas', c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; const set = new Set(); for (let i = 0; i < d.length; i += 400) set.add(d[i] + ',' + d[i+1] + ',' + d[i+2]); return set.size > 15; }), '像素場景有畫出來（canvas）');
+  assert(await p.$eval('#scene', (e) => !!e.querySelector('svg image[href$="room.webp"]') && e.querySelectorAll('#room-me image').length >= 6), '首頁的房間和小人有畫出來');
 
   // 新增健康 → 解鎖成就通知 + 健康上升
   await p.click('#add-btn');
@@ -45,7 +46,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   assert(v['健康'] === 36, '記一筆運動，健康 20 → 36');
 
   // 重心
-  await p.click('#focus-chips button:text-is("健康")');
+  await tab(p, 'me').then(() => p.click('#focus-chips button:text-is("健康")'));
   await p.waitForFunction(() => document.querySelector('#focus-note').textContent.includes('1 則'));
   assert((await p.textContent('#focus-note')).includes('今年已經記了 1 則跟「健康」有關的事'), '重心進度');
   assert(await p.$eval('#stat-bars .stat.focus .stat-label', e => e.textContent) === '健康 ★', '重心那一項標 ★');
@@ -55,20 +56,20 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   assert(s.years['31'].focus === 'health', '重心存在今年');
 
   // 一句話與重心共存
-  await p.click('#life-map .cell.now'); await p.click('#timeline .year-title-btn');
+  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   await p.fill('#year-form [name=summary]', '開始寫人生紀錄');
   await p.click('#year-form button[type=submit]');
   await p.waitForFunction(() => !document.querySelector('#year-dialog').open);
   s = await st();
   assert(s.years['31'].focus === 'health' && s.years['31'].title === '開始寫人生紀錄', '寫一句話不會蓋掉重心');
-  await p.click('#life-map .cell.now'); await p.click('#timeline .year-title-btn');
+  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   await p.fill('#year-form [name=summary]', '');
   await p.click('#year-form button[type=submit]');
   s = await st();
   assert(s.years['31'].focus === 'health' && !s.years['31'].title, '清掉一句話時重心還在');
   assert(await p.textContent('#map-summary').then(t => t.startsWith('已記錄 1 /')), '只有重心的年份不算「已記錄」');
   // 年歲對話框顯示狀態
-  await p.click('#life-map .cell.now'); await p.click('#timeline .year-title-btn');
+  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   assert((await p.$$('#year-stats .stat')).length === 4, '年歲對話框顯示四項狀態');
   await p.click('#year-dialog [data-close]');
 
@@ -78,7 +79,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   assert(count === '已解鎖 3 / 17', '已解鎖 3 個：第一步、值得記住、有方向的一年');
 
   // 改名字不會弄丟頭像
-  await p.click('#open-settings');
+  await tab(p, 'me').then(() => p.click('#open-settings'));
   await p.fill('#profile-form [name=name]', 'Hsiu Z');
   await p.click('#profile-form button[type=submit]');
   await p.waitForTimeout(200);

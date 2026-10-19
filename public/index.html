@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#15171c">
-  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light dark">
   <script>
-    // 外觀在畫面出來前就套用，避免閃一下：dark（預設）、light、auto（跟隨系統）
+    // 外觀在畫面出來前就套用，避免閃一下：light（預設）、dark、auto（跟隨系統）
     (function () {
-      var pref = 'dark';
-      try { pref = localStorage.getItem('lifey.theme') || 'dark'; } catch (e) {}
+      var pref = 'light';
+      try { pref = localStorage.getItem('lifey.theme') || 'light'; } catch (e) {}
       var light = pref === 'light' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches);
       document.documentElement.dataset.theme = light ? 'light' : 'dark';
     })();
@@ -25,30 +25,35 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 第一次開啟：設定姓名與生日 -->
+  <!-- 第一次開啟：介紹＋姓名與生日 -->
   <section id="setup" class="setup" hidden>
-    <h1 class="brand">人生紀錄<span class="brand-dot">.</span></h1>
-    <p class="muted">把你真實的一生，慢慢養成一座小世界。</p>
-    <ul class="intro-list">
-      <li><span>🗺</span>一生 90 格，一格一年，記滿就會點亮</li>
-      <li><span>🌏</span>台灣和世界的大事，穿插在你的紀錄裡</li>
-      <li><span>🧒</span>會跟著你長大的小人，還有你的寵物</li>
-      <li><span>🔒</span>資料先存在你的手機，不給任何人看</li>
-    </ul>
-    <p id="setup-invite" class="invite-note"></p>
-    <form id="setup-form" class="panel form">
-      <label>名字
-        <input name="name" required maxlength="40" autocomplete="name">
-      </label>
-      <label>生日
-        <input name="birthday" type="date" required class="bday-native">
-      </label>
-      <button class="btn primary" type="submit">開始記錄</button>
-      <p class="hint">資料先存在這支手機裡；之後可以在設定裡用 Face ID 登入，同步到雲端。<a href="privacy.html">隱私權政策與使用條款</a></p>
-    </form>
-    <div class="setup-login">
-      <span class="muted">已經有帳號了？</span>
-      <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
+    <div class="setup-hero">
+      <img src="room/room.webp" alt="" class="setup-room">
+    </div>
+    <div class="setup-body">
+      <h1 class="brand">人生紀錄<span class="brand-dot">.</span></h1>
+      <p class="setup-lede">把每天的一句話，慢慢養成一個家。</p>
+      <ul class="intro-list">
+        <li><span>📓</span><div><b>一句話就好</b><small>點書桌上的日記本，或下面的＋，一句話、一張照片都能記</small></div></li>
+        <li><span>🗺</span><div><b>一生 90 格</b><small>一格一年，記滿就會點亮；台灣和世界的大事穿插其中</small></div></li>
+        <li><span>💌</span><div><b>寫給未來的自己</b><small>封存到下一個生日才能打開</small></div></li>
+        <li><span>🔒</span><div><b>資料在你手機裡</b><small>不給任何人看；想同步時再用 Face ID 開啟雲端</small></div></li>
+      </ul>
+      <p id="setup-invite" class="invite-note"></p>
+      <form id="setup-form" class="setup-form">
+        <label>你的名字
+          <input name="name" required maxlength="40" autocomplete="name" placeholder="想被怎麼稱呼">
+        </label>
+        <label>生日
+          <input name="birthday" type="date" required class="bday-native">
+        </label>
+        <button class="btn primary big" type="submit">開始記錄</button>
+        <p class="hint">繼續即表示同意<a href="privacy.html">隱私權政策與使用條款</a>。</p>
+      </form>
+      <div class="setup-login">
+        <span class="muted">已經有帳號了？</span>
+        <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
+      </div>
     </div>
   </section>
 
@@ -56,123 +61,123 @@
   <div id="ptr" class="ptr" aria-hidden="true"><span id="ptr-icon" class="ptr-icon">↓</span><span id="ptr-text">下拉重新整理</span></div>
 
   <main id="app" hidden>
-    <header class="top">
-      <div class="top-row">
-        <div class="brand small">人生紀錄<span class="brand-dot">.</span></div>
-        <div class="age"><span id="age-num">0</span><span class="age-unit">歲</span></div>
-        <button id="partner-btn" class="icon-btn" type="button" aria-label="連結的家人" hidden>💞</button>
-        <button id="sync-btn" class="icon-btn sync-btn" type="button" aria-label="同步狀態" hidden>☁︎</button>
-        <button id="open-settings" class="icon-btn" aria-label="設定">⚙</button>
-      </div>
-      <div id="age-sub" class="age-sub"></div>
-      <div class="progress"><div id="age-progress"></div></div>
-    </header>
-
-    <div id="backup-banner" class="banner" hidden>
-      <span id="backup-text"></span>
-      <button id="banner-export" class="btn small">立即備份</button>
-    </div>
-
-    <section class="panel now-panel">
-      <div id="scene" class="scene">
-        <canvas id="scene-canvas" aria-label="今年的場景，點小人會說話"></canvas>
-        <div id="scene-bubble" class="scene-bubble" role="status"></div>
-      </div>
-      <!-- 一秒日記：一句話或一個心情就算記過 -->
-      <div id="quick-note" class="quick-note">
-        <button id="quick-open" class="quick-open" type="button"><span>今天過得怎麼樣？一句話就好</span></button>
-        <button id="quick-photo" class="quick-photo" type="button" aria-label="用一張照片記錄">📷</button>
-      </div>
-      <div id="quick-done" class="hint" hidden></div>
-      <div id="avatar-banner" class="avatar-banner" hidden>
-        <span>🎨 小人可以自己捏了！性別、髮型、衣服、配件都能選</span>
-        <button id="avatar-banner-btn" class="btn small" type="button">來捏</button>
-      </div>
-      <div class="panel-head">
-        <h2>今年的狀態</h2>
-        <span class="muted small-text">0–100</span>
-      </div>
-      <div id="now-caption" class="hint"></div>
-      <div id="stat-bars" class="stat-bars"></div>
-      <div class="field focus-field">
-        <span class="field-label">今年的重心</span>
-        <div id="focus-chips" class="chips"></div>
-        <div id="focus-note" class="hint"></div>
-      </div>
-      <details class="stat-help">
-        <summary>這些狀態代表什麼？</summary>
-        <p>狀態不用自己打分數，是從你這一歲記下的事累積出來的，每一歲重新計算：</p>
-        <ul>
-          <li><b>健康</b>：標籤「健康」「運動」</li>
-          <li><b>幸福</b>：這一歲的平均心情，加上「旅行」「興趣」「里程碑」</li>
-          <li><b>知識</b>：標籤「學習」「工作」</li>
-          <li><b>人際關係</b>：標籤「家人」「朋友」「愛情」</li>
-        </ul>
-        <p>☆ 值得記住的事算兩倍。記得越多越接近 100，但越往上越難漲。點人生地圖的格子，可以看過去每一歲的狀態。</p>
-      </details>
-    </section>
-
-    <!-- 今天的小卡片：那年今日、未來的信、每週回憶題、生日 -->
-    <section id="today-panel" class="today-cards" hidden></section>
-
-    <section class="panel idcard">
-      <div class="idcard-head"><span>身分紀錄 · LIFE LOG</span><span id="id-year"></span></div>
-      <div class="idcard-body">
-        <div id="id-avatar" class="avatar"></div>
-        <div>
-          <div id="id-name" class="id-name"></div>
-          <dl class="id-grid">
-            <dt>生日</dt><dd id="id-birth"></dd>
-            <dt>時刻</dt><dd id="id-count"></dd>
-            <dt>值得記住</dt><dd id="id-stars"></dd>
-            <dt>已記錄年歲</dt><dd id="id-ages"></dd>
-          </dl>
+    <!-- 家：上半是房間（遊戲），下半是今天 -->
+    <section class="tab-page home-page" data-tab="home">
+      <div class="room-box">
+        <div id="scene" class="room"></div>
+        <div class="room-hud">
+          <span id="hud-age" class="hud-chip"></span>
+          <span id="hud-weather" class="hud-chip" hidden></span>
+          <span class="spacer"></span>
+          <button id="partner-btn" class="hud-btn" type="button" aria-label="連結的家人" hidden>💞</button>
+          <button id="sync-btn" class="hud-btn sync-btn" type="button" aria-label="同步狀態" hidden>☁︎</button>
         </div>
       </div>
-      <div id="id-mrz" class="mrz"></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <h2>人生地圖</h2>
-        <span class="muted small-text">一格一年 · 點格子補回憶</span>
-      </div>
-      <div id="map-summary" class="map-summary"></div>
-      <div class="row map-actions">
-        <button id="recall-btn" class="btn recall-btn" type="button">🕰 回憶模式</button>
-        <button id="replay-btn" class="btn recall-btn" type="button">🎬 人生重播</button>
-        <button id="garden-btn" class="btn recall-btn" type="button">🌷 心情花園</button>
-      </div>
-      <div id="life-map" class="life-map"></div>
-      <div class="map-legend">
-        <span>心情</span>
-        <span class="swatch" style="--c:#56608f"></span><span class="swatch" style="--c:#4f86a6"></span><span class="swatch" style="--c:#3fa89a"></span><span class="swatch" style="--c:#7fbf6a"></span><span class="swatch" style="--c:#e6b84f"></span>
-        <span class="legend-gap">★ 有值得記住</span>
-        <span class="legend-now">今年</span>
+      <div class="home-sheet">
+        <div id="backup-banner" class="banner" hidden>
+          <span id="backup-text"></span>
+          <button id="banner-export" class="btn small">立即備份</button>
+        </div>
+        <div id="quick-note" class="quick-note">
+          <button id="quick-open" class="quick-open" type="button"><span>今天過得怎麼樣？一句話就好</span></button>
+          <button id="quick-photo" class="quick-photo" type="button" aria-label="用一張照片記錄">📷</button>
+        </div>
+        <div id="quick-done" class="hint" hidden></div>
+        <section id="today-panel" class="today-cards" hidden></section>
       </div>
     </section>
 
-    <section class="panel" id="timeline-panel">
-      <div class="panel-head">
-        <h2>人生紀錄</h2>
-        <span class="muted small-text">點人生地圖的格子切換年份</span>
-      </div>
-      <div class="filters">
-        <input id="search" type="search" placeholder="搜尋紀錄…" autocomplete="off">
-        <div id="filter-chips" class="chips"></div>
-      </div>
-      <div id="timeline"></div>
+    <!-- 回憶：依年紀的時間軸 -->
+    <section class="tab-page" data-tab="memories" hidden>
+      <header class="page-head"><h1>回憶</h1></header>
+      <section class="panel" id="timeline-panel">
+        <div class="filters">
+          <input id="search" type="search" placeholder="搜尋紀錄…" autocomplete="off">
+          <div id="filter-chips" class="chips"></div>
+        </div>
+        <div id="timeline"></div>
+      </section>
     </section>
 
-    <section id="achievements-panel" class="panel" hidden>
-      <div class="panel-head">
-        <h2>成就</h2>
-        <span id="ach-count" class="muted small-text"></span>
+    <!-- 地圖：一生 90 格、回憶模式、人生重播、心情花園 -->
+    <section class="tab-page" data-tab="map" hidden>
+      <header class="page-head"><h1>人生地圖</h1><span class="muted small-text">一格一年 · 點格子看那一歲</span></header>
+      <section class="panel">
+        <div id="map-summary" class="map-summary"></div>
+        <div id="life-map" class="life-map"></div>
+        <div class="map-legend">
+          <span>心情</span>
+          <span class="swatch" style="--c:#cfcbe0"></span><span class="swatch" style="--c:#c4dbe9"></span><span class="swatch" style="--c:#c7e8dd"></span><span class="swatch" style="--c:#ffdcb2"></span><span class="swatch" style="--c:#f7b3c6"></span>
+          <span class="legend-gap">★ 有值得記住</span>
+          <span class="legend-now">今年</span>
+        </div>
+      </section>
+      <div class="map-actions">
+        <button id="recall-btn" class="action-card" type="button">🕰 回憶模式</button>
+        <button id="replay-btn" class="action-card" type="button">🎬 人生重播</button>
+        <button id="garden-btn" class="action-card" type="button">🌷 心情花園</button>
       </div>
-      <div id="achievements" class="achievements"></div>
     </section>
 
-    <button id="add-btn" class="fab" aria-label="記一筆">＋ 記一筆</button>
+    <!-- 我：個人資料、今年的狀態、設定 -->
+    <section class="tab-page" data-tab="me" hidden>
+      <header class="page-head"><h1>我</h1><button id="open-settings" class="icon-btn" aria-label="設定">⚙</button></header>
+      <button id="me-card" class="me-card" type="button" aria-label="換我的樣子">
+        <span id="me-look" class="me-look"></span>
+        <span class="me-text"><b id="me-name"></b><span id="age-sub" class="hint"></span><span class="me-edit">👗 換我的樣子</span></span>
+      </button>
+      <div id="me-stats" class="me-stats"></div>
+      <div class="menu me-menu">
+        <button class="menu-item" type="button" data-open="people"><span>👨‍👩‍👧 人物與寵物</span><span id="me-people" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="letters"><span>💌 給未來的信</span><span id="me-letters" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="cloud"><span>🤝 家人與好友</span><span id="me-cloud" class="menu-sub"></span><span class="chev">›</span></button>
+      </div>
+      <section class="panel now-panel">
+        <div class="panel-head">
+          <h2>今年的狀態</h2>
+          <span class="muted small-text">0–100</span>
+        </div>
+        <div id="now-caption" class="hint"></div>
+        <div id="stat-bars" class="stat-bars"></div>
+        <div class="field focus-field">
+          <span class="field-label">今年的重心</span>
+          <div id="focus-chips" class="chips"></div>
+          <div id="focus-note" class="hint"></div>
+        </div>
+        <details class="stat-help">
+          <summary>這些狀態代表什麼？</summary>
+          <p>狀態不用自己打分數，是從你這一歲記下的事累積出來的，每一歲重新計算：</p>
+          <ul>
+            <li><b>健康</b>：標籤「健康」「運動」</li>
+            <li><b>幸福</b>：這一歲的平均心情，加上「旅行」「興趣」「里程碑」</li>
+            <li><b>知識</b>：標籤「學習」「工作」</li>
+            <li><b>人際關係</b>：標籤「家人」「朋友」「愛情」</li>
+          </ul>
+          <p>☆ 值得記住的事算兩倍。記得越多越接近 100，但越往上越難漲。點人生地圖的格子，可以看過去每一歲的狀態。</p>
+        </details>
+      </section>
+      <section id="achievements-panel" class="panel" hidden>
+        <div class="panel-head">
+          <h2>成就</h2>
+          <span id="ach-count" class="muted small-text"></span>
+        </div>
+        <div id="achievements" class="achievements"></div>
+      </section>
+      <div class="menu me-menu">
+        <button class="menu-item" type="button" data-open="weather"><span>🌤 真實天氣</span><span id="me-weather" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="backup"><span>💾 備份與資料</span><span id="me-backup" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="other"><span>⚙️ 外觀與其他</span><span class="menu-sub"></span><span class="chev">›</span></button>
+      </div>
+    </section>
+
+    <!-- 底部分頁 -->
+    <nav id="tabbar" class="tabbar" aria-label="主要分頁">
+      <button type="button" data-tab-btn="home" aria-current="page"><span class="tab-ic">🏠</span>家</button>
+      <button type="button" data-tab-btn="memories"><span class="tab-ic">📖</span>回憶</button>
+      <button id="add-btn" type="button" class="tab-add" aria-label="記一筆">＋</button>
+      <button type="button" data-tab-btn="map"><span class="tab-ic">🗺</span>地圖</button>
+      <button type="button" data-tab-btn="me"><span class="tab-ic">🙂</span>我</button>
+    </nav>
   </main>
 
   <!-- 新增／編輯時刻：內容放第一個，選填的項目收成一排按鈕，點了才展開 -->
@@ -347,6 +352,27 @@
     </div>
   </dialog>
 
+  <!-- 我的樣子（房間裡的小人） -->
+  <dialog id="look-dialog" class="sheet look-dialog">
+    <h3 id="look-title">我的樣子</h3>
+    <p id="look-sub" class="hint"></p>
+    <div id="look-preview" class="look-stage"></div>
+    <div id="look-options" class="look-options"></div>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button id="look-save" class="btn primary" type="button">好了</button>
+    </div>
+  </dialog>
+
+  <!-- 一般資訊抽屜（電視、門…） -->
+  <dialog id="info-dialog" class="sheet info-dialog">
+    <div id="info-body"></div>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn primary" type="button" data-close>關閉</button>
+    </div>
+  </dialog>
+
   <!-- 人生大事 -->
   <dialog id="event-dialog" class="sheet event-dialog">
     <h3>人生大事</h3>
@@ -409,7 +435,7 @@
           <span class="profile-text"><b id="profile-card-name"></b><span id="profile-card-sub" class="hint"></span></span>
           <span class="chev">›</span>
         </button>
-        <button id="settings-avatar-btn" class="btn small" type="button">✏️ 捏小人</button>
+        <button id="settings-avatar-btn" class="btn small" type="button">👗 我的樣子</button>
       </div>
       <div class="menu">
         <button class="menu-item" type="button" data-go="cloud"><span>☁️ 雲端與家人</span><span id="menu-cloud" class="menu-sub"></span><span class="chev">›</span></button>

@@ -3,6 +3,7 @@ const { chromium } = require(process.env.PLAYWRIGHT || 'playwright');
 const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 const old = '2026-10-10T00:00:00Z';
@@ -39,19 +40,19 @@ const STATE = { version: 2, profile: { name: '秀', birthday: '1998-10-19', avat
   assert((await st(p)).letters[0].openedAt, '打開後記下時間');
   assert((await p.textContent('#timeline')).includes('來自 25 歲的信'), '打開過的信出現在那一歲的紀錄裡');
   // 寫信給未來
-  await p.click('#life-map .cell >> nth=32'); await p.fill('#letter-body textarea', '給 32 歲的我'); await p.click('#letter-body button:text-is("封存")'); await p.waitForTimeout(200);
+  await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=32')); await p.fill('#letter-body textarea', '給 32 歲的我'); await p.click('#letter-body button:text-is("封存")'); await p.waitForTimeout(200);
   assert(await p.textContent('#life-map .cell >> nth=32') === '✉️', '未來的格子出現信封');
   let s = await st(p); assert(s.letters.length === 2 && s.letters[1].openOn === '2030-10-19', '信封存到 32 歲生日');
-  await p.click('#life-map .cell >> nth=32');
+  await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=32'));
   assert(!(await p.textContent('#letter-body')).includes('給 32 歲的我') && (await p.textContent('#letter-body')).includes('已經封存 1 封'), '封存的信看不到內容');
   await p.click('#letter-body button:text-is("取消")');
   // 一秒日記
-  await p.click('#quick-open'); await p.fill('#moment-form [name=text]', '今天吃到好吃的拉麵'); await p.click('#emo-picker .chip >> text=開心'); await p.click('#moment-save'); await p.waitForTimeout(300);
+  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '今天吃到好吃的拉麵'); await p.click('#emo-picker .chip >> text=開心'); await p.click('#moment-save'); await p.waitForTimeout(300);
   s = await st(p); const q = s.moments.find(x => x.text === '今天吃到好吃的拉麵');
   assert(q && q.mood === 5 && q.date === '2026-10-19', '首頁入口記的存成今天，選「開心」就是心情 5');
   assert((await p.textContent('#quick-done')).includes('今天記了 1 則'), '顯示今天記過了');
   // 年度卡
-  await p.click('#life-map .cell >> nth=17'); await p.click('#timeline .year-title-btn'); await p.click('#year-card');
+  await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=17')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn')); await p.click('#year-card');
   await p.waitForSelector('#letter-body .year-card-img', { timeout: 15000 });
   const src = await p.$eval('.year-card-img', i => i.src); 
   await p.waitForTimeout(300);
@@ -60,7 +61,7 @@ const STATE = { version: 2, profile: { name: '秀', birthday: '1998-10-19', avat
   assert(png.length > 10000, '年度卡產生圖片');
   await p.click('#letter-body button:text-is("關閉")');
   // 人生重播
-  await p.click('#replay-btn'); await p.waitForTimeout(800);
+  await tab(p, 'map').then(() => p.click('#replay-btn')); await p.waitForTimeout(800);
   const a0 = await p.textContent('#replay-age');
   await p.waitForTimeout(2600);
   const a1 = await p.textContent('#replay-age');

@@ -4,6 +4,7 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = []; const toasts = [];
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
@@ -16,7 +17,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.addInitScript(() => { new MutationObserver(() => { const t = document.querySelector('#toast'); if (t && !t.hidden) window.logToast(t.textContent); }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true }); });
   await p.goto(URL);
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
-  await p.waitForFunction(() => document.querySelector('#avatar-dialog').open); await p.keyboard.press('Escape');
+  await p.waitForFunction(() => document.querySelector('#look-dialog').open); await p.keyboard.press('Escape');
   const closed = (sel) => p.waitForFunction((s) => !document.querySelector(s).open, sel);
   const save = async () => { await p.click('#moment-save'); await closed('#moment-dialog'); await p.waitForTimeout(150); };
 
@@ -28,7 +29,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert((await st(p)).achievements.first, '但背後有記錄（第一步）');
 
   // 新增人物與寵物
-  await p.click('#open-settings');
+  await tab(p, 'me').then(() => p.click('#open-settings'));
   await p.click('#add-person-btn');
   await p.fill('#person-body input[aria-label=名字]', '媽媽');
   await p.click('#person-body button:text-is("媽媽")');
@@ -92,26 +93,26 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await save();
   assert(toasts.some(t => t.includes('好好記下來了')), '告別：溫和的提示');
   assert(await p.$eval('#scene', e => e.dataset.pets) === '0', '小白去了彩虹橋，不再出現在場景');
-  await p.click('.person-chip:has-text("小白") >> nth=0');
+  await tab(p, 'memories'); await p.click('.person-chip:has-text("小白") >> nth=0');
   assert((await p.textContent('#person-body')).includes('彩虹橋'), '人物卡顯示 🌈');
   await p.click('#person-body button:text-is("關閉")');
-  await p.click('.moment-body:has-text("去了彩虹橋")'); await p.click('#moment-menu-btn'); await p.click('#moment-delete'); await closed('#moment-dialog');
+  await tab(p, 'memories'); await p.click('.moment-body:has-text("去了彩虹橋")'); await p.click('#moment-menu-btn'); await p.click('#moment-delete'); await closed('#moment-dialog');
   assert(await p.$eval('#scene', e => e.dataset.pets) === '1', '刪掉那則紀錄，小白回到場景');
 
   // 時間軸、篩選、人生地圖
   assert((await p.$$('.person-chip')).length >= 3, '時間軸顯示一起的人');
-  await p.click('.chip:text-is("⭐ 人生大事")');
+  await tab(p, 'memories'); await p.click('.chip:text-is("⭐ 人生大事")');
   assert((await p.$$('.moment')).length === 3, '「人生大事」篩選出 3 則');
-  await p.click('.chip:text-is("全部")');
-  await p.click('.person-chip:has-text("Ken")');
+  await tab(p, 'memories'); await p.click('.chip:text-is("全部")');
+  await tab(p, 'memories'); await p.click('.person-chip:has-text("Ken")');
   assert((await p.textContent('#person-body .person-facts')).includes('一起記了 1 則'), 'Ken 的人物卡：一起記了 1 則');
   await p.click('#person-body button:text-is("篩選紀錄")');
   assert((await p.$$('.moment')).length === 1 && await p.$eval('.chip.on', e => e.textContent) === '👤 Ken', '從人物卡篩選時間軸');
-  await p.click('.chip:text-is("全部")');
+  await tab(p, 'memories'); await p.click('.chip:text-is("全部")');
   assert(await p.$eval('#life-map .cell.now', e => e.classList.contains('has-event')), '人生地圖：今年那格顯示大事圖示');
 
   // 回憶模式：這一歲的人生大事
-  await p.click('#recall-btn');
+  await tab(p, 'map').then(() => p.click('#recall-btn'));
   while ((await p.textContent('#recall-age')) !== '18 歲') { const a = await p.textContent('#recall-age'); await p.click('#recall-next'); await p.waitForFunction((x) => document.querySelector('#recall-age').textContent !== x, a); }
   await p.click('#recall-event');
   await p.click('#event-cats button:text-is("學業")'); await p.click('#event-grid button:has-text("上大學")');
@@ -121,18 +122,18 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#recall-dialog [data-close]');
 
   // 刪除人物：紀錄留著、標記拿掉
-  await p.click('#life-map .cell.now'); await p.click('.person-chip:has-text("小寶")'); await p.click('#person-body button:text-is("編輯")'); await p.click('#person-body .danger-zone button'); await closed('#person-dialog');
+  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await p.click('.person-chip:has-text("小寶")'); await p.click('#person-body button:text-is("編輯")'); await p.click('#person-body .danger-zone button'); await closed('#person-dialog');
   s = await st(p);
   assert(!s.people.some(x => x.name === '小寶') && s.moments.some(x => x.event === 'baby' && x.people.length === 0), '刪除人物：紀錄還在，標記拿掉');
 
   // 備份還原保留人物
-  await p.click('#open-settings'); await p.click('#export-btn');
+  await tab(p, 'me').then(() => p.click('#open-settings')); await p.click('#export-btn');
   await p.waitForFunction(() => document.querySelector('#export-btn').textContent.startsWith('儲存備份檔'));
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#export-btn')]); await dl.saveAs(S + '/people.zip');
   await p.click('#reset-btn'); await p.waitForSelector('#setup:not([hidden])');
   await p.fill('#setup-form [name=name]', 'X'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
-  await p.waitForFunction(() => document.querySelector('#avatar-dialog').open); await p.keyboard.press('Escape');
-  await p.click('#open-settings'); await p.setInputFiles('#import-file', S + '/people.zip'); await closed('#settings-dialog');
+  await p.waitForFunction(() => document.querySelector('#look-dialog').open); await p.keyboard.press('Escape');
+  await tab(p, 'me').then(() => p.click('#open-settings')); await p.setInputFiles('#import-file', S + '/people.zip'); await closed('#settings-dialog');
   s = await st(p);
   assert(s.people.length === 3 && s.moments.find(x => x.event === 'wedding').people.length === 1, '匯出再匯入：人物與標記都在');
   await p.waitForTimeout(1500);
