@@ -57,10 +57,18 @@ async function newPage(b, opts = {}) {
   await p.mouse.click(rb.x + rb.w * 0.7, rb.y + rb.h * 0.75);
   await p.waitForTimeout(1600);
   assert(await p.$eval('#room-me', (e) => e.getAttribute('transform')) !== before, '點地板，小人走過去');
-  // 點小人：換樣子
+  // 點小人：跳一下、說句話，不會打開換裝
   await p.$eval('#room-me', (e) => e.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-  assert(await p.waitForSelector('#look-dialog[open]', { timeout: 3000 }).then(() => true, () => false), '點房間裡的自己可以換樣子');
-  await p.keyboard.press('Escape');
+  await p.waitForTimeout(300);
+  assert(!(await p.$eval('#look-dialog', (d) => d.open)), '點房間裡的自己不會打開換裝');
+  assert(await p.$eval('#scene-bubble', (e) => e.classList.contains('show') && e.textContent.length > 0), '點房間裡的自己會說句話');
+  // 版本號是 主.次.修（例如 0.0.50）：0.0.10 比 0.0.9 新，舊的 v49 格式不算
+  await p.evaluate(() => Promise.all(['lifelog-0.0.9', 'lifelog-0.0.10', 'lifelog-v99'].map((k) => caches.open(k))));
+  await p.evaluate(() => { document.querySelector('#open-settings').click(); });
+  assert(await p.waitForFunction(() => document.querySelector('#settings-version').textContent.startsWith('App 版本：0.0.10 '), null, { timeout: 3000 }).then(() => true, () => false), '設定裡顯示 App 版本：主.次.修');
+  await p.evaluate(() => { const d = document.querySelector('#settings-dialog'); if (d.open) d.close(); });
+  await p.waitForTimeout(100);
+  await p.evaluate(() => Promise.all(['lifelog-0.0.9', 'lifelog-0.0.10', 'lifelog-v99'].map((k) => caches.delete(k))));
   // 床：睡覺、叫醒
   await p.click('#scene .hot[data-name="bed"]');
   await p.waitForFunction(() => document.querySelector('#scene').dataset.actor === 'sleep', null, { timeout: 8000 });
@@ -167,15 +175,25 @@ async function newPage(b, opts = {}) {
   await x.waitForTimeout(600);
   s = await st(x);
   assert(s.profile.look.style === 'pixel' && s.profile.look.hair === 'bob' && s.profile.look.cloth === 'sweater', '存下：像素女孩、妹妹頭、日常毛衣');
-  assert(await x.$eval('#scene', (e) => e.dataset.style === 'pixel' && e.dataset.pose === 'front') && await x.$eval('.pix-body', (e) => e.getAttribute('href').endsWith('pixel/body_sweater_front.webp?v=2')), '房間裡站著是正面的像素女孩');
+  assert(await x.$eval('#scene', (e) => e.dataset.style === 'pixel' && e.dataset.pose === 'front') && await x.$eval('.pix-body.on', (e) => e.getAttribute('href').endsWith('pixel/body_sweater_front.webp?v=2')), '房間裡站著是正面的像素女孩');
   const xb = await x.$eval('#scene svg', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
   await x.mouse.click(xb.x + xb.w * 0.3, xb.y + xb.h * 0.8);
   const seen = new Set();
-  for (let i = 0; i < 8; i++) { await x.waitForTimeout(80); seen.add(await x.$eval('.pix-body', (e) => e.getAttribute('href'))); }
-  assert(await x.$eval('#scene', (e) => e.dataset.pose) === 'side' && await x.$eval('.pix-head', (e) => e.getAttribute('href').endsWith('head_bob_side.webp?v=2')), '走路時換成側面的頭');
+  let matched = true;
+  for (let i = 0; i < 8; i++) {
+    await x.waitForTimeout(80);
+    seen.add(await x.$eval('.pix-body.on', (e) => e.getAttribute('href')));
+    // 看得到的永遠只有一個身體＋一個頭，而且頭是側面時身體也是走路的側面
+    matched = matched && await x.$eval('#scene', (e) => {
+      const on = [...e.querySelectorAll('.pix-body, .pix-head')].filter((i) => i.getAttribute('opacity') === '1').map((i) => i.getAttribute('href'));
+      return on.length === 2 && /head_\w+_side/.test(on[1]) === /body_\w+_walk\d/.test(on[0]);
+    });
+  }
+  assert(matched, '走路時頭和身體的方向一致（不會側面的頭配正面的身體）');
+  assert(await x.$eval('#scene', (e) => e.dataset.pose) === 'side' && await x.$eval('.pix-head.on', (e) => e.getAttribute('href').endsWith('head_bob_side.webp?v=2')), '走路時換成側面的頭');
   assert([...seen].filter((h) => /body_sweater_walk\d\.webp\?v=2$/.test(h)).length >= 2, '走路時身體一格一格換');
   await x.waitForFunction(() => document.querySelector('#scene').dataset.pose === 'front', null, { timeout: 8000 });
-  assert(await x.$eval('.pix-body', (e) => e.getAttribute('href').endsWith('body_sweater_front.webp?v=2')), '走到了轉回正面');
+  assert(await x.$eval('.pix-body.on', (e) => e.getAttribute('href').endsWith('body_sweater_front.webp?v=2')), '走到了轉回正面');
   await x.close();
 
   // ===== 減少動態效果 =====

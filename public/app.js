@@ -2539,6 +2539,7 @@ function openSettings(page = 'home') {
   form.birthday.syncPicker();
   form.birthday.max = todayStr();
   resetExportButton();
+  renderAppVersion();
   renderSettingsMenu();
   renderWeatherSection();
   renderCloudSection();
@@ -3338,12 +3339,19 @@ function bind() {
   window.addEventListener('online', () => scheduleSync(300));
 }
 
-// 「我的」最下面顯示目前是哪一版（service worker 的快取名稱），回報問題時好對照
+// 目前是哪一版：service worker 的快取名稱 lifelog-0.0.50（主.次.修），回報問題時好對照
+async function appVersion() {
+  const keys = window.caches ? await caches.keys() : [];
+  const nums = (v) => v.split('.').map(Number);
+  const newer = (a, b) => { const x = nums(a), y = nums(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
+  return keys.map((k) => (k.match(/^lifelog-(\d+\.\d+\.\d+)$/) || [])[1]).filter(Boolean).reduce((a, b) => (!a || newer(b, a) ? b : a), '');
+}
+
+// 「我的」最下面顯示版本
 async function showVersion() {
   try {
-    const keys = window.caches ? await caches.keys() : [];
-    const v = keys.map((k) => (k.match(/^lifelog-(v\d+)$/) || [])[1]).filter(Boolean).sort((a, b) => parseInt(b.slice(1), 10) - parseInt(a.slice(1), 10))[0];
-    $('#app-version').textContent = `LIFEY ${v || ''}`.trim();
+    const v = await appVersion();
+    $('#app-version').textContent = `LIFEY ${v}`.trim();
   } catch (e) { /* 拿不到就不顯示 */ }
 }
 
@@ -3368,7 +3376,6 @@ async function init() {
     letter: () => { const ready = readyLetters(); if (ready.length) openLetter(ready[0].id); else openLetterEditor(ageAt(state.profile.birthday, todayStr()) + 1); },
     shelf: () => shelfMemory(),
     photos: () => wallPhotos(),
-    me: () => openLook(),
   });
   ui.weather = weather.weatherEnabled() ? weather.cachedWeather() : null;
   render();
@@ -3396,10 +3403,9 @@ async function init() {
 init();
 
 async function renderAppVersion() {
-  const el = $('#app-version');
+  const el = $('#settings-version');
   if (!el || !('caches' in window)) return;
-  const name = (await caches.keys()).find((k) => k.startsWith('lifelog-'));
-  el.textContent = name ? `App 版本：${name.replace('lifelog-', '')} · 在主畫面往下拉就會更新到最新版本` : '';
+  const v = await appVersion();
+  el.textContent = v ? `App 版本：${v} · 在主畫面往下拉就會更新到最新版本` : '';
 }
 
-$('#open-settings').addEventListener('click', renderAppVersion);

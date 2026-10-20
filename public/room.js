@@ -139,7 +139,7 @@ const star = (cx, cy, r) => `M${cx},${cy - r} Q${cx},${cy} ${cx + r},${cy} Q${cx
 const clock = () => new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 export class Room {
-  // box：放房間的元素（裡面會建 svg 和泡泡）；on：點了東西要做的事 { diary, calendar, tv, letter, shelf, door, plant, photos, me }
+  // box：放房間的元素（裡面會建 svg 和泡泡）；on：點了東西要做的事 { diary, calendar, tv, letter, shelf, door, plant, photos }
   constructor(box, on = {}) {
     this.box = box;
     this.on = on;
@@ -187,7 +187,7 @@ export class Room {
     // 像素女孩：外層抵銷左右翻面（站著的正面不翻），裡面兩張圖（身體、頭）
     this.pixFlip = el('g', { class: 'pix' }, bob);
     const pix = el('g', { transform: `scale(${PIX_SIZE / PIX_H}) translate(${-PIX_FOOT[0]},${-PIX_FOOT[1]})` }, this.pixFlip);
-    this.pixImgs = ['body', 'head'].map((k) => el('image', { class: `pix-${k}`, width: PIX_W, height: PIX_H, style: 'image-rendering:pixelated' }, pix));
+    this.pixG = pix; this.pixImgs = {}; this.pixKey = '';
     this.pixT = 0;
     this.walking = false;
     // 泡泡（HTML，字比較清楚）
@@ -199,7 +199,7 @@ export class Room {
 
     this.bindHots();
     svg.addEventListener('click', (e) => this.onFloor(e));
-    this.meG.addEventListener('click', (e) => { e.stopPropagation(); if (this.me.asleep) { this.wake(); return; } this.on.me && this.on.me(); });
+    this.meG.addEventListener('click', (e) => { e.stopPropagation(); if (this.me.asleep) { this.wake(); return; } this.poke(); });
     this.dress();
     this.place();
   }
@@ -271,13 +271,26 @@ export class Room {
     this.box.dataset.pose = this.isDoll || this.isPixel ? (this.walking ? 'side' : 'front') : 'classic';
   }
   // 像素女孩：站著＝正面；走路＝側面的頭＋第幾格身體
+  // 每個姿勢的圖都先放好、只切換哪張看得到：換 href 的話 iPhone 有時新圖還沒畫出來，會變成側面的頭配正面的身體
   pixFrame() {
     const look = normalizeLook(this.state.look);
+    const key = `${look.hair}|${look.cloth}`;
+    if (this.pixKey !== key) {
+      this.pixKey = key;
+      const views = ['front', 'walk0', 'walk1', 'walk2', 'walk3'].map((v) => pixParts(look.hair, look.cloth, v));
+      const bodies = views.map(([b]) => b), heads = [...new Set(views.map(([, h]) => h))];
+      this.pixImgs = {};
+      this.pixG.replaceChildren();
+      for (const [k, list] of [['body', bodies], ['head', heads]]) {
+        for (const f of list) this.pixImgs[f] = el('image', { class: `pix-${k}`, href: pixSrc(f), width: PIX_W, height: PIX_H, opacity: 0, style: 'image-rendering:pixelated' }, this.pixG);
+      }
+    }
     const view = this.walking ? `walk${Math.floor(this.pixT / PIX_FRAME) % 4}` : 'front';
-    pixParts(look.hair, look.cloth, view).forEach((f, i) => {
-      const href = pixSrc(f), img = this.pixImgs[i];
-      if (img.getAttribute('href') !== href) img.setAttribute('href', href);
-    });
+    const want = new Set(pixParts(look.hair, look.cloth, view));
+    for (const [f, img] of Object.entries(this.pixImgs)) {
+      const on = want.has(f);
+      if (img.classList.contains('on') !== on) { img.classList.toggle('on', on); img.setAttribute('opacity', on ? 1 : 0); }
+    }
     this.pixFlip.setAttribute('transform', this.walking ? '' : `scale(${this.me.dir},1)`);
   }
   place() {
@@ -373,6 +386,12 @@ export class Room {
       const s = el('path', { d: star(x + Math.cos(a) * r, y + Math.sin(a) * r, 14 + Math.random() * 10), fill: i % 2 ? '#fff' : '#ffe58a', stroke: '#5b3a3e', 'stroke-width': 3, class: 'room-twinkle once', style: `animation-delay: ${i * .08}s` }, this.fx);
       setTimeout(() => s.remove(), 1600);
     }
+  }
+  // 點自己：跳一下、說句話（換裝在「我」分頁）
+  poke() {
+    this.jump();
+    const lines = ['嗨！👋', '今天過得好嗎？', '要不要記一筆？📖', '我在這裡 ✨', '嘿嘿 😊'];
+    this.say(lines[Math.floor(Math.random() * lines.length)], 2000);
   }
   jump() {
     if (this.pose.animate) this.pose.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-26px)' }, { transform: 'translateY(0)' }], { duration: 420, easing: 'ease-out' });

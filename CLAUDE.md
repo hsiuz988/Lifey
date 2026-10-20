@@ -45,7 +45,7 @@
 | 書架 `shelf` | 隨機一則回憶 |
 | 牆上照片 `photos` | 照片 |
 | 盆栽 `plant` | 心情花園 |
-| 點人物 | 換裝（look dialog） |
+| 點人物 | 跳一下、說句話（換裝從「我」的個人卡進去） |
 | 檯燈、床、時鐘、窗戶 | 小互動：開關燈、睡覺、報時、天氣 |
 | 門 `door` | 尚未接功能（「其他房間還在裝潢中」） |
 
@@ -71,7 +71,7 @@ public/            網站本體（ES modules）
   room.js          房間：等角座標、A* 走路、分層人物、熱點、泡泡、表情動作
   room/            room.webp、tv_on.webp、char/*.webp（人物圖層）
   ptr.js           獨立的下拉更新＋註冊 SW（app.js 壞掉也能用）
-  sw.js            Service worker（CACHE = 'lifelog-vNN'，每次改前端檔案都要 +1）
+  sw.js            Service worker（VERSION = '0.0.NN'，每次改前端檔案都要 +1，見「版本號」）
   db.js            IndexedDB
   cloud.js         登入（Passkey/Face ID）、同步
   scene.js / avatar.js / game.js   舊的像素場景（只剩「人生重播」在用）
@@ -90,7 +90,14 @@ tests/             Playwright 端對端測試
 - html/js/css/json 用 network-first，圖片用 cache-first。
 - **絕對不能快取或回傳 redirected response**：Safari 會整頁空白，而 `/index.html` 會 307 轉到 `/`。`clean()` 會把它拆掉。
 - install 時某個檔案抓不到也不能整個失敗。
-- 改了 `public/` 的檔案就要把 `sw.js` 的 `CACHE` 版號 +1，新檔案也要加進 assets 清單。
+- 改了 `public/` 的檔案就要把 `sw.js` 的 `VERSION` 最後一位 +1，新檔案也要加進 assets 清單。
+
+### 版本號
+
+- 格式是 `主.次.修`（例如 `0.0.50`），寫在 `sw.js` 的 `VERSION`；快取名稱是 `lifelog-0.0.50`。設定頁和「我」最下面會顯示。
+- **修**（最後一位）：每次推上去的更新都 +1（原本的 `v49` 接著變成 `0.0.50`）。
+- **次**（中間）：使用者說「上線」、合併進 `main` 時 +1，最後一位歸零（例如 `0.0.57` → `0.1.0`）。
+- **主**（第一位）：正式對外發表時才改成 `1.0.0`，由使用者決定。
 
 ### 開機安全網
 
