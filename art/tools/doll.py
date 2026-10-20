@@ -1,3 +1,4 @@
+# 【舊版・正正面】現在 App 用的是 doll34.py（四分之三側面）；這支只輸出到 preview/doll_front 留作參考
 # 復古娃娃（會走路的版本）：把素體切成 身體＋頭、左右手、左右腳，App 走路時讓手腳繞關節擺動
 #   source/doll_base.webp            光頭素體（手臂離開身體、兩腿分開）
 #   source/doll_hair_long.webp       同一張圖＋長直髮
@@ -100,7 +101,7 @@ for im in layers.values():
     box = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
     bb = box if bb is None else (min(bb[0], box[0]), min(bb[1], box[1]), max(bb[2], box[2]), max(bb[3], box[3]))
 OUT_H = 420; k = OUT_H / (bb[3] - bb[1]); OUT_W = round((bb[2] - bb[0]) * k)
-OUT = '../public/room/doll'; os.makedirs(OUT, exist_ok=True)
+OUT = 'preview/doll_front'; os.makedirs(OUT, exist_ok=True)
 for name, im in layers.items():
     im.crop(bb).resize((OUT_W, OUT_H), Image.LANCZOS).save(f'{OUT}/{name}.webp', 'WEBP', quality=90)
 t = lambda p: [round((p[0] - bb[0]) * k, 1), round((p[1] - bb[1]) * k, 1)]

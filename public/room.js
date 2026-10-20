@@ -15,7 +15,7 @@ const STYLE_LOOKS = {
     cloth: [['tee', 'T 恤'], ['hoodie', '帽 T'], ['', '運動服']],
   },
   doll: {
-    hair: [['long', '長直髮'], ['', '光頭']],
+    hair: [['long', '長直髮'], ['bob', '鮑伯頭'], ['', '光頭']],
     cloth: [['tee', 'T 恤'], ['', '運動服']],
   },
 };
@@ -39,14 +39,16 @@ export const faceFor = (emo) => EMO_FACE[emo] || 'smile';
 // 小人的圖層（後髮 → 身體 → 衣服 → 五官 → 前髮 → 表情符號）；每張 267×420，腳底在 (108.8, 418.6)
 const CHAR_W = 267, CHAR_H = 420, FOOT = [108.8, 418.6];
 const SYM = { angry: true };
-// 復古娃娃：每張 254×420，腳底在 (126.5, 419.7)；手腳繞關節轉（art/tools/doll.py 印出來的數字）
-const DOLL_W = 254, DOLL_H = 420, DOLL_FOOT = [126.5, 419.7];
-const DOLL_JOINTS = { arm_l: [99.6, 236.9], arm_r: [153.4, 236.9], leg_l: [110.1, 306.8], leg_r: [142.9, 306.8] };
-const DOLL_FACES = new Set(['happy']); // 微笑畫在身體上，其他表情是另外一層
+// 復古娃娃（四分之三側面，臉朝畫面右下；往左走就整個翻面）：每張 242×420，腳底在 (129.5, 418.6)
+// n＝靠近我們的那側（畫面左），f＝遠的那側；手腳繞關節轉（art/tools/doll34.py 印出來的數字）
+const DOLL_W = 242, DOLL_H = 420, DOLL_FOOT = [129.5, 418.6];
+const DOLL_JOINTS = { arm_n: [105.9, 232.6], arm_f: [155.9, 236.0], leg_n: [115.6, 296.8], leg_f: [150.3, 296.8] };
+const DOLL_FACES = new Set(); // 這一版沒有表情，臉畫在身體上
 const dollFace = (face) => (DOLL_FACES.has(face) ? `face_${face}` : null);
+// 疊的順序：後髮 → 遠手 → 遠腳 → 近腳 → 身體 → 表情 → 前髮 → 近手
 const dollParts = (hair, cloth, face) => {
   const c = cloth ? `_${cloth}` : '';
-  return [hair && `hair_${hair}_back`, `arm_l${c}`, `arm_r${c}`, `leg_l${c}`, `leg_r${c}`, `body${c}`, dollFace(face), hair && `hair_${hair}_front`];
+  return [hair && `hair_${hair}_back`, `arm_f${c}`, `leg_f${c}`, `leg_n${c}`, `body${c}`, dollFace(face), hair && `hair_${hair}_front`, `arm_n${c}`];
 };
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
@@ -146,12 +148,15 @@ export class Room {
     this.dollHair = {};
     this.joints = {};
     const dollImg = (name, parent) => el('image', { href: `${BASE}doll/${name}.webp`, width: DOLL_W, height: DOLL_H }, parent);
-    this.dollHair.back = dollImg('hair_long_back', this.doll);
+    const joint = (j) => { this.joints[j] = el('g', { class: `doll-${j}` }, this.doll); this.dollBody[j] = dollImg(j, this.joints[j]); };
     this.dollBody = {};
-    for (const j of ['arm_l', 'arm_r', 'leg_l', 'leg_r']) { this.joints[j] = el('g', { class: `doll-${j}` }, this.doll); this.dollBody[j] = dollImg(j, this.joints[j]); }
+    this.dollHair.back = dollImg('hair_long_back', this.doll);
+    joint('arm_f'); joint('leg_f'); joint('leg_n');
     this.dollBody.body = dollImg('body', this.doll);
-    this.dollFace = dollImg('face_happy', this.doll);
+    this.dollFace = dollImg('body', this.doll);
+    this.dollFace.style.display = 'none';
     this.dollHair.front = dollImg('hair_long_front', this.doll);
+    joint('arm_n');
     this.stride = 0;
     // 泡泡（HTML，字比較清楚）
     this.bubble = document.createElement('div');
@@ -244,16 +249,17 @@ export class Room {
     }
     if (me.path.length) { this.raf = requestAnimationFrame((t) => this.tick(t)); return; }
     this.raf = 0;
-    this.stride = 0; this.swing(0);
+    this.stride = 0; this.swing(0, false);
     this.pose.setAttribute('class', 'idle');
     this.markers.replaceChildren();
     const f = me.then; me.then = null; if (f) f();
   }
-  // 復古娃娃走路：手和腳一起左右擺（正面看的走法），停下來就回到站姿
-  swing(dt) {
-    this.stride += dt * 2.9;
+  // 復古娃娃走路：腳前後跨步；手只往不會露出縫的方向擺（近手往前蓋過身體、遠手往後躲到身體後面）
+  // 停下來（walking＝false）就回到站姿
+  swing(dt, walking = true) {
+    this.stride += dt * 2.6;
     const s = Math.sin(this.stride * 2 * Math.PI);
-    const ang = { arm_l: -14 * s, arm_r: -14 * s, leg_l: 9 * s, leg_r: 9 * s };
+    const ang = walking ? { leg_n: -15 * s, leg_f: 15 * s, arm_n: -9 * (1 - s), arm_f: 8 * (1 - s) } : { leg_n: 0, leg_f: 0, arm_n: 0, arm_f: 0 };
     for (const [j, g] of Object.entries(this.joints)) {
       const [x, y] = DOLL_JOINTS[j];
       g.setAttribute('transform', `rotate(${ang[j].toFixed(2)} ${x} ${y})`);

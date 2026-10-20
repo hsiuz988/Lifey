@@ -98,12 +98,14 @@ tests/             Playwright 端對端測試
   - 髮型：`ponytail` 或 ''（短髮＝素體本身）；
   - 衣服：`tee`、`hoodie` 或 ''。
 - `style` 有兩種角色：`classic`（經典，預設）和 `doll`（復古娃娃）。`looksFor(style)` 回傳該角色可選的髮型和衣服。
-- **復古娃娃**（`public/room/doll/`，由 `art/tools/doll.py` 產生）：
-  - 切成身體＋頭、左右手、左右腳，加上前後髮；
-  - 走路時 `Room.swing()` 每一幀讓手腳繞關節 `DOLL_JOINTS` 轉（用 SVG transform 屬性，不靠 CSS，iPhone 也穩）；
-  - 衣服：每件衣服是一整張「光頭素體穿衣服」的圖，切成自己的身體和手腳（`body_tee`、`arm_l_tee`…）；
-  - 表情：微笑畫在身體上；其他表情只取臉的橢圓範圍，疊在身體和前髮之間（`face_happy`）；
-  - 目前有：長直髮／光頭、T 恤／運動服、微笑／高興。
+- **復古娃娃**（`public/room/doll/`，由 `art/tools/doll34.py` 產生）：
+  - **四分之三側面**（臉朝畫面右下），往左走時整個左右翻面；
+  - 切成身體＋頭、近手 `arm_n`、遠手 `arm_f`、近腳 `leg_n`、遠腳 `leg_f`，加上前後髮；
+  - 疊的順序：後髮 → 遠手 → 遠腳 → 近腳 → 身體 → 前髮 → 近手；
+  - 走路時 `Room.swing()` 每一幀讓手腳繞關節 `DOLL_JOINTS` 轉（用 SVG transform 屬性，不靠 CSS，iPhone 也穩）：腳前後跨步，近手往前、遠手往後（另一個方向會露出縫）；
+  - 衣服：一整張「光頭素體穿衣服」的圖，先用腿和鞋對齊素體，只取脖子以下，頭一律用素體的（頭髮才對得齊）；
+  - 目前有：女生、長直髮／鮑伯頭／光頭、T 恤／運動服；這一版沒有表情；
+  - 男生素體 `art/source/doll34_boy_base.webp` 已有，髮型和衣服等使用者生成。
 - 表情由心情決定（經典角色）：`faceFor(emo)` 把 happy/excited/love/moved 對到 `happy`、angry 對到 `angry`、其他對到 `smile`。
 - 圖層順序：`hair_*_back → body → cloth → face → hair_*_front → sym_*`。
 - 圖層尺寸是 267×420，腳底在 (108.8, 418.6)。
