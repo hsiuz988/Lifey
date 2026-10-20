@@ -64,10 +64,13 @@ const dollParts = (hair, cloth, face) => {
 const PIX_W = 267, PIX_H = 420, PIX_FOOT = [133.5, 389];
 const PIX_SIZE = 340; // 畫布在房間裡的高度（人物本身大約 272，和復古娃娃一樣高）
 const PIX_FRAME = 0.15; // 走路每格幾秒
+// 像素女孩的圖改過就把這個數字 +1（sw.js 的清單也要一起改）：網址不同，舊版程式和新圖才不會混在一起
+const PIX_REV = 2;
+const pixSrc = (f) => `${BASE}pixel/${f}.webp?v=${PIX_REV}`;
 const pixParts = (hair, cloth, view) => [`body_${cloth}_${view}`, `head_${hair}_${view === 'front' ? 'front' : 'side'}`];
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
-  if (l.style === 'pixel') return pixParts(l.hair, l.cloth, 'front').map((f) => `${BASE}pixel/${f}.webp`);
+  if (l.style === 'pixel') return pixParts(l.hair, l.cloth, 'front').map(pixSrc);
   if (l.style === 'doll') return dollFrontParts(l.hair, l.cloth).filter(Boolean).map((f) => `${BASE}doll/front/${f}.webp`);
   return [
     l.hair && `hair_${l.hair}_back`, 'body', l.cloth && `cloth_${l.cloth}`, `face_${face}`, l.hair && `hair_${l.hair}_front`, SYM[face] && `sym_${face}`,
@@ -270,7 +273,7 @@ export class Room {
     const look = normalizeLook(this.state.look);
     const view = this.walking ? `walk${Math.floor(this.pixT / PIX_FRAME) % 4}` : 'front';
     pixParts(look.hair, look.cloth, view).forEach((f, i) => {
-      const href = `${BASE}pixel/${f}.webp`, img = this.pixImgs[i];
+      const href = pixSrc(f), img = this.pixImgs[i];
       if (img.getAttribute('href') !== href) img.setAttribute('href', href);
     });
     this.pixFlip.setAttribute('transform', this.walking ? '' : `scale(${this.me.dir},1)`);

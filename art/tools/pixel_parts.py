@@ -20,7 +20,7 @@ OUT = os.path.join(ROOT, 'public/room/pixel')
 CW, CH = 267, 420
 UNIT = 5.2            # 輸出時一格像素的大小（畫布 px）
 NECK = (133.5, 225)   # 脖子頂端在畫布上的位置
-CHIN_OVER = 1.2       # 下巴蓋住脖子幾格
+CHIN_OVER = {'front': 2.4, 'side': 1.2, 'back': 2.4}   # 下巴蓋住脖子幾格（正面、背面露出的脖子比較長，壓低一點）
 BODY_VIEWS = ['front', 'side', 'back', 'walk0', 'walk1', 'walk2', 'walk3']
 HEAD_VIEWS = ['front', 'side', 'back']
 
@@ -81,7 +81,7 @@ def main():
                 cx = (xb.min() + xb.max()) / 2
                 if v == 'side': cx = (cx + p.shape[1] / 2) / 2   # 側面：脖子在臉和後腦中間
                 chin = (cx, b + u)
-            save(p, k, chin, (NECK[0], NECK[1] + CHIN_OVER * UNIT), f'head_{name}_{v}')
+            save(p, k, chin, (NECK[0], NECK[1] + CHIN_OVER[v] * UNIT), f'head_{name}_{v}')
 
 if __name__ == '__main__':
     main()
