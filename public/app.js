@@ -1424,7 +1424,7 @@ function renderLook() {
       }, lookHtml(opt, 'smile', `look look-${key === 'hair' ? 'head' : 'body'}`), h('span', {}, name));
     })));
   $('#look-options').replaceChildren(...[styleRow, row('頭髮', 'hair'), row('衣服', 'cloth'),
-    h('p', { class: 'hint' }, draft.style === 'doll' ? '復古娃娃走路會擺手擺腳！表情和衣服陸續加入中。' : '更多髮型和衣服陸續加入中。')].filter(Boolean));
+    h('p', { class: 'hint' }, draft.style === 'doll' ? '復古娃娃走路會擺手擺腳！更多表情和衣服陸續加入中。' : '更多髮型和衣服陸續加入中。')].filter(Boolean));
 }
 async function saveLook() {
   state.profile = { ...state.profile, look: { ...ui.look.draft }, updatedAt: new Date().toISOString() };

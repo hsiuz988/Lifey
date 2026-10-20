@@ -132,13 +132,14 @@ async function newPage(b, opts = {}) {
   await d.fill('#setup-form [name=name]', 'D'); await d.fill('#setup-form [name=birthday]', '1992-05-05'); await d.click('#setup-form button');
   await d.waitForFunction(() => document.querySelector('#look-dialog').open);
   await d.click('#look-options .look-opt[data-style="doll"]');
-  assert(await d.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '經典,復古娃娃,長直髮,光頭', '復古娃娃：可以選長直髮或光頭，沒有衣服那排');
-  assert(await d.$eval('#look-preview .look', (e) => e.classList.contains('doll') && e.querySelectorAll('img').length === 7), '預覽是復古娃娃（7 個圖層）');
+  assert(await d.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '經典,復古娃娃,長直髮,光頭,T 恤,運動服', '復古娃娃：髮型有長直髮、光頭，衣服有 T 恤、運動服');
+  assert(await d.$eval('#look-preview .look', (e) => e.classList.contains('doll') && e.querySelectorAll('img').length === 8 && !!e.querySelector('img[src$="face_happy.webp"]') && !!e.querySelector('img[src$="body_tee.webp"]')), '預覽是穿 T 恤、開心的復古娃娃');
   await d.screenshot({ path: OUT + '/s6-doll-look.png' });
   await d.click('#look-save');
   await d.waitForTimeout(600);
   s = await st(d);
-  assert(s.profile.look.style === 'doll' && s.profile.look.hair === 'long', '存下：復古娃娃、長直髮');
+  assert(s.profile.look.style === 'doll' && s.profile.look.hair === 'long' && s.profile.look.cloth === 'tee', '存下：復古娃娃、長直髮、T 恤');
+  assert(await d.$eval('.doll-arm_l image', (e) => e.getAttribute('href').endsWith('arm_l_tee.webp')), '房間裡娃娃的手穿著 T 恤的袖子');
   assert(await d.$eval('#scene', (e) => e.dataset.style) === 'doll', '房間裡是復古娃娃');
   const db = await d.$eval('#scene svg', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
   await d.mouse.click(db.x + db.w * 0.3, db.y + db.h * 0.8);

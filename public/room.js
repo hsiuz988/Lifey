@@ -16,10 +16,10 @@ const STYLE_LOOKS = {
   },
   doll: {
     hair: [['long', '長直髮'], ['', '光頭']],
-    cloth: [['', '運動服']],
+    cloth: [['tee', 'T 恤'], ['', '運動服']],
   },
 };
-const STYLE_DEFAULT = { classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: '' } };
+const STYLE_DEFAULT = { classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: 'tee' } };
 export const LOOKS = STYLE_LOOKS.classic;
 export const looksFor = (style) => STYLE_LOOKS[style] || LOOKS;
 export const DEFAULT_LOOK = { style: 'classic', ...STYLE_DEFAULT.classic };
@@ -42,10 +42,15 @@ const SYM = { angry: true };
 // 復古娃娃：每張 254×420，腳底在 (126.5, 419.7)；手腳繞關節轉（art/tools/doll.py 印出來的數字）
 const DOLL_W = 254, DOLL_H = 420, DOLL_FOOT = [126.5, 419.7];
 const DOLL_JOINTS = { arm_l: [99.6, 236.9], arm_r: [153.4, 236.9], leg_l: [110.1, 306.8], leg_r: [142.9, 306.8] };
-const dollParts = (hair) => [hair && `hair_${hair}_back`, 'arm_l', 'arm_r', 'leg_l', 'leg_r', 'body', hair && `hair_${hair}_front`];
+const DOLL_FACES = new Set(['happy']); // 微笑畫在身體上，其他表情是另外一層
+const dollFace = (face) => (DOLL_FACES.has(face) ? `face_${face}` : null);
+const dollParts = (hair, cloth, face) => {
+  const c = cloth ? `_${cloth}` : '';
+  return [hair && `hair_${hair}_back`, `arm_l${c}`, `arm_r${c}`, `leg_l${c}`, `leg_r${c}`, `body${c}`, dollFace(face), hair && `hair_${hair}_front`];
+};
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
-  if (l.style === 'doll') return dollParts(l.hair).filter(Boolean).map((f) => `${BASE}doll/${f}.webp`);
+  if (l.style === 'doll') return dollParts(l.hair, l.cloth, face).filter(Boolean).map((f) => `${BASE}doll/${f}.webp`);
   return [
     l.hair && `hair_${l.hair}_back`, 'body', l.cloth && `cloth_${l.cloth}`, `face_${face}`, l.hair && `hair_${l.hair}_front`, SYM[face] && `sym_${face}`,
   ].filter(Boolean).map((f) => `${BASE}char/${f}.webp`);
@@ -142,8 +147,10 @@ export class Room {
     this.joints = {};
     const dollImg = (name, parent) => el('image', { href: `${BASE}doll/${name}.webp`, width: DOLL_W, height: DOLL_H }, parent);
     this.dollHair.back = dollImg('hair_long_back', this.doll);
-    for (const j of ['arm_l', 'arm_r', 'leg_l', 'leg_r']) { this.joints[j] = el('g', { class: `doll-${j}` }, this.doll); dollImg(j, this.joints[j]); }
-    dollImg('body', this.doll);
+    this.dollBody = {};
+    for (const j of ['arm_l', 'arm_r', 'leg_l', 'leg_r']) { this.joints[j] = el('g', { class: `doll-${j}` }, this.doll); this.dollBody[j] = dollImg(j, this.joints[j]); }
+    this.dollBody.body = dollImg('body', this.doll);
+    this.dollFace = dollImg('face_happy', this.doll);
     this.dollHair.front = dollImg('hair_long_front', this.doll);
     this.stride = 0;
     // 泡泡（HTML，字比較清楚）
@@ -189,6 +196,10 @@ export class Room {
         const img = this.dollHair[k];
         if (look.hair) { img.setAttribute('href', `${BASE}doll/hair_${look.hair}_${k}.webp`); img.style.display = ''; } else img.style.display = 'none';
       }
+      const c = look.cloth ? `_${look.cloth}` : '';
+      for (const [k, img] of Object.entries(this.dollBody)) { const href = `${BASE}doll/${k}${c}.webp`; if (img.getAttribute('href') !== href) img.setAttribute('href', href); }
+      const f = dollFace(this.face);
+      if (f) { this.dollFace.setAttribute('href', `${BASE}doll/${f}.webp`); this.dollFace.style.display = ''; } else this.dollFace.style.display = 'none';
       return srcs;
     }
     const want = { 'hair-back': look.hair && `hair_${look.hair}_back`, body: 'body', cloth: look.cloth && `cloth_${look.cloth}`, face: `face_${this.face}`, 'hair-front': look.hair && `hair_${look.hair}_front`, sym: SYM[this.face] && `sym_${this.face}` };
