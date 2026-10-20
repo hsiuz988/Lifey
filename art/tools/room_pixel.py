@@ -16,12 +16,14 @@ W, H = 1536, 1064
 # 地板前面兩條邊（量出來的）：左邊 y = 876 + 0.545 (x-500)，右邊 y = 978 - 0.5136 (x-880)
 edgeL = lambda x: 876 + 0.545 * (x - 500)
 edgeR = lambda x: 978 - 0.5136 * (x - 880)
-FLOOR, LINE, TRIM, TRIM_HI, TRIM_LINE = (253, 208, 166), (150, 92, 66), (252, 152, 151), (255, 228, 229), (110, 45, 45)
+DAY = (253, 208, 166), (150, 92, 66), (255, 228, 229), (252, 152, 151), (110, 45, 45)  # 地板、線、亮邊、粉邊、暗線
 
-def fix_corner(a):
+def fix_corner(a, colors=None):
+    """colors(x) → [地板, 線, 亮邊, 粉邊, 暗線]；沒給就用白天的顏色（夜晚房間會傳自己的）"""
     x0, x1 = 690, 880
     for x in range(x0, x1):
         e = min(edgeL(x), edgeR(x))
+        FLOOR, LINE, TRIM_HI, TRIM, TRIM_LINE = colors(x) if colors else DAY
         for y in range(970, H):
             d = y - e
             if y < 986 and d < -1: continue                     # 原本畫好的地板不動

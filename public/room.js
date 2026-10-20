@@ -166,6 +166,8 @@ export class Room {
     const rg = el('radialGradient', { id: 'room-glow' }, defs);
     el('stop', { offset: 0, 'stop-color': '#fff3b0', 'stop-opacity': .75 }, rg); el('stop', { offset: 1, 'stop-color': '#fff3b0', 'stop-opacity': 0 }, rg);
     el('image', { href: `${BASE}pixel_room/room.webp`, x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated' }, svg);
+    // 晚上換成夜晚的房間（art/tools/room_night.py，檯燈亮著）；第一次天黑才載入
+    this.nightRoom = el('image', { x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated', class: 'room-fade', opacity: 0 }, svg);
     const [wx, wy, ww, wh] = WINDOW_BOX;
     this.window = el('image', { x: wx, y: wy, width: ww, height: wh, style: 'image-rendering:pixelated', display: 'none' }, svg);
     setInterval(() => this.showWindow(), 60000); // 天黑、天亮時換窗外
@@ -174,6 +176,7 @@ export class Room {
     this.markers = el('g', {}, svg);
     this.hots = el('g', {}, svg);
     this.fx = el('g', { class: 'room-nohit' }, svg);
+    this.dark = el('rect', { x: -2000, y: -2000, width: W + 4000, height: H + 4000, fill: '#1c1f4a', opacity: 0, class: 'room-fade room-night' }, svg); // 晚上關檯燈
     this.night = el('rect', { x: -2000, y: -2000, width: W + 4000, height: H + 4000, fill: '#2c2f6b', opacity: 0, class: 'room-fade room-night' }, svg);
     // 小人
     this.meG = el('g', { id: 'room-me', class: 'room-me' }, svg);
@@ -241,9 +244,23 @@ export class Room {
     const v = windowView(this.state.weather);
     if (v === this.box.dataset.window) return;
     this.box.dataset.window = v;
+    const night = v.endsWith('_night');
+    if (night !== (this.box.dataset.light === 'night')) {
+      this.box.dataset.light = night ? 'night' : 'day';
+      if (night && !this.nightRoom.getAttribute('href')) this.nightRoom.setAttribute('href', `${BASE}pixel_room/room_night.webp`);
+      this.nightRoom.setAttribute('opacity', night ? 1 : 0);
+      this.lampOn = night; this.showLamp(); // 天黑時檯燈是亮著的
+    }
     if (v === 'clear') { this.window.setAttribute('display', 'none'); return; }
     this.window.setAttribute('href', `${BASE}pixel_room/window_${v}.webp`);
     this.window.removeAttribute('display');
+  }
+  // 白天：檯燈旁邊一圈光；晚上：夜晚房間本身就有檯燈的光，關燈時整間暗下來
+  showLamp() {
+    const night = this.box.dataset.light === 'night';
+    this.lamp.setAttribute('opacity', this.lampOn && !night ? 1 : 0);
+    this.dark.setAttribute('opacity', !this.lampOn && night ? .4 : 0);
+    this.box.dataset.lamp = this.lampOn ? 'on' : 'off';
   }
   start() {}
   stop() {}
@@ -457,7 +474,7 @@ export class Room {
       { name: 'letter', label: '信：寫給未來的自己', r: [815, 345, 90, 55], go: [.33, .28, -1], act: () => on.letter && on.letter(), spark: [870, 360] },
       { name: 'calendar', label: '牆上的月曆：心情月曆', r: [1110, 275, 90, 165], go: [.68, .26, 1], act: () => on.calendar && on.calendar(), spark: [1180, 295] },
       { name: 'tv', label: '電視：那一年的世界', r: [1040, 400, 140, 130], go: [.62, .27, 1], act: () => { this.tvOn.setAttribute('opacity', 1); on.tv && on.tv(() => this.tvOn.setAttribute('opacity', 0)); }, spark: [1120, 420] },
-      { name: 'lamp', label: '檯燈', r: [828, 238, 85, 120], go: [.33, .28, -1], act: () => { const lit = this.lamp.getAttribute('opacity') !== '1'; this.lamp.setAttribute('opacity', lit ? 1 : 0); this.say(lit ? '開燈 💡' : '關燈'); } },
+      { name: 'lamp', label: '檯燈', r: [828, 238, 85, 120], go: [.33, .28, -1], act: () => { this.lampOn = !this.lampOn; this.showLamp(); this.say(this.lampOn ? '開燈 💡' : '關燈'); } },
       { name: 'bed', label: '床', r: [255, 390, 445, 300], go: [.31, .55, -1], act: () => this.sleep() },
       { name: 'clock', label: '時鐘', r: [1215, 315, 90, 100], act: () => this.say(`現在 ${clock()} ⏰`) },
       { name: 'window', label: '窗戶', r: [365, 190, 225, 240], act: () => { const w = this.state.weather; this.say(w ? `外面 ${w.icon} ${w.label} ${w.temp}°` : '今天天氣不錯 ☀️（設定裡可以打開真實天氣）'); } },

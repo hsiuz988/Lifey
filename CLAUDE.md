@@ -112,6 +112,8 @@ tests/             Playwright 端對端測試
 - `room.js` 的 `windowView(weather, now)` 決定窗外：`clear`（房間原圖，不疊）、`cloudy`、`rain`、`snow`、`clear_night`、`rain_night`；`#scene` 的 `data-window` 是目前的值。
 - 晚上：有開真實天氣就照日出日落，沒開就用 18 點到 6 點；每分鐘檢查一次。
 - 對應：毛毛雨／大雨／雷雨 → 雨；陰天／有霧 → 多雲；夜晚多雲、夜晚下雪還沒有圖，先用 `clear_night`。
+- 夜晚房間：晚上（`windowView` 回傳 `*_night`）整間換成 `pixel_room/room_night.webp`（檯燈亮著），`#scene` 的 `data-light` 是 day／night、`data-lamp` 是 on／off。晚上點檯燈關燈＝蓋一層 40% 深藍（`this.dark`），等之後有「夜晚關燈」的圖再換。
+  - 來源 `art/source/room2/night_lamp.webp`（GPT 照白天房間只改光線），`python3 art/tools/room_night.py`：GPT 會把整張圖縮放、平移幾 px，工具會自動比對邊緣、對回白天房間，再套白天的外形、補地板前角。換新的夜晚圖直接覆蓋來源、重跑就好。
 - 新增景色：用**同一間空房間只換窗外**的圖放進 `art/source/room2/window/<名稱>.webp`，加進 `art/tools/room_window.py` 的 `KINDS`，跑一次，再改 `windowView` 和 `sw.js`。
 
 ### 背景音樂

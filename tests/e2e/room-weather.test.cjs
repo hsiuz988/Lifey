@@ -145,6 +145,21 @@ async function newPage(b, opts = {}) {
   await r.reload(); await r.waitForSelector('#app:not([hidden])');
   assert(await r.$eval('#scene', (e) => e.dataset.look) === 'bob/sweater', '舊資料（還沒選過樣子）：房間裡是預設的像素女孩');
 
+  // ===== 晚上：房間換成夜晚、檯燈亮著，可以關燈 =====
+  const n = await newPage(b);
+  await n.clock.setSystemTime(new Date(2026, 9, 18, 20, 0));
+  await n.goto(URL);
+  await n.fill('#setup-form [name=name]', 'N'); await n.fill('#setup-form [name=birthday]', '1995-03-02'); await n.click('#setup-form button');
+  await n.waitForFunction(() => document.querySelector('#look-dialog').open); await n.keyboard.press('Escape');
+  await n.waitForTimeout(300);
+  const nightRoom = () => n.$eval('#scene svg image[href*="room_night"]', (e) => e.getAttribute('opacity'));
+  assert(await n.$eval('#scene', (e) => e.dataset.light + e.dataset.lamp) === 'nighton' && await nightRoom() === '1', '晚上 8 點：房間換成夜晚、檯燈亮著');
+  await n.click('#scene .hot[data-name="lamp"]');
+  await n.waitForFunction(() => document.querySelector('#scene').dataset.lamp === 'off', null, { timeout: 8000 });
+  assert(await n.$eval('#scene svg .room-night', (e) => e.getAttribute('opacity')) === '0.4', '晚上關檯燈：整間暗下來');
+  await n.screenshot({ path: OUT + '/s6-night-dark.png' });
+  await n.close();
+
   // ===== 復古娃娃：選角色、走路會擺手擺腳 =====
   const d = await newPage(b);
   await d.goto(URL);
