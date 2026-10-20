@@ -547,5 +547,24 @@
   <div id="toast" class="toast" hidden></div>
 
   <script type="module" src="app.js"></script>
+  <!-- 保險：程式沒能載入時（例如新舊版本混在一起），不要留白畫面，給一個重新載入的按鈕 -->
+  <div id="boot-fail" class="boot-fail" hidden>
+    <p>畫面沒有順利載入。</p>
+    <button type="button" class="btn primary" id="boot-reload">重新載入最新版本</button>
+  </div>
+  <script>
+    setTimeout(function () {
+      var s = document.getElementById('setup'), a = document.getElementById('app');
+      if (!(s.hidden && a.hidden) || document.querySelector('.fatal')) return;
+      var box = document.getElementById('boot-fail'); box.hidden = false;
+      document.getElementById('boot-reload').onclick = function () {
+        var done = function () { location.reload(); };
+        if (!('caches' in window)) return done();
+        caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })
+          .then(function () { return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations() : []; })
+          .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }).then(done, done);
+      };
+    }, 6000);
+  </script>
 </body>
 </html>

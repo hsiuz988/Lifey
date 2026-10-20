@@ -1,5 +1,5 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v27';
+const CACHE = 'lifelog-v28';
 const ASSETS = [
   './',
   './index.html',
@@ -55,19 +55,26 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// 先給快取（離線也能開），同時在背景更新快取，下次開啟就是新版
+// 網頁和程式（HTML、JS、CSS、JSON）：有網路就拿最新的，避免新舊檔案混在一起造成空白；離線或太慢才用快取
+// 圖片：先給快取，背景更新
+const FRESH = /\.(?:html|js|css|json|webmanifest)$/;
+const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   // API（登入、同步、照片）一律走網路，絕對不能快取
   if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  const fresh = req.mode === 'navigate' || url.pathname.endsWith('/') || FRESH.test(url.pathname);
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(req, { ignoreSearch: true });
-      const network = fetch(req)
-        .then((res) => { if (res.ok) cache.put(req, res.clone()); return res; })
-        .catch(() => cached || (req.mode === 'navigate' ? cache.match('./index.html') : Response.error()));
-      return cached || network;
+      const cached = () => cache.match(req, { ignoreSearch: true }).then((r) => r || (req.mode === 'navigate' ? cache.match('./index.html') : undefined));
+      const network = fetch(req).then((res) => { if (res.ok) cache.put(req, res.clone()); return res; });
+      if (fresh) {
+        try { return await Promise.race([network, timeout(4000)]); } catch (err) { return (await cached()) || network.catch(() => Response.error()); }
+      }
+      const hit = await cached();
+      if (hit) { network.catch(() => {}); return hit; }
+      return network.catch(() => Response.error());
     }),
   );
 });

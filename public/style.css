@@ -1041,3 +1041,5 @@ dialog.info-dialog > div:first-child { display: flex; flex-direction: column; ga
 .family-item small { color: var(--muted); font-size: 11px; }
 .family-add { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .family-add .btn { font-size: 14px; }
+
+.boot-fail { max-width: 360px; margin: 30vh auto 0; padding: 0 20px; text-align: center; display: flex; flex-direction: column; gap: 12px; }

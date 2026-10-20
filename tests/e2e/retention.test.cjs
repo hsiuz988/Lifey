@@ -18,6 +18,8 @@ const STATE = { version: 2, profile: { name: '秀', birthday: '1998-10-19', avat
   const b = await chromium.launch();
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })).newPage();
   const errors = []; p.on('pageerror', e => errors.push(e.message)); p.on('dialog', d => d.accept());
+  // 資料是照 2026/10/19（生日、信到期）寫的：把時鐘固定在那天
+  await p.clock.setSystemTime(new Date('2026-10-19T10:00:00'));
   await p.goto(URL);
   await p.evaluate((s) => new Promise((r) => { const q = indexedDB.open('lifey', 1); q.onupgradeneeded = () => { q.result.createObjectStore('meta'); q.result.createObjectStore('photos', { keyPath: 'id' }); }; q.onsuccess = () => { const t = q.result.transaction('meta', 'readwrite'); t.objectStore('meta').put(s, 'state'); t.oncomplete = () => { q.result.close(); r(); }; }; }), STATE);
   await p.reload(); await p.waitForSelector('#app:not([hidden])'); await p.waitForTimeout(1600);
