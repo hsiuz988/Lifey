@@ -4,6 +4,8 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
+// 地圖點格子會打開「這一歲」抽屜；要看日記再按「看這一歲的日記」
+const openAge = async (p, sel) => { await tab(p, 'map'); await p.click(sel); await p.click('#year-view'); await p.waitForTimeout(100); };
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 const old = '2026-10-10T00:00:00Z';
@@ -58,7 +60,7 @@ const STATE = { version: 2, profile: { name: '秀', birthday: '1998-10-19', avat
   assert(q && q.mood === 5 && q.date === '2026-10-19', '首頁入口記的存成今天，選「開心」就是心情 5');
   assert((await p.textContent('#quick-done')).includes('今天記了 1 則'), '顯示今天記過了');
   // 年度卡
-  await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=17')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn')); await p.click('#year-card');
+  await openAge(p, '#life-map .cell >> nth=17'); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn')); await p.click('#year-card');
   await p.waitForSelector('#letter-body .year-card-img', { timeout: 15000 });
   const src = await p.$eval('.year-card-img', i => i.src); 
   await p.waitForTimeout(300);

@@ -315,3 +315,23 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 
 /* 今日卡：其他小卡片收起來時的「還有 N 張」 */
 .today-cards .today-more { align-self: flex-start; padding: 6px 0; font-size: 13px; }
+
+/* 日記：篩選只有一排，太多就左右滑 */
+#filter-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+#filter-chips::-webkit-scrollbar { display: none; }
+#filter-chips .chip { flex-shrink: 0; }
+/* 那一年的世界：收成一列，點了才展開 */
+.world-box { margin-top: 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); }
+.world-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 44px; padding: 0 12px;
+  border: 0; background: none; font: inherit; font-size: 14px; color: var(--cy-blue); text-align: left; cursor: pointer;
+}
+.world-count { font-size: 13px; color: var(--muted); flex-shrink: 0; }
+.world-box .world-modes { margin: 0 12px 4px; }
+.world-box .moments { padding: 0 12px 4px; }
+
+/* 地圖：點格子打開「這一歲」抽屜，動作按鈕兩兩一排 */
+.year-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.year-actions .btn { min-height: 44px; justify-content: center; text-align: center; }
+.year-actions .btn[hidden] { display: none; }
+.legend-future { flex-basis: 100%; margin-top: 4px; }

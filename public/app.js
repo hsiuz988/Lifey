@@ -723,7 +723,7 @@ function renderLifeMap() {
     const stars = list.filter((m) => m.starred).length;
     const title = yearTitle(age);
     const big = list.map((m) => eventById(m.event)).find((e) => e && e.big) || list.map((m) => eventById(m.event)).find(Boolean);
-    if (avg && (!happiest || avg > happiest.avg)) happiest = { age, avg };
+    if (avg && moods.length >= 3 && (!happiest || avg > happiest.avg)) happiest = { age, avg }; // 至少 3 則有心情才算，免得記一則就說「最幸福」
 
     if (list.length >= LIT_AT) lit++;
     const cls = ['cell',
@@ -741,7 +741,7 @@ function renderLifeMap() {
       const label = `${age} 歲${big ? ` ${big.label}` : ''}${title ? `：${title}` : ''} · ${list.length} 則${stars ? ` · ☆${stars}` : ''}`;
       cells.push(h('button', {
         type: 'button', class: `${cls}${big ? ' has-event' : ''}${age === selectedAge() && ui.filter === 'all' && !ui.query ? ' selected' : ''}`,
-        style, title: label, 'aria-label': label, 'aria-pressed': String(age === selectedAge()), onclick: () => selectAge(age, true),
+        style, title: label, 'aria-label': label, 'aria-pressed': String(age === selectedAge()), onclick: () => openYear(age), // 在地圖上看這一歲，不跳分頁
       },
         big ? h('span', { class: 'cell-event' }, big.icon) : age));
     }
@@ -811,20 +811,34 @@ function renderTimeline() {
   const current = ageAt(birthday, todayStr());
   const [start, end] = ageRange(birthday, age);
   const last = age === current ? parseDate(todayStr()) : end;
-  const mode = state.prefs.worldMode || 'all';
+  // 舊版的「只看我的」已經不需要了（世界大事本來就收起來），當成「全部」
+  const mode = ['tw', 'world'].includes(state.prefs.worldMode) ? state.prefs.worldMode : 'all';
   const showSad = state.prefs.worldSad !== false;
   const mine = state.moments.filter((m) => ageAt(birthday, m.date) === age);
-  let events = mode === 'mine' ? [] : world.eventsBetween(start, last, () => { if (selectedAge() === age) renderTimeline(); });
+  let events = world.eventsBetween(start, last, () => { if (selectedAge() === age) renderTimeline(); });
   const waiting = events === null;
-  events = (events || []).filter((e) => (mode === 'all' || e.region === mode) && (showSad || !e.sad));
+  events = (events || []).filter((e) => showSad || !e.sad);
+  const shown = events.filter((e) => mode === 'all' || e.region === mode)
+    .sort((a, b) => (a.m ? world.eventDate(a).getTime() : 0) - (b.m ? world.eventDate(b).getTime() : 0));
 
-  // 只知道年份的時事排在這一歲最前面；同一天時，自己的紀錄排在時事後面
+  // 自己的紀錄和打開過的信：新的在上面（同一天時，後記的在上面）；只記得這一歲的排在最後
   const letters = state.letters.filter((l) => l.openedAt && ageAt(birthday, l.openOn) === age);
   const rows = [
-    ...mine.map((m) => ({ t: parseDate(m.date).getTime() + 1, el: () => renderMoment(m) })),
-    ...letters.map((l) => ({ t: parseDate(l.openOn).getTime() + 2, el: () => renderLetterItem(l) })),
-    ...events.map((e) => ({ t: e.m ? world.eventDate(e).getTime() : start.getTime() - 1, el: () => renderWorldEvent(e, age) })),
-  ].sort((a, b) => a.t - b.t);
+    ...mine.map((m) => ({ t: m.approx ? 0 : parseDate(m.date).getTime() + 1, c: m.createdAt || '', el: () => renderMoment(m) })),
+    ...letters.map((l) => ({ t: parseDate(l.openOn).getTime() + 2, c: l.openedAt, el: () => renderLetterItem(l) })),
+  ].sort((a, b) => b.t - a.t || b.c.localeCompare(a.c));
+
+  // 那一年的世界：收成一列，點了才展開；展開後可以選台灣／全球
+  const worldBox = events.length || waiting ? h('section', { class: `world-box${ui.worldOpen ? ' open' : ''}` },
+    h('button', {
+      type: 'button', class: 'world-toggle', 'aria-expanded': String(!!ui.worldOpen),
+      onclick: () => { ui.worldOpen = !ui.worldOpen; renderTimeline(); },
+    }, h('span', {}, `🌏 ${age} 歲那一年的世界`), h('span', { class: 'world-count' }, waiting ? '載入中…' : `${events.length} 件 ${ui.worldOpen ? '▴' : '▾'}`)),
+    ui.worldOpen ? h('div', { class: 'chips world-modes' }, [['all', '全部'], ['tw', '台灣'], ['world', '全球']].map(([v, label]) => h('button', {
+      type: 'button', class: `chip${mode === v ? ' on' : ''}`,
+      onclick: async () => { state.prefs = { ...state.prefs, worldMode: v }; renderTimeline(); await saveState(); },
+    }, label))) : null,
+    ui.worldOpen ? h('ul', { class: 'moments' }, shown.map((e) => renderWorldEvent(e, age))) : null) : null;
 
   const title = yearTitle(age);
   const stars = mine.filter((m) => m.starred).length;
@@ -832,7 +846,6 @@ function renderTimeline() {
     type: 'button', class: 'icon-btn year-nav', 'aria-label': label, disabled: age + delta < 0 || age + delta > current,
     onclick: () => selectAge(age + delta),
   }, text);
-  const modes = [['all', '全部'], ['mine', '只看我的'], ['tw', '台灣'], ['world', '全球']];
   root.replaceChildren(
     h('div', { class: 'year-head' },
       nav(-1, '上一歲', '‹'),
@@ -843,15 +856,12 @@ function renderTimeline() {
       nav(1, '下一歲', '›')),
     h('button', { class: `year-title-btn${title ? '' : ' empty'}`, type: 'button', onclick: () => openYear(age) },
       title ? `「${title}」` : '＋ 這一歲的一句話'),
-    h('div', { class: 'chips world-modes' }, modes.map(([v, label]) => h('button', {
-      type: 'button', class: `chip${mode === v ? ' on' : ''}`,
-      onclick: async () => { state.prefs = { ...state.prefs, worldMode: v }; renderTimeline(); await saveState(); },
-    }, label))),
     rows.length ? h('ul', { class: 'moments' }, rows.map((r) => r.el()))
-      : h('div', { class: 'empty' }, h('p', { class: 'muted' }, waiting ? '載入中…' : '這一歲還沒有紀錄。')),
+      : h('div', { class: 'empty' }, h('p', { class: 'muted' }, '這一歲還沒有紀錄。')),
     h('div', { class: 'row year-add' }, h('button', {
       type: 'button', class: 'btn', onclick: () => openMoment(null, age === current ? {} : { date: toDateStr(start), approx: true }),
-    }, `＋ 在 ${age} 歲記一筆`)));
+    }, `＋ 在 ${age} 歲記一筆`)),
+    worldBox);
   hydrateThumbs(root);
 }
 
@@ -2031,7 +2041,7 @@ function openYear(age) {
   $('#year-range').textContent = `${fmtDate(start)} – ${fmtDate(end)} · ${list.length} 則${stars ? ` · ☆${stars}` : ''}`;
   $('#year-form').summary.value = yearTitle(age);
   $('#year-form').quiet.checked = !!(state.years[String(age)] || {}).quiet;
-  $('#year-view').hidden = list.length === 0;
+  $('#year-recall').hidden = age >= ageAt(birthday, todayStr()); // 今年用「記一筆」就好
   renderStatBars($('#year-stats'), statsFor(list), yearFocus(age));
   $('#year-dialog').showModal();
 }
@@ -3267,6 +3277,7 @@ function bind() {
   $('#year-add').addEventListener('click', addMomentInYear);
   $('#year-card').addEventListener('click', () => { $('#year-dialog').close(); showYearCard(ui.yearAge); });
   $('#year-view').addEventListener('click', viewYear);
+  $('#year-recall').addEventListener('click', () => { const age = ui.yearAge; $('#year-dialog').close(); openRecallAt(age, 0); });
 
   $('#lightbox').addEventListener('click', (e) => { if (!e.target.closest('.lb-nav')) $('#lightbox').close(); });
   $('#lb-prev').addEventListener('click', () => stepLightbox(-1));
@@ -3389,6 +3400,27 @@ function bind() {
   };
   const tryClose = async (dlg) => { const g = guards[dlg.id]; if (!g || await g()) dlg.close(); };
   $('#ask-dialog').addEventListener('close', () => { const r = askResolve; askResolve = null; if (r) r(null); });
+  // 返回鍵／往右滑：關掉最上層的抽屜，而不是離開 App。
+  // 只要有抽屜開著，就在瀏覽紀錄上多墊「剛好一筆」；全部關掉時再退掉（skipPop：自己退的那一下不要又去關抽屜）
+  let histPushed = false;
+  let skipPop = 0;
+  const openDialogs = () => [...document.querySelectorAll('dialog[open]')];
+  const syncHistory = () => {
+    const any = openDialogs().length > 0;
+    if (any && !histPushed) { histPushed = true; history.pushState({ wowoDialog: true }, ''); }
+    else if (!any && histPushed) {
+      histPushed = false;
+      if (history.state && history.state.wowoDialog) { skipPop++; history.back(); }
+    }
+  };
+  new MutationObserver(syncHistory).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
+  window.addEventListener('popstate', async () => {
+    if (skipPop) { skipPop--; return; }
+    histPushed = false; // 墊的那一筆被返回鍵用掉了
+    const dlg = openDialogs().pop();
+    if (dlg) await tryClose(dlg); // 有草稿的照樣先問；選「繼續編輯」就留著
+    syncHistory(); // 還有抽屜開著（或選了繼續編輯）：再墊一筆
+  });
   document.querySelectorAll('[data-close]').forEach((btn) =>
     btn.addEventListener('click', () => tryClose(btn.closest('dialog'))));
   // 點對話框外的遮罩也可以關閉

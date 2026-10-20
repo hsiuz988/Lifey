@@ -5,6 +5,8 @@ const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
+// 地圖點格子會打開「這一歲」抽屜；要看日記再按「看這一歲的日記」
+const openAge = async (p, sel) => { await tab(p, 'map'); await p.click(sel); await p.click('#year-view'); await p.waitForTimeout(100); };
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 (async () => {
   const b = await chromium.launch();
@@ -71,9 +73,11 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   await p.fill('#recall-text', '第一次自己住');
   await p.click('#recall-dialog [data-close]');
   await p.waitForFunction(() => document.querySelector('#recall-btn').textContent.includes('18'));
-  assert((await st()).moments.some(m => m.text === '第一次自己住'), '關閉時自動存');
+  let saved = false;
+  for (let i = 0; i < 20 && !saved; i++) { saved = (await st()).moments.some(m => m.text === '第一次自己住'); if (!saved) await p.waitForTimeout(100); }
+  assert(saved, '關閉時自動存');
   assert(await p.textContent('#recall-btn') === '🕰 繼續回憶（18 歲）', '地圖按鈕顯示繼續回憶');
-  await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=18')); assert((await p.textContent('#timeline')).includes('這一年'), '時間軸顯示「這一年」');
+  await openAge(p, '#life-map .cell >> nth=18'); assert((await p.textContent('#timeline')).includes('這一年'), '時間軸顯示「這一年」');
   await p.reload();
   await tab(p, 'map').then(() => p.click('#recall-btn'));
   assert(await age() === '18 歲', '重新開啟後從 18 歲繼續');

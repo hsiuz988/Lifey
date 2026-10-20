@@ -7,6 +7,8 @@ const S = OUT;
 // 自己畫的確認視窗：點寫著某個字的按鈕
 const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
+// 地圖點格子會打開「這一歲」抽屜；要看日記再按「看這一歲的日記」
+const openAge = async (p, sel) => { await tab(p, 'map'); await p.click(sel); await p.click('#year-view'); await p.waitForTimeout(100); };
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = []; const toasts = [];
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
@@ -124,7 +126,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#recall-dialog [data-close]');
 
   // 刪除人物：紀錄留著、標記拿掉
-  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await p.click('.person-chip:has-text("小寶")'); await p.click('#person-body button:text-is("編輯")'); await p.click('#person-body .danger-zone button'); await pick(p, '刪除'); await closed('#person-dialog');
+  await openAge(p, '#life-map .cell.now'); await p.click('.person-chip:has-text("小寶")'); await p.click('#person-body button:text-is("編輯")'); await p.click('#person-body .danger-zone button'); await pick(p, '刪除'); await closed('#person-dialog');
   s = await st(p);
   assert(!s.people.some(x => x.name === '小寶') && s.moments.some(x => x.event === 'baby' && x.people.length === 0), '刪除人物：紀錄還在，標記拿掉');
 
