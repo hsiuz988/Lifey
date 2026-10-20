@@ -170,8 +170,8 @@ main#app {
 /* 寬螢幕：整間放到最大；手機直向：放大到畫面高度的六成，左右滑動看整間 */
 .room-box.full .room {
   flex: none; margin: 0 auto;
-  width: max(min(100vw, 100vh * 1330 / 1015), min(62vh * 1330 / 1015, 200vw));
-  width: max(min(100vw, 100dvh * 1330 / 1015), min(62dvh * 1330 / 1015, 200vw));
+  width: max(min(100vw, 100vh * 1416 / 1081), min(62vh * 1416 / 1081, 200vw));
+  width: max(min(100vw, 100dvh * 1416 / 1081), min(62dvh * 1416 / 1081, 200vw));
 }
 .room-box.full .room-hud { position: fixed; top: calc(10px + env(safe-area-inset-top)); }
 .room-box.full .room-zoom { position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); width: 40px; height: 40px; }
