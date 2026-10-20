@@ -24,8 +24,17 @@ const DATA_VERSION = 2;
 const MOOD_KEYS = ['sad', 'tired', 'calm', 'happy', 'excited'];
 // 首頁大頭貼下面「TODAY IS..」接的那句話
 const TODAY_IS = {
-  happy: '心情晴朗', excited: '超級興奮！', calm: '平平靜靜', moved: '被感動了', love: '心裡冒泡泡',
-  tired: '電量剩一格', sad: '有點想哭', angry: '氣噗噗', nervous: '心臟砰砰跳', miss: '好想你', none: '等你來寫…',
+  happy: '心情晴朗',
+  excited: '快樂藏不住！',
+  calm: '心情很平靜',
+  moved: '心頭暖暖的',
+  love: '有點小心動',
+  tired: '電量快見底',
+  sad: '心情陰雨天',
+  angry: '氣噗噗！',
+  nervous: '心裡七上八下',
+  miss: '想念偷偷冒出來',
+  none: '今天的心情是…',
 };
 const momentFace = (m) => (m.emo && emotionByKey(m.emo) ? moodFace(m.emo, 16) : m.mood ? moodFace(MOOD_KEYS[m.mood - 1], 16) : null);
 const MOOD_COLORS = ['#cfcbe0', '#c4dbe9', '#c7e8dd', '#ffdcb2', '#f7b3c6'];

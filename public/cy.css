@@ -161,11 +161,13 @@ main#app {
 .room-box.full .room-zoom .ic-close { display: inline; }
 .home-page .room-box.full {
   position: fixed; inset: 0; z-index: 9; margin: 0; border: 0; border-radius: 0;
-  display: flex; align-items: center; overflow: auto; overscroll-behavior: contain; background: #ffffff; /* 和房間圖的白底接起來 */
+  display: flex; align-items: center; overflow: auto; overscroll-behavior: contain; /* 底色和小窩一樣（白天／晚上） */
 }
 /* 晚上：房間外面的底色跟著變深（data-light 由 room.js 設） */
-.home-page .room-box { transition: background-color .4s; }
-.home-page .room-box:has(#scene[data-light="night"]) { background: #34407a; border-color: #4b5794; /* 跟窗外夜空差不多的深藍 */ }
+/* 白天：奶油色＋中間淡淡的暖光，邊緣帶一點粉（和房間的米白牆、粉色踢腳板同色系） */
+.home-page .room-box { background: #f7e6e4 radial-gradient(ellipse 62% 62% at 50% 52%, #fffaf5, #f7e6e4); border-color: #e6cfcf; }
+/* 深紫＋中間淡淡的光暈，像房間在夜裡發光（和牆壁陰影同色系，不跟房間的暖光打架） */
+.home-page .room-box:has(#scene[data-light="night"]) { background: #1f1a2e radial-gradient(ellipse 62% 62% at 50% 52%, #5a466e, #1f1a2e); border-color: #3d3556; }
 /* 寬螢幕：整間放到最大；手機直向：放大到畫面高度的六成，左右滑動看整間 */
 .room-box.full .room {
   flex: none; margin: 0 auto;
