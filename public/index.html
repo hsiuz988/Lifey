@@ -79,7 +79,10 @@
       <!-- 迷你小窩：今天／總共、背景音樂、名字、個人小卡、最近更新 -->
       <div class="cy-top">
         <span class="cy-count">TODAY <b id="cy-today">0</b> <i>|</i> TOTAL <b id="cy-total">0</b></span>
-        <button id="cy-bgm" class="cy-bgm" type="button" aria-label="背景音樂"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z" fill="currentColor"></path></svg>BGM</button>
+        <span class="cy-bgm-box">
+          <button id="cy-bgm" class="cy-bgm" type="button" aria-label="背景音樂" aria-pressed="false"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-play" d="M7 4v16l13-8z" fill="currentColor"></path><path class="ic-pause" d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor"></path></svg><span id="cy-bgm-label">BGM</span></button>
+          <button id="cy-bgm-next" class="cy-bgm cy-bgm-next" type="button" aria-label="下一首" hidden><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16l11-8zM16 4h4v16h-4z" fill="currentColor"></path></svg></button>
+        </span>
       </div>
       <div class="cy-head"><h1 id="cy-title"></h1><span id="cy-sub"></span></div>
       <div class="cy-profile">
@@ -105,6 +108,7 @@
           <button id="partner-btn" class="hud-btn" type="button" aria-label="連結的家人" hidden>💞</button>
           <button id="sync-btn" class="hud-btn sync-btn" type="button" aria-label="同步狀態" hidden>☁︎</button>
         </div>
+        <button id="room-zoom" class="hud-btn room-zoom" type="button" aria-label="全畫面" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="ic-open" d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"></path><path class="ic-close" d="M5 5l14 14M19 5L5 19"></path></svg></button>
       </div>
       <div class="home-sheet">
         <div id="backup-banner" class="banner" hidden>
@@ -569,6 +573,8 @@
         <span class="field-label">外觀</span>
         <div id="theme-chips" class="chips"></div>
       </div>
+      <label class="switch"><input id="pref-music" type="checkbox"><span>🎵 背景音樂（也可以按首頁右上角的 BGM）</span></label>
+      <div id="music-tracks" class="chips" aria-label="選一首背景音樂"></div>
       <label class="switch"><input id="pref-ai-story" type="checkbox"><span>✨ 記下來之後，用 AI 寫成一段小故事</span></label>
       <p class="hint">需要登入雲端同步。開啟後，送出的事件和心情會傳給 Anthropic 的 Claude 改寫，不會被拿去訓練 AI；原文一樣會留著。每天最多 5 次。</p>
       <label class="switch"><input id="pref-world-sad" type="checkbox"><span>「那一年的世界」裡顯示災難、離別這類難過的事</span></label>

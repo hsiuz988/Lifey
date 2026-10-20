@@ -106,6 +106,11 @@ main#app {
   font: inherit; font-size: 12px; font-weight: 700; color: var(--cy-blue); cursor: pointer;
 }
 .cy-bgm svg { color: var(--cy-aqua); }
+.cy-bgm-box { display: flex; gap: 4px; min-width: 0; }
+.cy-bgm .ic-pause, .cy-bgm.on .ic-play { display: none; }
+.cy-bgm.on .ic-pause { display: inline; }
+.cy-bgm.on { border-color: var(--cy-aqua); }
+.cy-bgm-next { width: 32px; padding: 0; justify-content: center; }
 .cy-head { display: flex; align-items: baseline; justify-content: space-between; margin: 6px 12px 10px; padding-bottom: 8px; border-bottom: 1px dashed #b9c7d6; }
 .cy-head h1 { margin: 0; font-size: 18px; color: var(--cy-blue); }
 .cy-head span { font-size: 13px; color: var(--muted); }
@@ -153,6 +158,24 @@ main#app {
 /* Mini Room：房間放在細框裡 */
 .cy-room-title { margin: 0 12px 4px; border: 0; }
 .home-page .room-box { margin: 0 12px; border: 1px solid #b9c7d6; border-radius: 8px; overflow: hidden; }
+
+/* 小窩右下角的放大鈕：點了房間鋪滿整個畫面 */
+.room-zoom { position: absolute; right: 10px; bottom: 10px; display: grid; place-items: center; color: var(--cy-blue); }
+.room-zoom .ic-close, .room-box.full .room-zoom .ic-open { display: none; }
+.room-box.full .room-zoom .ic-close { display: inline; }
+.home-page .room-box.full {
+  position: fixed; inset: 0; z-index: 9; margin: 0; border: 0; border-radius: 0;
+  display: flex; align-items: center; overflow: auto; overscroll-behavior: contain; background: #ffffff; /* 和房間圖的白底接起來 */
+}
+/* 寬螢幕：整間放到最大；手機直向：放大到畫面高度的六成，左右滑動看整間 */
+.room-box.full .room {
+  flex: none; margin: 0 auto;
+  width: max(min(100vw, 100vh * 1330 / 1015), min(62vh * 1330 / 1015, 200vw));
+  width: max(min(100vw, 100dvh * 1330 / 1015), min(62dvh * 1330 / 1015, 200vw));
+}
+.room-box.full .room-hud { position: fixed; top: calc(10px + env(safe-area-inset-top)); }
+.room-box.full .room-zoom { position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); width: 40px; height: 40px; }
+html.room-full, html.room-full body { overflow: hidden; }
 .home-sheet { margin-top: 0; padding: 12px; border-radius: 0; background: #ffffff; }
 
 /* 記一筆：像舊網頁的輸入框＋果凍按鈕 */

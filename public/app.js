@@ -10,6 +10,7 @@ import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
+import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
 import * as world from './world.js';
@@ -1436,6 +1437,7 @@ function renderToday() {
 
 // ---------- 底部分頁 ----------
 function showTab(tab) {
+  if (tab !== 'home') setRoomFull(false);
   document.querySelectorAll('#app .tab-page').forEach((p) => { p.hidden = p.dataset.tab !== tab; });
   document.querySelectorAll('#tabbar [data-tab-btn]').forEach((b) => {
     if (b.dataset.tabBtn === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
@@ -2544,6 +2546,7 @@ function openSettings(page = 'home') {
   $('#pref-achievements').checked = !!state.prefs.showAchievements;
   $('#pref-world-sad').checked = state.prefs.worldSad !== false;
   $('#pref-ai-story').checked = !!state.prefs.aiStory;
+  $('#pref-music').checked = musicPref();
   renderThemeChips();
   renderSettingsStatus();
   renderStorageStatus();
@@ -2588,6 +2591,51 @@ function renderThemeChips() {
     type: 'button', class: `chip${pref === v ? ' on' : ''}`, 'aria-pressed': String(pref === v),
     onclick: () => { try { localStorage.setItem('lifey.theme', v); } catch (e) { /* 無痕模式存不了，只套用這次 */ } applyTheme(); renderThemeChips(); },
   }, label)));
+}
+
+// ---------- 背景音樂 ----------
+function renderMusicBtn() {
+  const on = musicPref();
+  const cur = trackPref();
+  $('#cy-bgm').classList.toggle('on', on);
+  $('#cy-bgm').setAttribute('aria-pressed', String(on));
+  $('#cy-bgm-label').textContent = on ? cur.name : 'BGM';
+  $('#cy-bgm-next').hidden = !on;
+  $('#pref-music').checked = on;
+  $('#music-tracks').replaceChildren(...TRACKS.map((t) => h('button', {
+    type: 'button', class: `chip${on && cur.id === t.id ? ' on' : ''}`, 'aria-pressed': String(on && cur.id === t.id),
+    onclick: () => pickTrack(t.id),
+  }, t.name)));
+}
+async function pickTrack(id) {
+  const ok = await setTrack(id);
+  renderMusicBtn();
+  if (!ok) musicFailed();
+}
+function nextTrack() {
+  const i = TRACKS.findIndex((t) => t.id === trackPref().id);
+  pickTrack(TRACKS[(i + 1) % TRACKS.length].id);
+}
+function musicFailed() {
+  setMusic(false);
+  renderMusicBtn();
+  toast('音樂還沒準備好，晚點再試試');
+}
+async function toggleMusic(on) {
+  const ok = await setMusic(on);
+  renderMusicBtn();
+  if (on && !ok) musicFailed();
+}
+
+// ---------- 小窩全畫面：房間放到最大，比較好點 ----------
+function setRoomFull(on) {
+  const box = document.querySelector('.home-page .room-box');
+  box.classList.toggle('full', on);
+  // 手機直向時房間比畫面寬：先捲到中間
+  box.scrollLeft = on ? (box.scrollWidth - box.clientWidth) / 2 : 0;
+  document.documentElement.classList.toggle('room-full', on);
+  $('#room-zoom').setAttribute('aria-pressed', String(on));
+  $('#room-zoom').setAttribute('aria-label', on ? '離開全畫面' : '全畫面');
 }
 
 // ---------- 雲端同步 ----------
@@ -3149,6 +3197,11 @@ function bind() {
   $('#me-add-person').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
   $('#me-add-pet').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
   $('#recall-event').addEventListener('click', () => openEventPicker('recall'));
+  $('#cy-bgm').addEventListener('click', () => toggleMusic(!musicPref()));
+  $('#cy-bgm-next').addEventListener('click', nextTrack);
+  $('#room-zoom').addEventListener('click', () => setRoomFull(!document.documentElement.classList.contains('room-full')));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.documentElement.classList.contains('room-full') && !document.querySelector('dialog[open]')) setRoomFull(false); });
+  $('#pref-music').addEventListener('change', (e) => toggleMusic(e.target.checked));
   $('#pref-ai-story').addEventListener('change', async (e) => {
     if (e.target.checked && !cloud.me) {
       e.target.checked = false;
@@ -3174,7 +3227,6 @@ function bind() {
   $('#me-card').addEventListener('click', () => openLook());
   $('#cy-card').addEventListener('click', () => openLook());
   $('#cy-line').addEventListener('click', () => openYear(ageAt(state.profile.birthday, todayStr())));
-  $('#cy-bgm').addEventListener('click', () => toast('背景音樂即將推出 🎵'));
   $('#cy-family-more').addEventListener('click', () => (cloud.me && cloud.me.links.length ? openMembers() : openSettings('cloud')));
   document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {
     const page = b.dataset.open;
@@ -3298,6 +3350,8 @@ async function showVersion() {
 async function init() {
   showVersion();
   applyTheme();
+  initMusic({ onFailed: musicFailed });
+  renderMusicBtn();
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
   bind();
   try {
