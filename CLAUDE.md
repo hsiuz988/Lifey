@@ -94,7 +94,7 @@ tests/             Playwright 端對端測試
 ### 背景音樂
 
 - `public/music.js` 的 `TRACKS` 有三首，玩家在「我 → 其他」選（`lifey.track`），選了就順便打開音樂。都是 Pixabay 授權（可商用、不需標註）：
-  - 咖啡廳 `music/room.mp3`：〈Cafe Lofi〉zephiramusic（預設）
+  - 早晨咖啡 `music/room.mp3`：〈Cafe Lofi〉zephiramusic（預設）
   - 慵懶午後 `music/chill.mp3`：〈Chill Cafe Lofi Beat〉tunetank
   - 晴天爵士 `music/sunny.mp3`：〈Lofi Jazz Trio Sunny Cafe〉Alex Morgan
 - 新增曲子：用 ffmpeg 壓成 112kbps、頭尾 0.3s／2s 淡入淡出，音量調到平均約 -16 dB（三首一致，換歌不會忽大忽小），再加進 `TRACKS` 和測試。

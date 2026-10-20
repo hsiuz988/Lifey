@@ -64,7 +64,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   assert(await p.$eval('#music-btn', (e) => e.getAttribute('aria-pressed') === 'false'), '房間的 ♪ 跟著變成關');
 
   // 選曲子：關著時選了會換歌並打開
-  assert(await p.$$eval('#music-tracks .chip', (els) => els.map((e) => e.textContent).join()) === '咖啡廳,慵懶午後,晴天爵士', '可以選三首曲子');
+  assert(await p.$$eval('#music-tracks .chip', (els) => els.map((e) => e.textContent).join()) === '早晨咖啡,慵懶午後,晴天爵士', '可以選三首曲子');
   await p.click('#music-tracks .chip:has-text("晴天爵士")');
   await p.waitForTimeout(300);
   assert(await p.evaluate(() => window.__music.src.endsWith('music/sunny.mp3')) && await playing(p), '選晴天爵士：換成那首並開始播');

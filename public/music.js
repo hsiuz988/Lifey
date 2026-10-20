@@ -2,7 +2,7 @@
 // iPhone 不能自己開始播聲音，要等使用者點一下畫面；也不能用 audio.volume 調音量，所以用 Web Audio 的 GainNode
 // 曲子都是 Pixabay 授權（可商用、不需標註）
 export const TRACKS = [
-  { id: 'cafe', name: '咖啡廳', src: 'music/room.mp3' }, // Cafe Lofi — zephiramusic
+  { id: 'cafe', name: '早晨咖啡', src: 'music/room.mp3' }, // Cafe Lofi — zephiramusic
   { id: 'chill', name: '慵懶午後', src: 'music/chill.mp3' }, // Chill Cafe Lofi Beat — tunetank
   { id: 'sunny', name: '晴天爵士', src: 'music/sunny.mp3' }, // Lofi Jazz Trio Sunny Cafe — Alex Morgan
 ];
