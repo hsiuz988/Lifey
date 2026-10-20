@@ -58,7 +58,7 @@ let b;
   await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
 
   // 沒登入不能開
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=other]'));
   await p.click('#pref-ai-story');
   assert(!(await p.isChecked('#pref-ai-story')), '沒登入雲端時打不開 AI 故事');
   const anon = await p.evaluate(() => fetch('/api/story', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event: 'x' }) }).then(r => r.status));
@@ -70,7 +70,7 @@ let b;
   await p.click('#pref-ai-story');
   assert(await p.isChecked('#pref-ai-story'), '登入後可以打開 AI 故事');
   assert((await st(p)).prefs.aiStory === true, '設定有存起來');
-  await p.click('#settings-dialog [data-close] >> nth=-1');
+  await p.click('#settings-dialog .win-x');
 
   // 記一筆：事件＋心情 → 自動跳出故事
   await p.click('#add-btn');
@@ -162,9 +162,9 @@ let b;
   assert(empty === 400, '沒有事件不會呼叫');
 
   // 關掉設定就不會跳出來
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=other]'));
   await p.click('#pref-ai-story');
-  await p.click('#settings-dialog [data-close] >> nth=-1');
+  await p.click('#settings-dialog .win-x');
   const before = calls.length;
   await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '普通的一天'); await p.click('#moment-save');
   await p.waitForTimeout(500);

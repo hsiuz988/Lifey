@@ -39,7 +39,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close()));
 
   // 設定裡改生日：選單會帶出目前的生日
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('#me-profile'));
   await p.evaluate(() => { document.querySelectorAll('#settings-dialog .settings-page').forEach((el) => { el.hidden = el.dataset.page !== 'profile'; }); });
   const shown = await p.$$eval('#profile-form .bday select', (s) => s.map((x) => x.value));
   assert(shown.join('-') === '1998-2-14', `設定裡的生日選單帶出 1998/2/14（${shown.join('-')}）`);

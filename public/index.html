@@ -38,6 +38,11 @@
       <h1 class="brand"><img src="logo.webp" class="cy-logo" width="240" height="235" alt="wowo!"></h1>
       <p class="setup-lede">一個屬於你的迷你小窩，把一輩子慢慢記下來</p>
     </div>
+    <!-- 換手機的老用戶：放在最上面，不用捲過整張表單 -->
+    <div class="setup-login">
+      <span class="muted">已經有帳號了？</span>
+      <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
+    </div>
     <div class="cy-window">
       <div class="cy-window-bar"><svg width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M5 1h2v1h1v1h1v1h1v1h1v1H1V5h1V4h1V3h1V2h1zM2 7h8v4H2z" fill="#fff"></path></svg>建立我的小窩</div>
       <div class="setup-hero">
@@ -64,10 +69,6 @@
         </form>
       </div>
     </div>
-    <div class="setup-login">
-      <span class="muted">已經有帳號了？</span>
-      <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
-    </div>
   </section>
 
   <!-- 主畫面 -->
@@ -76,7 +77,7 @@
   <main id="app" hidden>
     <!-- 家：上半是房間（遊戲），下半是今天 -->
     <section class="tab-page home-page" data-tab="home">
-      <!-- 迷你小窩：今天／總共、背景音樂、名字、個人小卡、最近更新 -->
+      <!-- 迷你小窩：今天／總共、背景音樂、名字 → 房間 → 記一筆 → 今日卡 → 個人小卡、最近更新 → 家人說 -->
       <div class="cy-top">
         <span class="cy-count">TODAY <b id="cy-today">0</b> <i>|</i> TOTAL <b id="cy-total">0</b></span>
         <span class="cy-bgm-box">
@@ -85,19 +86,6 @@
         </span>
       </div>
       <div class="cy-head"><h1 id="cy-title"></h1><span id="cy-sub"></span></div>
-      <div class="cy-profile">
-        <button id="cy-card" class="cy-card" type="button" aria-label="換我的樣子">
-          <span id="cy-look" class="cy-look"></span>
-          <span class="cy-today-is">TODAY IS..</span>
-          <span id="cy-mood" class="cy-mood"></span>
-        </button>
-        <div class="cy-side">
-          <button id="cy-line" class="cy-line" type="button"></button>
-          <div class="cy-box-title">Updated news</div>
-          <div id="cy-news" class="cy-news"></div>
-          <div id="cy-counts" class="cy-counts"></div>
-        </div>
-      </div>
       <div class="cy-box-title cy-room-title">Mini Room</div>
       <div class="room-box">
         <div id="scene" class="room"></div>
@@ -111,20 +99,34 @@
         <button id="room-zoom" class="hud-btn room-zoom" type="button" aria-label="全畫面" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="ic-open" d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"></path><path class="ic-close" d="M5 5l14 14M19 5L5 19"></path></svg></button>
       </div>
       <div class="home-sheet">
-        <div id="backup-banner" class="banner" hidden>
-          <span id="backup-text"></span>
-          <button id="banner-export" class="btn small">立即備份</button>
-        </div>
         <div id="quick-note" class="quick-note">
           <button id="quick-open" class="quick-open" type="button"><span>今天過得怎麼樣？一句話就好</span></button>
           <button id="quick-photo" class="quick-photo" type="button" aria-label="用一張照片記錄">📷</button>
         </div>
         <div id="quick-done" class="hint" hidden></div>
-        <section class="cy-family">
+        <div id="backup-banner" class="banner" hidden>
+          <span id="backup-text"></span>
+          <button id="banner-export" class="btn small">立即備份</button>
+        </div>
+        <!-- 今日卡：一次只放一張（生日 > 信 > 那年今日 > 本週回憶題） -->
+        <section id="today-panel" class="today-cards" hidden></section>
+        <div class="cy-profile">
+          <button id="cy-card" class="cy-card" type="button" aria-label="換我的樣子">
+            <span id="cy-look" class="cy-look"></span>
+            <span class="cy-today-is">TODAY IS..</span>
+            <span id="cy-mood" class="cy-mood"></span>
+          </button>
+          <div class="cy-side">
+            <button id="cy-line" class="cy-line" type="button"></button>
+            <div class="cy-box-title">Updated news</div>
+            <div id="cy-news" class="cy-news"></div>
+          </div>
+        </div>
+        <!-- 家人說：只有連結了家人才出現（還沒連結的人在「我的 → 雲端與家人」邀請） -->
+        <section id="cy-family-box" class="cy-family" hidden>
           <div class="cy-box-title"><span>家人說</span><button id="cy-family-more" class="link-btn" type="button">全部 ›</button></div>
           <div id="cy-family"></div>
         </section>
-        <section id="today-panel" class="today-cards" hidden></section>
       </div>
     </section>
 
@@ -162,11 +164,18 @@
 
     <!-- 我：個人資料、今年的狀態、設定 -->
     <section class="tab-page" data-tab="me" hidden>
-      <header class="page-head"><h1>我的</h1><button id="open-settings" class="icon-btn" aria-label="設定">⚙</button></header>
-      <button id="me-card" class="me-card" type="button" aria-label="換我的樣子">
-        <span id="me-look" class="me-look"></span>
-        <span class="me-text"><b id="me-name"></b><span id="age-sub" class="hint"></span><span class="me-edit">換我的樣子</span></span>
-      </button>
+      <!-- 「我的」就是設定首頁：下面的選單直接打開各個設定頁，沒有另一份 ⚙ 選單 -->
+      <header class="page-head"><h1>我的</h1></header>
+      <div class="me-card">
+        <button id="me-card" class="me-main" type="button" aria-label="換我的樣子">
+          <span id="me-look" class="me-look"></span>
+          <span class="me-text"><b id="me-name"></b><span id="age-sub" class="hint"></span></span>
+        </button>
+        <div class="me-actions">
+          <button id="me-look-btn" class="me-edit" type="button">換我的樣子</button>
+          <button id="me-profile" class="me-edit" type="button">編輯名字、生日</button>
+        </div>
+      </div>
       <div id="me-stats" class="me-stats"></div>
       <section class="panel me-family">
         <div class="panel-head"><h2>我的家人與寵物</h2><button class="link-btn" type="button" data-open="people">全部 ›</button></div>
@@ -177,9 +186,8 @@
         </div>
       </section>
       <div class="menu me-menu">
-        <button class="menu-item" type="button" data-open="people"><span>人物與寵物</span><span id="me-people" class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-open="letters"><span>給未來的信</span><span id="me-letters" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-open="cloud"><span>家人與好友</span><span id="me-cloud" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="cloud"><span>雲端與家人</span><span id="me-cloud" class="menu-sub"></span><span class="chev">›</span></button>
       </div>
       <section class="panel now-panel">
         <div class="panel-head">
@@ -475,33 +483,10 @@
     <div id="lb-count" class="lb-count"></div>
   </dialog>
 
-  <!-- 設定：首頁是個人卡＋清單，點進去才是各個子頁 -->
+  <!-- 設定的各個子頁：從「我的」的選單打開；返回就關掉，回到「我的」 -->
   <dialog id="settings-dialog" class="sheet settings">
-    <section class="settings-page" data-page="home">
-      <h3>設定</h3>
-      <div class="profile-card">
-        <button id="profile-card" class="profile-main" type="button" aria-label="編輯個人資料">
-          <span id="settings-avatar" class="avatar small-avatar"></span>
-          <span class="profile-text"><b id="profile-card-name"></b><span id="profile-card-sub" class="hint"></span></span>
-          <span class="chev">›</span>
-        </button>
-        <button id="settings-avatar-btn" class="btn small" type="button">👗 我的樣子</button>
-      </div>
-      <div class="menu">
-        <button class="menu-item" type="button" data-go="cloud"><span>雲端與家人</span><span id="menu-cloud" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="people"><span>人物與寵物</span><span id="menu-people" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="weather"><span>真實天氣</span><span id="menu-weather" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="backup"><span>備份與資料</span><span id="menu-backup" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="other"><span>其他</span><span class="menu-sub"></span><span class="chev">›</span></button>
-      </div>
-      <div class="sheet-actions">
-        <span class="spacer"></span>
-        <button class="btn primary" type="button" data-close>完成</button>
-      </div>
-    </section>
-
     <section class="settings-page" data-page="profile" hidden>
-      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>個人資料</h3></div>
+      <div class="sheet-top"><h3>個人資料</h3></div>
       <form id="profile-form" method="dialog">
         <label>名字
           <input name="name" required maxlength="40">
@@ -518,7 +503,7 @@
     </section>
 
     <section class="settings-page" data-page="cloud" hidden>
-      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>雲端與家人</h3></div>
+      <div class="sheet-top"><h3>雲端與家人</h3></div>
       <div id="cloud-section" class="cloud-section"></div>
       <div class="sheet-actions">
         <span class="spacer"></span>
@@ -527,7 +512,7 @@
     </section>
 
     <section class="settings-page" data-page="people" hidden>
-      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>人物與寵物</h3></div>
+      <div class="sheet-top"><h3>人物與寵物</h3></div>
       <div id="people-section"></div>
       <div class="sheet-actions">
         <button id="add-pet-btn" class="btn" type="button">＋ 新增寵物</button>
@@ -537,7 +522,7 @@
     </section>
 
     <section class="settings-page" data-page="weather" hidden>
-      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>真實天氣</h3></div>
+      <div class="sheet-top"><h3>真實天氣</h3></div>
       <div id="weather-section"></div>
       <div class="sheet-actions">
         <button class="btn" type="button" data-back>返回</button>
@@ -547,7 +532,7 @@
     </section>
 
     <section class="settings-page" data-page="backup" hidden>
-      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>備份與資料</h3></div>
+      <div class="sheet-top"><h3>備份與資料</h3></div>
       <p class="hint">資料（含照片）只存在這支手機。換手機、清除網站資料前，記得先匯出備份。備份檔是 ZIP，可以存到 iCloud 雲碟。</p>
       <p id="backup-status" class="hint"></p>
       <div class="row">
@@ -568,7 +553,7 @@
     </section>
 
     <section class="settings-page" data-page="other" hidden>
-      <div class="sheet-top"><button class="back-btn" type="button" data-back aria-label="返回">‹</button><h3>其他</h3></div>
+      <div class="sheet-top"><h3>外觀與其他</h3></div>
       <div class="field">
         <span class="field-label">外觀</span>
         <div id="theme-chips" class="chips"></div>

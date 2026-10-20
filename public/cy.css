@@ -116,6 +116,8 @@ main#app {
 .cy-head span { font-size: 13px; color: var(--muted); }
 
 .cy-profile { display: flex; gap: 10px; margin: 0 12px 12px; }
+/* 個人小卡放在「記一筆」和今日卡下面 */
+.home-sheet .cy-profile { margin: 16px 0 0; }
 .cy-card {
   width: 104px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; align-items: stretch;
   padding: 0; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
@@ -148,13 +150,6 @@ main#app {
 .cy-tag { color: var(--cy-pop); font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .cy-news-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cy-empty { margin: 4px 0; font-size: 13px; color: var(--muted); }
-.cy-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); }
-.cy-count-cell {
-  display: flex; justify-content: space-between; align-items: center; min-height: 36px; padding: 0 8px;
-  border: 0; border-bottom: 1px solid #eef2f6; background: none; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer;
-}
-.cy-count-cell:nth-child(odd) { border-right: 1px solid #eef2f6; }
-.cy-count-cell b { color: var(--cy-pop); }
 
 /* Mini Room：房間放在細框裡 */
 .cy-room-title { margin: 0 12px 4px; border: 0; }
@@ -194,8 +189,6 @@ html.room-full, html.room-full body { overflow: hidden; }
 }
 .cy-family-text { font-size: 14px; color: var(--text); }
 .cy-family-who { font-size: 12px; color: var(--muted); }
-.cy-empty-box { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; margin-top: 8px; border: 1px dashed #b9c7d6; border-radius: 8px; text-align: center; }
-.cy-empty-box p { margin: 0; font-size: 13px; color: var(--muted); }
 
 /* 提示訊息：在分頁上方，不擋住手指（點得到後面的按鈕） */
 .toast { pointer-events: none; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 30; }
@@ -288,7 +281,11 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .menu-item { min-height: 44px; padding: 0 10px; gap: 8px; font-size: 14px; border-bottom: 1px dashed #e4eaf0; }
 .menu-item::before { content: "▶"; color: var(--cy-aqua); font-size: 10px; flex-shrink: 0; }
 .menu-item .menu-sub { font-size: 12px; }
-.me-card { border-radius: 6px !important; }
+.me-card { border-radius: 6px !important; flex-wrap: wrap; cursor: default; }
+/* 個人卡：點頭像和名字換樣子；右邊兩顆按鈕：換樣子、改名字生日 */
+.me-main { display: flex; align-items: center; gap: 14px; flex: 1 1 200px; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.me-actions { display: flex; gap: 8px; width: 100%; }
+.me-actions .me-edit { flex: 1; margin-top: 0; min-height: 40px; text-align: center; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; }
 .me-look { width: 96px; height: 96px; border-radius: 0; border: 1px solid #b9c7d6; background: var(--panel-2); }
 .me-look .look-head { width: 96px; }
 .me-text b { font-size: 18px; }
@@ -313,3 +310,6 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 
 /* 「我的」最下面的版本號 */
 .app-version { margin: 14px 0 0; text-align: center; font-family: "DotGothic16", var(--mono); font-size: 12px; color: var(--muted); }
+
+/* 今日卡：其他小卡片收起來時的「還有 N 張」 */
+.today-cards .today-more { align-self: flex-start; padding: 6px 0; font-size: 13px; }

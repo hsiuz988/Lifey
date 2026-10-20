@@ -26,7 +26,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(await p.$$eval('#look-preview img', (a) => a.some((i) => i.src.includes('cloth_hoodie'))), '預覽換成帽 T');
   await p.click('#look-save');
   assert((await st(p)).profile.look.cloth === 'hoodie', '存下帽 T');
-  await p.waitForFunction(() => document.querySelector('#letter-dialog').open); await p.evaluate(() => document.querySelector('#letter-dialog').close());
+  await p.waitForTimeout(300);
 
   // 記一筆：一句話就能存
   await p.click('#add-btn');
@@ -38,10 +38,11 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#moment-save'); await p.waitForTimeout(200);
   let s = await st(p);
   assert(s.moments.length === 1 && s.moments[0].text === '只寫一句', '一句話直接存');
+  assert(await p.textContent('#toast') === '記下來了', `提示文字正確，沒有多出 null（${await p.textContent('#toast')}）`);
   await p.waitForTimeout(150);
   assert(await p.textContent('#cy-today') === '1' && await p.textContent('#cy-total') === '1', '迷你小窩：TODAY／TOTAL 算到這一筆');
   assert((await p.textContent('#cy-news')).includes('只寫一句'), '迷你小窩：最近更新出現這一筆');
-  assert((await p.textContent('#cy-family')).includes('邀請家人'), '迷你小窩：還沒有家人時邀請');
+  assert(await p.$eval('#cy-family-box', e => e.hidden), '迷你小窩：還沒連結家人時不放「家人說」');
   // 只放一張照片也能存；什麼都沒有時不會存
   await tab(p, 'home').then(() => p.click('#quick-open'));
   assert(await p.$eval('#moment-save', (e) => e.classList.contains('off')), '還沒寫也沒照片時，「記下來」是淡的');
@@ -71,23 +72,27 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#moment-dialog [data-close]'); await pick(p, '放棄');
   assert(!(await p.$eval('#moment-dialog', d => d.open)), '選「放棄」就關閉');
 
-  // 設定：清單、人物名字選填
-  await tab(p, 'me').then(() => p.click('#open-settings'));
-  assert((await p.textContent('#profile-card-name')) === 'Hsiu' && (await p.textContent('#menu-people')) === '還沒有', '設定首頁有個人卡與摘要');
-  await p.click('[data-go=people]'); await p.click('#add-person-btn'); await p.click('#person-body button:text-is("媽媽")'); await p.click('#person-body button:text-is("儲存")');
+  // 「我的」就是設定首頁：沒有另一份 ⚙ 選單，人物與寵物只有一個入口
+  await tab(p, 'me');
+  assert(!(await p.$('#open-settings')) && (await p.$$('.me-menu [data-open=people]')).length === 0, '「我的」沒有重複的設定選單');
+  const menu = await p.$$eval('.me-menu', (els) => els.map((e) => e.textContent).join(''));
+  assert(menu.includes('雲端與家人') && menu.includes('外觀與其他'), '選單名稱和設定頁一致');
+  await p.click('.me-family [data-open=people]'); await p.click('#add-person-btn'); await p.click('#person-body button:text-is("媽媽")'); await p.click('#person-body button:text-is("儲存")');
   await p.waitForSelector('#person-body h3:text-is("媽媽")'); assert(true, '人物沒填名字，用關係「媽媽」顯示');
   await p.click('#person-body button:text-is("關閉")');
   await p.click('#add-pet-btn'); await p.click('#person-body button:has-text("貓")'); await p.click('#person-body .coat-btn:has-text("橘白貓")'); await p.click('#person-body button:text-is("儲存")');
   await p.waitForSelector('#person-body h3:text-is("橘白貓")'); assert(true, '寵物沒填名字，用毛色「橘白貓」顯示');
   await p.click('#person-body button:text-is("關閉")');
-  assert((await p.textContent('#people-section')).includes('橘白貓') && (await p.textContent('#menu-people')) === '1 位 · 1 隻', '人物清單與摘要更新');
+  assert((await p.textContent('#people-section')).includes('橘白貓') && (await p.textContent('#me-family')).includes('橘白貓'), '人物清單和「我的」的家人面板都更新');
   s = await st(p); assert(s.people.every(x => x.name === ''), '名字存成空的（之後對方加入可以帶入）');
   // 個人資料
-  await p.click('[data-page=people] [data-back]'); await p.click('#profile-card'); await p.fill('#profile-form [name=name]', 'Hsiu2'); await p.click('#profile-form button[type=submit]');
+  await p.click('#settings-dialog .win-x'); await p.waitForTimeout(150);
+  assert(!(await p.$eval('#settings-dialog', d => d.open)), '關掉設定頁就回到「我的」');
+  await p.click('#me-profile'); await p.fill('#profile-form [name=name]', 'Hsiu2'); await p.click('#profile-form button[type=submit]');
   await p.waitForTimeout(200);
-  assert(!(await p.isHidden('[data-page=home]')) && (await p.textContent('#profile-card-name')) === 'Hsiu2', '儲存個人資料後回到首頁');
+  assert(!(await p.$eval('#settings-dialog', d => d.open)) && (await p.textContent('#me-name')) === 'Hsiu2', '從個人卡改名字，存了就回到「我的」');
   // 清除要輸入「清除」
-  await p.click('[data-go=backup]'); await p.click('#reset-btn'); await p.waitForFunction(() => document.querySelector('#ask-dialog').open);
+  await p.click('.me-menu [data-open=backup]'); await p.click('#reset-btn'); await p.waitForFunction(() => document.querySelector('#ask-dialog').open);
   assert(await p.$eval('#ask-body button.danger', b => b.disabled), '還沒輸入「清除」時，清除按鈕按不下去');
   await p.fill('#ask-body input', '不要');
   assert(await p.$eval('#ask-body button.danger', b => b.disabled), '輸入別的字也按不下去');

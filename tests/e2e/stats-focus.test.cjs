@@ -79,13 +79,12 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   assert(count === '已解鎖 3 / 17', '已解鎖 3 個：第一步、值得記住、有方向的一年');
 
   // 改名字不會弄丟頭像
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('#me-profile'));
   await p.fill('#profile-form [name=name]', 'Hsiu Z');
   await p.click('#profile-form button[type=submit]');
   await p.waitForTimeout(200);
   s = await st();
-  assert(s.profile.name === 'Hsiu Z', '改名字');
-  await p.click('#settings-dialog [data-close] >> nth=-1');
+  assert(s.profile.name === 'Hsiu Z' && !(await p.$eval('#settings-dialog', d => d.open)), '改名字，存了就關掉回到「我的」');
   await p.screenshot({ path: S + '/s4-main.png', fullPage: true });
   console.log('errors', errors);
   await b.close();
