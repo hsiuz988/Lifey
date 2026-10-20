@@ -9,6 +9,7 @@ import {
 import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
+import { moodFace } from './moods.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
 import * as world from './world.js';
@@ -18,7 +19,9 @@ import { PET_TYPES, PET_ICONS, PET_COLORS, petSvg, petSwatchStyle } from './pets
 // ---------- 常數 ----------
 const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
 const DATA_VERSION = 2;
-const MOODS = ['😞', '🙁', '😐', '🙂', '😄']; // 對應 1–5
+// 列表前面的小臉：有選情緒就用它，沒有就用 1–5 分對應的表情
+const MOOD_KEYS = ['sad', 'tired', 'calm', 'happy', 'excited'];
+const momentFace = (m) => (m.emo && emotionByKey(m.emo) ? moodFace(m.emo, 16) : m.mood ? moodFace(MOOD_KEYS[m.mood - 1], 16) : null);
 const MOOD_COLORS = ['#cfcbe0', '#c4dbe9', '#c7e8dd', '#ffdcb2', '#f7b3c6'];
 const DEFAULT_TAGS = ['家人', '朋友', '愛情', '寵物', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
 // 依寫的字建議標籤（不會自動加上，點了才算）：每個詞有自己的小圖示，第一個是標籤本身的
@@ -340,7 +343,7 @@ function renderCyHome() {
   $('#cy-sub').textContent = `${age} 歲`;
   const emo = emotionByKey(todayInScene().emo);
   $('#cy-look').replaceChildren(lookHtml(state.profile.look, faceFor(emo && emo.key), 'look look-head'));
-  $('#cy-mood').replaceChildren(h('i', { class: 'cy-gem', style: `--c:${emo ? MOOD_COLORS[emo.mood - 1] : '#e4e8ec'}` }), emo ? emo.label : '還沒記錄');
+  $('#cy-mood').replaceChildren(emo ? moodFace(emo.key, 20) : h('i', { class: 'cy-gem', style: '--c:#e4e8ec' }), emo ? emo.label : '還沒記錄');
   const title = yearTitle(age);
   $('#cy-line').textContent = title || '寫下這一歲的一句話 ›';
   $('#cy-line').classList.toggle('empty', !title);
@@ -511,7 +514,7 @@ function openGarden(year, month) {
     const emo = emotionByKey(f.emo);
     const d = parseDate(date);
     detail.replaceChildren(h('div', { class: 'garden-card' },
-      h('small', {}, `${pad(d.getMonth() + 1)}/${pad(d.getDate())}（${'日一二三四五六'[d.getDay()]}）· ${emo ? `${emo.icon} ${emo.label}` : ''}`),
+      h('small', {}, `${pad(d.getMonth() + 1)}/${pad(d.getDate())}（${'日一二三四五六'[d.getDay()]}）· `, emo ? moodFace(emo.key, 16) : null, emo ? ` ${emo.label}` : ''),
       ...list.map((m) => h('button', { type: 'button', class: 'garden-entry', onclick: () => { $('#garden-dialog').close(); openMoment(m.id); } },
         m.story ? h('b', {}, m.story.title) : null,
         h('span', {}, m.story ? m.story.text : m.text),
@@ -851,7 +854,7 @@ function renderSearchResults(root) {
 }
 
 // 自己選的情緒，或寫了心情時自動判斷的情緒，顯示在心情前面
-const emoTag = (m) => { const e = emotionByKey(m.emo); return e && (m.feel || !m.emoAuto) ? `${e.icon} ${e.label}` : ''; };
+const emoTag = (m) => { const e = emotionByKey(m.emo); return e && (m.feel || !m.emoAuto) ? h('span', { class: 'emo-tag' }, moodFace(e.key, 16), e.label) : null; };
 
 function renderMoment(m) {
   const d = parseDate(m.date);
@@ -860,12 +863,12 @@ function renderMoment(m) {
     h('div', { class: 'moment-main' },
       h('button', { class: 'moment-body', type: 'button', onclick: () => openMoment(m.id) },
         h('span', { class: 'moment-text' }, eventById(m.event) ? h('span', { class: 'event-icon' }, `${eventById(m.event).icon} `) : null,
-          m.mood ? `${MOODS[m.mood - 1]} ` : '', m.story ? h('b', { class: 'story-title' }, m.story.title) : m.text,
+          momentFace(m), m.story ? h('b', { class: 'story-title' }, m.story.title) : m.text,
           m.shared ? h('span', { class: 'shared-mark', title: '已分享' }, ' 💞') : null),
         m.story ? h('span', { class: 'story-text' }, m.story.text) : null,
         // 有故事版時，原文和心情縮小放在下面；沒有時心情接在事件下面
         m.story ? h('span', { class: 'moment-orig' }, `✏️ ${m.text}${m.feel ? `　${m.feel}` : ''}`)
-          : m.feel || (m.emo && !m.emoAuto) ? h('span', { class: 'moment-feel' }, [emoTag(m), m.feel].filter(Boolean).join(' ')) : null,
+          : m.feel || (m.emo && !m.emoAuto) ? h('span', { class: 'moment-feel' }, emoTag(m), m.feel ? ` ${m.feel}` : null) : null,
         m.tags.length ? h('span', { class: 'moment-tags' }, m.tags.map((t) => h('span', { class: 'tag' }, t))) : null),
       m.people.length ? h('div', { class: 'moment-people' }, m.people.map(personById).filter(Boolean).map((p) =>
         h('button', { type: 'button', class: 'person-chip', onclick: () => openPerson(p.id) }, personLabel(p)))) : null,
@@ -1105,7 +1108,7 @@ function renderEmoPicker() {
       renderEmoPicker();
       if (!same && !form.feel.value) form.feel.focus();
     },
-  }, h('span', { class: 'emo-icon' }, e.icon), h('span', { class: 'emo-label' }, e.label))));
+  }, h('span', { class: 'emo-icon' }, moodFace(e.key, 30)), h('span', { class: 'emo-label' }, e.label))));
   const cur = emotionByKey(ui.emo);
   ui.mood = cur ? cur.mood : ui.baseMood;
   $('#emo-hint').textContent = !cur ? '' : ui.emoManual ? `你選了「${cur.label}」，再點一次可以取消` : `自動判斷是「${cur.label}」，不對的話點別的`;
@@ -2958,7 +2961,7 @@ function renderMembers() {
     return h('li', { class: `moment${m.starred ? ' starred' : ''}` },
       h('span', { class: 'moment-date' }, m.approx ? '這一年' : `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`),
       h('div', { class: 'moment-main' },
-        h('span', { class: 'moment-text' }, m.mood ? `${MOODS[m.mood - 1]} ` : '', m.text),
+        h('span', { class: 'moment-text' }, momentFace(m), m.text),
         (m.tags || []).length ? h('span', { class: 'moment-tags' }, m.tags.map((t) => h('span', { class: 'tag' }, t))) : null,
         (m.photoIds || []).length ? h('div', { class: 'moment-photos' }, m.photoIds.map((id, i) => {
           const img = h('img', { alt: '' });
@@ -3233,8 +3236,33 @@ function bind() {
     btn.addEventListener('click', () => tryClose(btn.closest('dialog'))));
   // 點對話框外的遮罩也可以關閉
   document.querySelectorAll('dialog.sheet').forEach((dlg) => {
-    dlg.addEventListener('click', (e) => { if (e.target === dlg) tryClose(dlg); });
+    dlg.addEventListener('click', (e) => {
+      if (e.target !== dlg) return;
+      // 只有點在抽屜外面（遮罩）才關；點到抽屜自己的留白不算
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) tryClose(dlg);
+    });
     dlg.addEventListener('cancel', (e) => { const g = guards[dlg.id]; if (g && !g()) e.preventDefault(); });
+  });
+  // 迷你小窩風：每個抽屜上面加一條藍色視窗標題列（標題取裡面第一個標題，原本的標題藏起來）
+  document.querySelectorAll('dialog.sheet:not(.composer-page)').forEach((dlg) => {
+    const title = h('span', { class: 'win-title' });
+    const bar = h('header', { class: 'win-bar' }, title,
+      h('button', { type: 'button', class: 'win-x', 'aria-label': '關閉', onclick: () => tryClose(dlg) }, '×'));
+    dlg.prepend(bar);
+    dlg.classList.add('win');
+    const sync = () => {
+      const heads = [...dlg.querySelectorAll(':scope > h3, :scope > form > h3, .sheet-top > h3, .settings-page > h3')]
+        .filter((el) => !el.closest('[hidden]'));
+      dlg.querySelectorAll('.win-dup').forEach((el) => { if (el !== heads[0]) el.classList.remove('win-dup'); });
+      const text = heads[0] ? heads[0].textContent.replace(/^[^\p{L}\p{N}]+/u, '').trim() : '';
+      if (heads[0] && !heads[0].classList.contains('win-dup')) heads[0].classList.add('win-dup');
+      const next = text || dlg.dataset.win || 'Lifey';
+      if (title.textContent !== next) title.textContent = next;
+    };
+    let queued = false;
+    new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; sync(); }); } }).observe(dlg, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'open'] });
+    sync();
   });
   // 鍵盤打開時，把底部固定列墊高到鍵盤上方
   if (window.visualViewport) {

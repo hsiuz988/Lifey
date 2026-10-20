@@ -5,7 +5,7 @@ module.exports = async (p) => {
     document.addEventListener('DOMContentLoaded', () => {
       const s = document.createElement('style'); s.textContent = css; document.head.append(s);
       // 舊測試不測歡迎頁：一跳出來就關掉
-      new MutationObserver(() => { const d = document.querySelector('#letter-dialog'); if (d && d.open && d.textContent.includes('歡迎，')) d.close(); })
+      new MutationObserver(() => { const d = document.querySelector('#letter-dialog'); if (d && d.open && d.querySelector('#letter-body').textContent.includes('歡迎，')) d.close(); })
         .observe(document.body, { subtree: true, childList: true, attributes: true });
     });
   });

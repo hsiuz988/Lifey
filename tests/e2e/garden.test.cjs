@@ -30,7 +30,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   let m = (await st(p)).moments[0];
   assert(m.emo === 'tired' && m.emoAuto === true, '存下情緒「累」（自動）');
   await tab(p, 'memories');
-  assert(await p.isVisible('#timeline .moment-feel >> text=😪 累 好累，有點懷疑自己'), '時間軸的心情前面有情緒');
+  assert(await p.isVisible('#timeline .moment-feel:has(.emo-tag svg.mood-face) >> text=累 好累，有點懷疑自己'), '時間軸的心情前面有情緒（像素小臉）');
   let sc = await scene(p);
   assert(sc.emo === 'tired', '場景的小人今天是「累」');
   assert(sc.items.split(' ').includes('coffee') && sc.items.split(' ').includes('laptop'), `今天的小東西：咖啡和筆電（${sc.items}）`);

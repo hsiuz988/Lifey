@@ -166,3 +166,99 @@ main#app {
 
 /* 提示訊息：在分頁上方，不擋住手指（點得到後面的按鈕） */
 .toast { pointer-events: none; bottom: calc(84px + env(safe-area-inset-bottom)); }
+
+/* ---------- 彈出視窗：藍色漸層標題列＋×、粗外框、硬陰影（像 2000 年的小視窗） ---------- */
+dialog.sheet { border: 2px solid #5f7690; border-bottom: 0; border-radius: 10px 10px 0 0; padding-top: 0; }
+dialog.sheet::backdrop { background: rgba(43, 47, 51, .45); }
+@media (min-width: 700px) { dialog.sheet { border-bottom: 2px solid #5f7690; border-radius: 10px; box-shadow: 4px 4px 0 rgba(43, 47, 51, .25); } }
+.win-bar {
+  position: sticky; top: 0; z-index: 6;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  height: 40px; margin: 0 -16px 14px; padding: 0 4px 0 12px;
+  background: linear-gradient(#93a9c2, #7189a4); color: #ffffff;
+}
+.win-title { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.win-x { width: 44px; height: 36px; flex-shrink: 0; border: 0; background: none; color: #ffffff; font-size: 22px; line-height: 1; cursor: pointer; }
+.win-dup { display: none !important; }
+.sheet-top:not(:has(> :not(.win-dup))) { display: none; }
+/* 標題列已經有 ×，抽屜裡「關閉」「取消」這類只是關掉的按鈕就留著當第二個出口 */
+
+/* 記一筆整頁：上方那列也做成視窗標題列 */
+.composer-head { background: linear-gradient(#93a9c2, #7189a4); color: #ffffff; border-bottom: 0 !important; }
+.composer-head h3 { color: #ffffff; font-size: 15px; }
+.composer-head .icon-btn { color: #ffffff; background: none; border: 0; }
+dialog.composer-page { border: 2px solid #5f7690; }
+
+/* 按鈕：主要＝橘色厚底；一般＝白到淺灰漸層、藍字 */
+.btn.primary { background: #c9560a; color: #ffffff; border: 0; border-bottom: 3px solid #9e4207; border-radius: 4px; font-weight: 700; }
+.btn:where(:not(.primary, .danger, .link-btn)) {
+  background: linear-gradient(#ffffff, #eef2f6); color: var(--cy-blue);
+  border: 1px solid #8fa3b8; border-bottom: 2px solid #7f95ad; border-radius: 4px; font-weight: 700;
+}
+.save-pill { border-radius: 4px !important; border-bottom: 3px solid #9e4207 !important; }
+
+/* 輸入框：淺藍灰底、細框 */
+:where(input[type="text"], input[type="search"], input[type="date"], input:not([type]), textarea, select) {
+  background: #f3f6f9; border: 1px solid #8fa3b8; border-radius: 4px;
+}
+
+/* 像素表情 */
+.mood-face-wrap { display: inline-flex; vertical-align: -3px; }
+.mood-face { image-rendering: pixelated; }
+.emo-tag { display: inline-flex; align-items: center; gap: 3px; }
+.moment-text .mood-face-wrap { margin-right: 4px; }
+.emo-icon { display: flex; justify-content: center; font-size: 0; line-height: 0; }
+.cy-mood .mood-face-wrap { vertical-align: middle; }
+.garden-card small { display: inline-flex; align-items: center; gap: 2px; }
+
+/* 註冊頁：點點桌面上一個「建立我的小窩」小視窗 */
+.cy-setup { max-width: 480px; padding: 24px 14px 32px; }
+.cy-setup-head { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; margin-bottom: 14px; }
+.cy-pixel { font-family: "DotGothic16", var(--mono); font-size: 13px; letter-spacing: .1em; color: #3e4c5a; }
+.cy-setup .brand { font-size: 26px; font-weight: 700; color: var(--cy-blue); letter-spacing: .05em; margin: 0; }
+.cy-setup .setup-lede { font-size: 13px; color: var(--muted); margin: 0; }
+.cy-window { border: 2px solid var(--cy-frame); border-radius: 10px; overflow: hidden; background: #ffffff; }
+.cy-window-bar {
+  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px;
+  background: linear-gradient(#93a9c2, #7189a4); color: #ffffff; font-size: 13px; font-weight: 700;
+}
+.cy-setup .setup-hero { padding: 0; background: var(--room-bg); border-bottom: 1px solid var(--line); }
+.cy-setup .setup-room { height: 168px; aspect-ratio: auto; }
+.cy-setup .setup-body { margin: 0; padding: 14px; border-radius: 0; background: #ffffff; }
+.cy-setup .intro-list { gap: 6px; margin: 0 0 12px; }
+.cy-setup .intro-list li { font-size: 14px; gap: 8px; }
+.cy-setup .intro-list li::before { content: "·"; color: #c9560a; font-weight: 700; }
+.cy-setup .setup-form { margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 12px; }
+.cy-setup .setup-form label { font-size: 13px; font-weight: 700; color: #3e4c5a; }
+.cy-setup .setup-form .hint { margin: -6px 0 0; font-size: 12px; }
+.cy-setup .btn.big { height: 48px; padding: 0; font-size: 16px; border-radius: 4px; }
+.cy-setup .setup-login { font-size: 13px; color: #3e4c5a; }
+.bday select { background: #f3f6f9; border: 1px solid #8fa3b8; border-radius: 4px; }
+dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10px; }
+
+/* 「我的」：▶ 選單、方塊狀態條 */
+.menu-item, .menu > button { border-bottom: 1px dashed #e4eaf0 !important; }
+.menu { border-radius: 6px !important; }
+.menu-item { min-height: 44px; padding: 0 10px; gap: 8px; font-size: 14px; border-bottom: 1px dashed #e4eaf0; }
+.menu-item::before { content: "▶"; color: #c9560a; font-size: 10px; flex-shrink: 0; }
+.menu-item .menu-sub { font-size: 12px; }
+.me-card { border-radius: 6px !important; }
+.me-look { width: 96px; height: 96px; border-radius: 0; border: 1px solid #b9c7d6; background: var(--panel-2); }
+.me-look .look-head { width: 96px; }
+.me-text b { font-size: 18px; }
+.me-edit {
+  align-self: flex-start; margin-top: 6px; padding: 8px 14px; border: 1px solid #8fa3b8; border-radius: 4px;
+  background: var(--panel-2); color: var(--cy-blue); font-size: 13px; font-weight: 700;
+}
+.me-stat { border-radius: 6px !important; padding: 8px; }
+.me-stat b { font-family: "DotGothic16", var(--mono); font-weight: 400; font-size: 20px; color: var(--cy-orange); }
+/* 狀態條：一格一格的方塊（像老遊戲的能量條） */
+.stat-track {
+  height: 12px; border-radius: 1px; background: #eef2f6;
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
+  mask: repeating-linear-gradient(90deg, #000 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
+}
+.stat-fill { border-radius: 0; }
+.stat-num { font-family: "DotGothic16", var(--mono); color: var(--cy-orange); }
+.stat-bars.compact .stat-track { height: 10px; }
+.stat-label { font-size: 13px; }

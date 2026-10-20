@@ -33,34 +33,41 @@
 </head>
 <body>
   <!-- 第一次開啟：介紹＋姓名與生日 -->
-  <section id="setup" class="setup" hidden>
-    <div class="setup-hero">
-      <img src="room/room.webp" alt="" class="setup-room">
+  <section id="setup" class="setup cy-setup" hidden>
+    <div class="cy-setup-head">
+      <span class="cy-pixel">WELCOME TO</span>
+      <h1 class="brand">人生紀錄</h1>
+      <p class="setup-lede">一個屬於你的迷你小窩，把一輩子慢慢記下來</p>
     </div>
-    <div class="setup-body">
-      <h1 class="brand">人生紀錄<span class="brand-dot">.</span></h1>
-      <p class="setup-lede">把每天的一句話，慢慢養成一個家。</p>
-      <ul class="intro-list">
-        <li><span>📓</span><div><b>一句話就好</b><small>點書桌上的日記本，或下面的＋，一句話、一張照片都能記</small></div></li>
-        <li><span>🗺</span><div><b>一生 90 格</b><small>一格一年，記滿就會點亮；台灣和世界的大事穿插其中</small></div></li>
-        <li><span>💌</span><div><b>寫給未來的自己</b><small>封存到下一個生日才能打開</small></div></li>
-        <li><span>🔒</span><div><b>資料在你手機裡</b><small>不給任何人看；想同步時再用 Face ID 開啟雲端</small></div></li>
-      </ul>
-      <p id="setup-invite" class="invite-note"></p>
-      <form id="setup-form" class="setup-form">
-        <label>你的名字
-          <input name="name" required maxlength="40" autocomplete="name" placeholder="想被怎麼稱呼">
-        </label>
-        <label>生日
-          <input name="birthday" type="date" required class="bday-native">
-        </label>
-        <button class="btn primary big" type="submit">開始記錄</button>
-        <p class="hint">繼續即表示同意<a href="privacy.html">隱私權政策與使用條款</a>。</p>
-      </form>
-      <div class="setup-login">
-        <span class="muted">已經有帳號了？</span>
-        <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
+    <div class="cy-window">
+      <div class="cy-window-bar"><svg width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M5 1h2v1h1v1h1v1h1v1h1v1H1V5h1V4h1V3h1V2h1zM2 7h8v4H2z" fill="#fff"></path></svg>建立我的小窩</div>
+      <div class="setup-hero">
+        <img src="room/room.webp" alt="一間可愛的小房間" class="setup-room">
       </div>
+      <div class="setup-body">
+        <ul class="intro-list">
+          <li>每天一句話，記下今天</li>
+          <li>一生 90 格的人生地圖</li>
+          <li>寫信給未來的自己</li>
+          <li>家人和另一半可以來串門子</li>
+        </ul>
+        <p id="setup-invite" class="invite-note"></p>
+        <form id="setup-form" class="setup-form">
+          <label>名字
+            <input name="name" required maxlength="40" autocomplete="name" placeholder="大家怎麼叫你？">
+          </label>
+          <label>生日
+            <input name="birthday" type="date" required class="bday-native">
+          </label>
+          <p class="hint">用來畫出你的人生地圖，資料只存在你的手機裡。</p>
+          <button class="btn primary big" type="submit">開始佈置我的小窩</button>
+          <p class="hint">繼續即表示同意<a href="privacy.html">隱私權政策與使用條款</a>。</p>
+        </form>
+      </div>
+    </div>
+    <div class="setup-login">
+      <span class="muted">已經有帳號了？</span>
+      <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
     </div>
   </section>
 
@@ -152,10 +159,10 @@
 
     <!-- 我：個人資料、今年的狀態、設定 -->
     <section class="tab-page" data-tab="me" hidden>
-      <header class="page-head"><h1>我</h1><button id="open-settings" class="icon-btn" aria-label="設定">⚙</button></header>
+      <header class="page-head"><h1>我的</h1><button id="open-settings" class="icon-btn" aria-label="設定">⚙</button></header>
       <button id="me-card" class="me-card" type="button" aria-label="換我的樣子">
         <span id="me-look" class="me-look"></span>
-        <span class="me-text"><b id="me-name"></b><span id="age-sub" class="hint"></span><span class="me-edit">👗 換我的樣子</span></span>
+        <span class="me-text"><b id="me-name"></b><span id="age-sub" class="hint"></span><span class="me-edit">換我的樣子</span></span>
       </button>
       <div id="me-stats" class="me-stats"></div>
       <section class="panel me-family">
@@ -167,9 +174,9 @@
         </div>
       </section>
       <div class="menu me-menu">
-        <button class="menu-item" type="button" data-open="people"><span>👨‍👩‍👧 人物與寵物</span><span id="me-people" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-open="letters"><span>💌 給未來的信</span><span id="me-letters" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-open="cloud"><span>🤝 家人與好友</span><span id="me-cloud" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="people"><span>人物與寵物</span><span id="me-people" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="letters"><span>給未來的信</span><span id="me-letters" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="cloud"><span>家人與好友</span><span id="me-cloud" class="menu-sub"></span><span class="chev">›</span></button>
       </div>
       <section class="panel now-panel">
         <div class="panel-head">
@@ -203,9 +210,9 @@
         <div id="achievements" class="achievements"></div>
       </section>
       <div class="menu me-menu">
-        <button class="menu-item" type="button" data-open="weather"><span>🌤 真實天氣</span><span id="me-weather" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-open="backup"><span>💾 備份與資料</span><span id="me-backup" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-open="other"><span>⚙️ 外觀與其他</span><span class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="weather"><span>真實天氣</span><span id="me-weather" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="backup"><span>備份與資料</span><span id="me-backup" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="other"><span>外觀與其他</span><span class="menu-sub"></span><span class="chev">›</span></button>
       </div>
     </section>
 
@@ -477,11 +484,11 @@
         <button id="settings-avatar-btn" class="btn small" type="button">👗 我的樣子</button>
       </div>
       <div class="menu">
-        <button class="menu-item" type="button" data-go="cloud"><span>☁️ 雲端與家人</span><span id="menu-cloud" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="people"><span>👨‍👩‍👧 人物與寵物</span><span id="menu-people" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="weather"><span>🌤 真實天氣</span><span id="menu-weather" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="backup"><span>💾 備份與資料</span><span id="menu-backup" class="menu-sub"></span><span class="chev">›</span></button>
-        <button class="menu-item" type="button" data-go="other"><span>⚙️ 其他</span><span class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="cloud"><span>雲端與家人</span><span id="menu-cloud" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="people"><span>人物與寵物</span><span id="menu-people" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="weather"><span>真實天氣</span><span id="menu-weather" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="backup"><span>備份與資料</span><span id="menu-backup" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-go="other"><span>其他</span><span class="menu-sub"></span><span class="chev">›</span></button>
       </div>
       <div class="sheet-actions">
         <span class="spacer"></span>
