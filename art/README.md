@@ -67,3 +67,21 @@ python3 tools/export.py
 2. 把它加進 `export.py` 的表情清單（`('smile', None), ('happy', ...)` 那行）。
 3. 執行 `export.py`。
 4. 如果是會改變眉毛的表情（生氣、難過、緊張），`compose.py` 的 `BROW_CHANGES` 已經有列。
+
+## 復古娃娃（會走路的角色）
+
+另一套角色，手腳分開畫，App 裡走路時會擺手擺腳。
+
+| 檔案 | 用途 |
+|---|---|
+| `doll_base.webp` | 光頭素體：手臂離開身體約 20 度、兩腿分開，有眉毛 |
+| `doll_hair_long.webp` | 同一張圖＋長直髮 |
+| `doll_hair_long_tpose.webp` | 長直髮、雙手平舉成 T 字：用來補手臂後面被擋住的頭髮 |
+
+```bash
+python3 tools/doll.py   # → ../public/room/doll/*.webp，並印出尺寸、腳底、關節位置
+```
+
+- 若印出的數字變了，要同步改 `room.js` 的 `DOLL_W`、`DOLL_H`、`DOLL_FOOT`、`DOLL_JOINTS`。
+- 新的長髮型（長過肩膀）需要兩張圖：一般姿勢一張，雙手平舉的 T 字版一張。短髮只要一張。
+- 衣服要用光頭素體生成，袖子只包住手臂、褲管不要蓋住兩腿之間的空隙，之後才能切成手腳。

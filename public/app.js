@@ -7,7 +7,7 @@ import {
   normalizeAvatar, randomAvatar, composeAvatar, drawAvatar, avatarSvg, W as AVATAR_W,
 } from './avatar.js';
 import { Scene, propsForTags, festivalOf } from './scene.js';
-import { Room, lookHtml, LOOKS, normalizeLook, faceFor } from './room.js';
+import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
@@ -1408,16 +1408,23 @@ function openLook({ onboarding = false } = {}) {
 function renderLook() {
   const { draft } = ui.look;
   $('#look-preview').replaceChildren(lookHtml(draft, 'happy', 'look look-full'));
-  const row = (label, key) => h('div', { class: 'field' }, h('span', { class: 'field-label' }, label),
-    h('div', { class: 'look-row' }, LOOKS[key].map(([v, name]) => {
+  const opts = looksFor(draft.style);
+  const pick = (opt) => { ui.look.draft = normalizeLook(opt); renderLook(); };
+  const styleRow = h('div', { class: 'field' }, h('span', { class: 'field-label' }, '角色'),
+    h('div', { class: 'look-row' }, STYLES.map(([v, name]) => h('button', {
+      type: 'button', class: `look-opt${draft.style === v ? ' on' : ''}`, 'aria-pressed': String(draft.style === v), 'data-style': v,
+      onclick: () => pick({ style: v }),
+    }, lookHtml({ style: v }, 'smile', 'look look-body'), h('span', {}, name)))));
+  const row = (label, key) => opts[key].length < 2 ? null : h('div', { class: 'field' }, h('span', { class: 'field-label' }, label),
+    h('div', { class: 'look-row' }, opts[key].map(([v, name]) => {
       const opt = { ...draft, [key]: v };
       return h('button', {
         type: 'button', class: `look-opt${draft[key] === v ? ' on' : ''}`, 'aria-pressed': String(draft[key] === v),
-        onclick: () => { ui.look.draft = opt; renderLook(); },
+        onclick: () => pick(opt),
       }, lookHtml(opt, 'smile', `look look-${key === 'hair' ? 'head' : 'body'}`), h('span', {}, name));
     })));
-  $('#look-options').replaceChildren(row('頭髮', 'hair'), row('衣服', 'cloth'),
-    h('p', { class: 'hint' }, '更多髮型和衣服陸續加入中。'));
+  $('#look-options').replaceChildren(...[styleRow, row('頭髮', 'hair'), row('衣服', 'cloth'),
+    h('p', { class: 'hint' }, draft.style === 'doll' ? '復古娃娃走路會擺手擺腳！表情和衣服陸續加入中。' : '更多髮型和衣服陸續加入中。')].filter(Boolean));
 }
 async function saveLook() {
   state.profile = { ...state.profile, look: { ...ui.look.draft }, updatedAt: new Date().toISOString() };

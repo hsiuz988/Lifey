@@ -126,6 +126,32 @@ async function newPage(b, opts = {}) {
   await r.reload(); await r.waitForSelector('#app:not([hidden])');
   assert(await r.$eval('#scene', (e) => e.dataset.look) === 'ponytail/tee', '舊資料：房間裡是預設的樣子');
 
+  // ===== 復古娃娃：選角色、走路會擺手擺腳 =====
+  const d = await newPage(b);
+  await d.goto(URL);
+  await d.fill('#setup-form [name=name]', 'D'); await d.fill('#setup-form [name=birthday]', '1992-05-05'); await d.click('#setup-form button');
+  await d.waitForFunction(() => document.querySelector('#look-dialog').open);
+  await d.click('#look-options .look-opt[data-style="doll"]');
+  assert(await d.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '經典,復古娃娃,長直髮,光頭', '復古娃娃：可以選長直髮或光頭，沒有衣服那排');
+  assert(await d.$eval('#look-preview .look', (e) => e.classList.contains('doll') && e.querySelectorAll('img').length === 7), '預覽是復古娃娃（7 個圖層）');
+  await d.screenshot({ path: OUT + '/s6-doll-look.png' });
+  await d.click('#look-save');
+  await d.waitForTimeout(600);
+  s = await st(d);
+  assert(s.profile.look.style === 'doll' && s.profile.look.hair === 'long', '存下：復古娃娃、長直髮');
+  assert(await d.$eval('#scene', (e) => e.dataset.style) === 'doll', '房間裡是復古娃娃');
+  const db = await d.$eval('#scene svg', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+  await d.mouse.click(db.x + db.w * 0.3, db.y + db.h * 0.8);
+  await d.waitForTimeout(400);
+  const swing = await d.$eval('.doll-arm_l', (e) => e.getAttribute('transform'));
+  assert(/rotate\(-?\d/.test(swing) && !/rotate\(0\.00 /.test(swing), '走路時手會擺動');
+  await d.screenshot({ path: OUT + '/s6-doll-walk.png' });
+  await d.waitForFunction(() => /rotate\(-?0\.00 /.test(document.querySelector('.doll-leg_l').getAttribute('transform')), null, { timeout: 8000 });
+  assert(true, '停下來手腳回到站姿');
+  await tab(d, 'me');
+  assert(await d.$eval('#me-look .look', (e) => e.classList.contains('doll')), '「我」的個人卡也是復古娃娃');
+  await d.close();
+
   // ===== 減少動態效果 =====
   const m = await newPage(b, { reducedMotion: 'reduce' });
   await m.goto(URL);

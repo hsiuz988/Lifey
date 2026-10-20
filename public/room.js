@@ -7,15 +7,31 @@ const W = 1536, H = 1024;
 export const VIEW = [130, 0, 1330, 1015];
 
 // 可以選的樣子（之後有新素材就加在這裡）
-export const LOOKS = {
-  hair: [['ponytail', '高馬尾'], ['', '光頭']],
-  cloth: [['tee', 'T 恤'], ['hoodie', '帽 T'], ['', '運動服']],
+// 兩種角色：經典（有表情、衣服）和復古娃娃（手腳分開，走路會擺手擺腳）
+export const STYLES = [['classic', '經典'], ['doll', '復古娃娃']];
+const STYLE_LOOKS = {
+  classic: {
+    hair: [['ponytail', '高馬尾'], ['', '光頭']],
+    cloth: [['tee', 'T 恤'], ['hoodie', '帽 T'], ['', '運動服']],
+  },
+  doll: {
+    hair: [['long', '長直髮'], ['', '光頭']],
+    cloth: [['', '運動服']],
+  },
 };
-export const DEFAULT_LOOK = { hair: 'ponytail', cloth: 'tee' };
-export const normalizeLook = (l) => ({
-  hair: l && LOOKS.hair.some(([v]) => v === l.hair) ? l.hair : DEFAULT_LOOK.hair,
-  cloth: l && LOOKS.cloth.some(([v]) => v === l.cloth) ? l.cloth : DEFAULT_LOOK.cloth,
-});
+const STYLE_DEFAULT = { classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: '' } };
+export const LOOKS = STYLE_LOOKS.classic;
+export const looksFor = (style) => STYLE_LOOKS[style] || LOOKS;
+export const DEFAULT_LOOK = { style: 'classic', ...STYLE_DEFAULT.classic };
+export const normalizeLook = (l) => {
+  const style = l && STYLE_LOOKS[l.style] ? l.style : 'classic';
+  const opts = STYLE_LOOKS[style], def = STYLE_DEFAULT[style];
+  return {
+    style,
+    hair: l && opts.hair.some(([v]) => v === l.hair) ? l.hair : def.hair,
+    cloth: l && opts.cloth.some(([v]) => v === l.cloth) ? l.cloth : def.cloth,
+  };
+};
 // 小人只有三種臉：10 種心情對到最接近的
 const EMO_FACE = { happy: 'happy', excited: 'happy', love: 'happy', moved: 'happy', angry: 'angry' };
 export const faceFor = (emo) => EMO_FACE[emo] || 'smile';
@@ -23,8 +39,13 @@ export const faceFor = (emo) => EMO_FACE[emo] || 'smile';
 // 小人的圖層（後髮 → 身體 → 衣服 → 五官 → 前髮 → 表情符號）；每張 267×420，腳底在 (108.8, 418.6)
 const CHAR_W = 267, CHAR_H = 420, FOOT = [108.8, 418.6];
 const SYM = { angry: true };
+// 復古娃娃：每張 254×420，腳底在 (126.5, 419.7)；手腳繞關節轉（art/tools/doll.py 印出來的數字）
+const DOLL_W = 254, DOLL_H = 420, DOLL_FOOT = [126.5, 419.7];
+const DOLL_JOINTS = { arm_l: [99.6, 236.9], arm_r: [153.4, 236.9], leg_l: [110.1, 306.8], leg_r: [142.9, 306.8] };
+const dollParts = (hair) => [hair && `hair_${hair}_back`, 'arm_l', 'arm_r', 'leg_l', 'leg_r', 'body', hair && `hair_${hair}_front`];
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
+  if (l.style === 'doll') return dollParts(l.hair).filter(Boolean).map((f) => `${BASE}doll/${f}.webp`);
   return [
     l.hair && `hair_${l.hair}_back`, 'body', l.cloth && `cloth_${l.cloth}`, `face_${face}`, l.hair && `hair_${l.hair}_front`, SYM[face] && `sym_${face}`,
   ].filter(Boolean).map((f) => `${BASE}char/${f}.webp`);
@@ -32,7 +53,7 @@ export function lookLayers(look, face = 'smile') {
 // 一般 HTML 用的小人（捏小人、我的頁面）：一疊 <img>
 export function lookHtml(look, face = 'smile', cls = 'look') {
   const box = document.createElement('div');
-  box.className = cls;
+  box.className = normalizeLook(look).style === 'doll' ? `${cls} doll` : cls;
   for (const src of lookLayers(look, face)) { const img = document.createElement('img'); img.src = src; img.alt = ''; box.append(img); }
   return box;
 }
@@ -113,7 +134,18 @@ export class Room {
     const bob = el('g', { class: 'bodybob' }, this.pose);
     el('ellipse', { cx: 0, cy: -2, rx: 52, ry: 13, fill: 'rgba(160,70,100,.16)' }, bob);
     const body = el('g', { transform: `scale(${320 / CHAR_H}) translate(${-FOOT[0]},${-FOOT[1]})` }, bob);
+    this.classic = body;
     this.layers = ['hair-back', 'body', 'cloth', 'face', 'hair-front', 'sym'].map((k) => el('image', { id: `l-${k}`, width: CHAR_W, height: CHAR_H }, body));
+    // 復古娃娃：手腳各在自己的 <g>，走路時由 tick() 轉
+    this.doll = el('g', { transform: `scale(${320 / DOLL_H}) translate(${-DOLL_FOOT[0]},${-DOLL_FOOT[1]})` }, bob);
+    this.dollHair = {};
+    this.joints = {};
+    const dollImg = (name, parent) => el('image', { href: `${BASE}doll/${name}.webp`, width: DOLL_W, height: DOLL_H }, parent);
+    this.dollHair.back = dollImg('hair_long_back', this.doll);
+    for (const j of ['arm_l', 'arm_r', 'leg_l', 'leg_r']) { this.joints[j] = el('g', { class: `doll-${j}` }, this.doll); dollImg(j, this.joints[j]); }
+    dollImg('body', this.doll);
+    this.dollHair.front = dollImg('hair_long_front', this.doll);
+    this.stride = 0;
     // 泡泡（HTML，字比較清楚）
     this.bubble = document.createElement('div');
     this.bubble.id = 'scene-bubble';
@@ -139,7 +171,7 @@ export class Room {
     Object.assign(this.box.dataset, {
       weather: st.weather ? st.weather.kind : 'none', emo: st.emo || 'none', companions: String((st.companions || []).slice(0, 3).length),
       pets: String((st.pets || []).length), flowers: String((st.flowers || []).length), items: (st.items || []).join(' '),
-      look: `${normalizeLook(st.look).hair}/${normalizeLook(st.look).cloth}`, face: this.face,
+      look: `${normalizeLook(st.look).hair}/${normalizeLook(st.look).cloth}`, face: this.face, style: normalizeLook(st.look).style,
     });
   }
   start() {}
@@ -149,6 +181,16 @@ export class Room {
   dress() {
     const srcs = lookLayers(this.state.look, this.face);
     const look = normalizeLook(this.state.look);
+    const doll = look.style === 'doll';
+    this.doll.style.display = doll ? '' : 'none';
+    this.classic.style.display = doll ? 'none' : '';
+    if (doll) {
+      for (const k of ['back', 'front']) {
+        const img = this.dollHair[k];
+        if (look.hair) { img.setAttribute('href', `${BASE}doll/hair_${look.hair}_${k}.webp`); img.style.display = ''; } else img.style.display = 'none';
+      }
+      return srcs;
+    }
     const want = { 'hair-back': look.hair && `hair_${look.hair}_back`, body: 'body', cloth: look.cloth && `cloth_${look.cloth}`, face: `face_${this.face}`, 'hair-front': look.hair && `hair_${look.hair}_front`, sym: SYM[this.face] && `sym_${this.face}` };
     this.layers.forEach((img) => {
       const f = want[img.id.slice(2)];
@@ -187,12 +229,24 @@ export class Room {
       if (Math.abs(x1 - x0) > .5) me.dir = x1 > x0 ? 1 : -1;
       if (d <= step) { me.u = tu; me.v = tv; me.path.shift(); } else { me.u += du / d * step; me.v += dv / d * step; }
       this.place();
+      this.swing(dt);
     }
     if (me.path.length) { this.raf = requestAnimationFrame((t) => this.tick(t)); return; }
     this.raf = 0;
+    this.stride = 0; this.swing(0);
     this.pose.setAttribute('class', 'idle');
     this.markers.replaceChildren();
     const f = me.then; me.then = null; if (f) f();
+  }
+  // 復古娃娃走路：手和腳一起左右擺（正面看的走法），停下來就回到站姿
+  swing(dt) {
+    this.stride += dt * 2.9;
+    const s = Math.sin(this.stride * 2 * Math.PI);
+    const ang = { arm_l: -14 * s, arm_r: -14 * s, leg_l: 9 * s, leg_r: 9 * s };
+    for (const [j, g] of Object.entries(this.joints)) {
+      const [x, y] = DOLL_JOINTS[j];
+      g.setAttribute('transform', `rotate(${ang[j].toFixed(2)} ${x} ${y})`);
+    }
   }
   onFloor(e) {
     if (this.me.asleep) { this.wake(); return; }

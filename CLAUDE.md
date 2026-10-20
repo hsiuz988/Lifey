@@ -93,11 +93,16 @@ tests/             Playwright 端對端測試
 
 ### 人物外觀（look）
 
-- 存在 `state.profile.look = { hair, cloth }`，會同步給家人（`sharedView` 有帶 look）。
+- 存在 `state.profile.look = { style, hair, cloth }`，會同步給家人（`sharedView` 有帶 look）。
 - `room.js` 的 `LOOKS` 定義可選項目：
   - 髮型：`ponytail` 或 ''（短髮＝素體本身）；
   - 衣服：`tee`、`hoodie` 或 ''。
-- 表情由心情決定：`faceFor(emo)` 把 happy/excited/love/moved 對到 `happy`、angry 對到 `angry`、其他對到 `smile`。
+- `style` 有兩種角色：`classic`（經典，預設）和 `doll`（復古娃娃）。`looksFor(style)` 回傳該角色可選的髮型和衣服。
+- **復古娃娃**（`public/room/doll/`，由 `art/tools/doll.py` 產生）：
+  - 切成身體＋頭、左右手、左右腳，加上前後髮；
+  - 走路時 `Room.swing()` 每一幀讓手腳繞關節 `DOLL_JOINTS` 轉（用 SVG transform 屬性，不靠 CSS，iPhone 也穩）；
+  - 目前只有一個表情（微笑）和運動服；髮型有長直髮、光頭。
+- 表情由心情決定（經典角色）：`faceFor(emo)` 把 happy/excited/love/moved 對到 `happy`、angry 對到 `angry`、其他對到 `smile`。
 - 圖層順序：`hair_*_back → body → cloth → face → hair_*_front → sym_*`。
 - 圖層尺寸是 267×420，腳底在 (108.8, 418.6)。
 - 新增髮型、衣服或表情：用 `art/` 的流程產出 webp，再加進 `LOOKS`／`faceFor`、`sw.js` 的 assets，並更新測試。

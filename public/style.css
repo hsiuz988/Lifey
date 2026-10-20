@@ -972,6 +972,8 @@ dialog.look-dialog[open] { display: flex; }
 .look-opt .look { width: 56px; height: 64px; overflow: hidden; border-radius: 10px; background: var(--panel); }
 .look-opt .look-head { width: 56px; height: auto; transform: scale(1.75); transform-origin: 44% 2%; }
 .look-opt .look-body { width: 56px; height: auto; transform: scale(1.05) translateY(-14%); }
+.look.doll.look-head { transform: scale(1.3); transform-origin: 50% 2%; }
+.look-opt .look.doll.look-head { transform: scale(1.4); transform-origin: 50% 1%; }
 .look-opt.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 .small-avatar .look-head, #settings-avatar .look-head { width: 48px; }
 #settings-avatar { overflow: hidden; border-radius: 14px; }
