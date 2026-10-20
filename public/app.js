@@ -22,6 +22,11 @@ const LEGACY_KEY = 'lifelog.v1'; // 階段 1 存在 localStorage 的資料
 const DATA_VERSION = 2;
 // 列表前面的小臉：有選情緒就用它，沒有就用 1–5 分對應的表情
 const MOOD_KEYS = ['sad', 'tired', 'calm', 'happy', 'excited'];
+// 首頁大頭貼下面「TODAY IS..」接的那句話
+const TODAY_IS = {
+  happy: '心情晴朗', excited: '超級興奮！', calm: '平平靜靜', moved: '被感動了', love: '心裡冒泡泡',
+  tired: '電量剩一格', sad: '有點想哭', angry: '氣噗噗', nervous: '心臟砰砰跳', miss: '好想你', none: '等你來寫…',
+};
 const momentFace = (m) => (m.emo && emotionByKey(m.emo) ? moodFace(m.emo, 16) : m.mood ? moodFace(MOOD_KEYS[m.mood - 1], 16) : null);
 const MOOD_COLORS = ['#cfcbe0', '#c4dbe9', '#c7e8dd', '#ffdcb2', '#f7b3c6'];
 const DEFAULT_TAGS = ['家人', '朋友', '愛情', '寵物', '工作', '學習', '健康', '運動', '旅行', '興趣', '里程碑'];
@@ -382,7 +387,9 @@ function renderCyHome() {
   $('#cy-sub').textContent = `${age} 歲`;
   const emo = emotionByKey(todayInScene().emo);
   $('#cy-look').replaceChildren(lookHtml(state.profile.look, faceFor(emo && emo.key), 'look look-head', emo && emo.key));
-  $('#cy-mood').replaceChildren(emo ? moodFace(emo.key, 20) : h('i', { class: 'cy-gem', style: '--c:#e4e8ec' }), emo ? emo.label : '還沒記錄');
+  // 表情已經在大頭貼上，這裡只用一句話說今天的狀態
+  $('#cy-mood').textContent = emo ? TODAY_IS[emo.key] || emo.label : TODAY_IS.none;
+  $('#cy-mood').classList.toggle('empty', !emo);
   const title = yearTitle(age);
   $('#cy-line').textContent = title || '寫下這一歲的一句話 ›';
   $('#cy-line').classList.toggle('empty', !title);
