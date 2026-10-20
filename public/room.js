@@ -46,6 +46,7 @@ const DOLL_JOINTS = { arm_n: [105.9, 232.6], arm_f: [155.9, 236.0], leg_n: [115.
 const DOLL_FACES = new Set(); // 這一版沒有表情，臉畫在身體上
 const dollFace = (face) => (DOLL_FACES.has(face) ? `face_${face}` : null);
 // 正面（站著、換裝畫面）：不會動，只有 後髮 → 身體 → 前髮；每張 257×420，腳底在 (128.2, 419.7)（art/tools/doll_front.py）
+const DOLL_SIZE = 272; // 復古娃娃在房間裡的高度（經典小人是 320）
 const FRONT_W = 257, FRONT_FOOT = [128.2, 419.7];
 const dollFrontParts = (hair, cloth) => [hair && `hair_${hair}_back`, cloth ? `body_${cloth}` : 'body', hair && `hair_${hair}_front`];
 // 側面疊的順序：後髮 → 遠手 → 遠腳 → 近腳 → 身體 → 表情 → 前髮 → 近手
@@ -147,7 +148,7 @@ export class Room {
     this.classic = body;
     this.layers = ['hair-back', 'body', 'cloth', 'face', 'hair-front', 'sym'].map((k) => el('image', { id: `l-${k}`, width: CHAR_W, height: CHAR_H }, body));
     // 復古娃娃：手腳各在自己的 <g>，走路時由 tick() 轉
-    this.doll = el('g', { transform: `scale(${320 / DOLL_H}) translate(${-DOLL_FOOT[0]},${-DOLL_FOOT[1]})` }, bob);
+    this.doll = el('g', { transform: `scale(${DOLL_SIZE / DOLL_H}) translate(${-DOLL_FOOT[0]},${-DOLL_FOOT[1]})` }, bob);
     this.dollHair = {};
     this.joints = {};
     const dollImg = (name, parent) => el('image', { href: `${BASE}doll/${name}.webp`, width: DOLL_W, height: DOLL_H }, parent);
@@ -163,7 +164,7 @@ export class Room {
     this.stride = 0;
     // 正面：站著的時候顯示；外面那層抵銷整個小人的左右翻面，正面永遠不翻
     this.dollFrontFlip = el('g', {}, bob);
-    this.dollFront = el('g', { transform: `scale(${320 / DOLL_H}) translate(${-FRONT_FOOT[0]},${-FRONT_FOOT[1]})` }, this.dollFrontFlip);
+    this.dollFront = el('g', { transform: `scale(${DOLL_SIZE / DOLL_H}) translate(${-FRONT_FOOT[0]},${-FRONT_FOOT[1]})` }, this.dollFrontFlip);
     this.frontImgs = ['hair-back', 'body', 'hair-front'].map((k) => el('image', { class: `front-${k}`, width: FRONT_W, height: DOLL_H }, this.dollFront));
     this.walking = false;
     // 泡泡（HTML，字比較清楚）
@@ -318,7 +319,7 @@ export class Room {
     const m = this.svg.getScreenCTM();
     if (!m || !box.width) return;
     let [x, y] = toXY(this.me.u, this.me.v);
-    y -= 335;
+    y -= (this.isDoll ? DOLL_SIZE : 320) + 15;
     if (this.me.asleep) [x, y] = [560, 270];
     const p = this.svg.createSVGPoint(); p.x = x; p.y = y;
     const s = p.matrixTransform(m);
