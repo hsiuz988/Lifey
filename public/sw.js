@@ -1,5 +1,5 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v43';
+const CACHE = 'lifelog-v44';
 const ASSETS = [
   './',
   './privacy',
@@ -64,22 +64,16 @@ const ASSETS = [
   './icons/icon-maskable-512.png',
   './icons/favicon-32.png',
   './logo.webp',
-  './room/pixel/body_front.webp',
-  './room/pixel/body_side.webp',
-  './room/pixel/body_tee_front.webp',
-  './room/pixel/body_tee_side.webp',
-  './room/pixel/body_tee_walk0.webp',
-  './room/pixel/body_tee_walk1.webp',
-  './room/pixel/body_tee_walk2.webp',
-  './room/pixel/body_tee_walk3.webp',
-  './room/pixel/body_walk0.webp',
-  './room/pixel/body_walk1.webp',
-  './room/pixel/body_walk2.webp',
-  './room/pixel/body_walk3.webp',
+  './room/pixel/body_sweater_back.webp',
+  './room/pixel/body_sweater_front.webp',
+  './room/pixel/body_sweater_side.webp',
+  './room/pixel/body_sweater_walk0.webp',
+  './room/pixel/body_sweater_walk1.webp',
+  './room/pixel/body_sweater_walk2.webp',
+  './room/pixel/body_sweater_walk3.webp',
+  './room/pixel/head_bob_back.webp',
   './room/pixel/head_bob_front.webp',
   './room/pixel/head_bob_side.webp',
-  './room/pixel/head_front.webp',
-  './room/pixel/head_side.webp',
 ];
 
 // 網址會被轉址的（/index.html → /）不放進快取：Safari 不接受 service worker 回傳轉址過的回應，會變成空白頁

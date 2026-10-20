@@ -11,8 +11,8 @@ export const VIEW = [130, 0, 1330, 1015];
 export const STYLES = [['pixel', '像素女孩'], ['classic', '經典'], ['doll', '復古娃娃']];
 const STYLE_LOOKS = {
   pixel: {
-    hair: [['bob', '妹妹頭'], ['', '光頭']],
-    cloth: [['tee', '淡黃 T 恤'], ['', '背心']],
+    hair: [['bob', '妹妹頭']],
+    cloth: [['sweater', '日常毛衣']],
   },
   classic: {
     hair: [['ponytail', '高馬尾'], ['', '光頭']],
@@ -23,7 +23,7 @@ const STYLE_LOOKS = {
     cloth: [['tee', 'T 恤'], ['', '運動服']],
   },
 };
-const STYLE_DEFAULT = { pixel: { hair: 'bob', cloth: 'tee' }, classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: 'tee' } };
+const STYLE_DEFAULT = { pixel: { hair: 'bob', cloth: 'sweater' }, classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: 'tee' } };
 export const LOOKS = STYLE_LOOKS.classic;
 export const looksFor = (style) => STYLE_LOOKS[style] || LOOKS;
 export const DEFAULT_LOOK = { style: 'pixel', ...STYLE_DEFAULT.pixel };
@@ -59,12 +59,12 @@ const dollParts = (hair, cloth, face) => {
   const c = cloth ? `_${cloth}` : '';
   return [hair && `hair_${hair}_back`, `arm_f${c}`, `leg_f${c}`, `leg_n${c}`, `body${c}`, dollFace(face), hair && `hair_${hair}_front`, `arm_n${c}`];
 };
-// 像素女孩（art/tools/pixel_doll.py）：每張 267×420，腳底在 (133.5, 418)；只有兩層：脖子以下的身體、脖子以上的頭
-// 站著用正面；走路用側面的頭＋4 格身體輪流換（往左走整個翻面）
-const PIX_W = 267, PIX_H = 420, PIX_FOOT = [133.5, 418];
+// 像素女孩（art/tools/pixel_parts.py）：紙娃娃做法，頭和身體分開畫，每張 267×420，腳底大約在 (133.5, 389)
+// 頭的下巴疊在身體的脖子上；站著用正面；走路用側面的頭＋4 格身體輪流換（往左走整個翻面）
+const PIX_W = 267, PIX_H = 420, PIX_FOOT = [133.5, 389];
 const PIX_SIZE = 340; // 畫布在房間裡的高度（人物本身大約 272，和復古娃娃一樣高）
 const PIX_FRAME = 0.15; // 走路每格幾秒
-const pixParts = (hair, cloth, view) => [`body${cloth ? `_${cloth}` : ''}_${view}`, `head${hair ? `_${hair}` : ''}_${view === 'front' ? 'front' : 'side'}`];
+const pixParts = (hair, cloth, view) => [`body_${cloth}_${view}`, `head_${hair}_${view === 'front' ? 'front' : 'side'}`];
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
   if (l.style === 'pixel') return pixParts(l.hair, l.cloth, 'front').map((f) => `${BASE}pixel/${f}.webp`);
