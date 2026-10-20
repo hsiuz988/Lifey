@@ -24,6 +24,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   await p.fill('#moment-form [name=feel]', '好累，有點懷疑自己');
   await p.waitForTimeout(100);
   assert(await p.isVisible('#emo-picker .chip.on >> text=累'), '心情寫「好累」自動選了「累」');
+  assert(await p.$$eval('#emo-picker .emo-icon img', (els) => els.length === 10 && els.every((e) => e.complete && e.naturalWidth > 0 && /icon_\w+\.webp$/.test(e.src))), '心情選項是像素女孩的 10 個表情');
   assert((await p.textContent('#emo-hint')).includes('自動判斷'), '提示是自動判斷的');
   await p.click('#moment-save');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);

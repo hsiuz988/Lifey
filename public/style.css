@@ -811,6 +811,7 @@ label.tool, .tool {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .emo-icon { font-size: 26px; line-height: 1.1; }
+.emo-icon img { display: block; width: 44px; height: 36px; object-fit: contain; } /* 像素女孩的表情（art/tools/pixel_faces.py） */
 .emo-label { font-size: 11px; color: var(--muted); }
 .chip.emo.on { background: var(--accent-soft); border-color: var(--accent); }
 .chip.emo.on.auto { border-style: dashed; }

@@ -15,6 +15,7 @@ let gain = null;
 let wanted = false;
 let failed = false;
 let onFail = null;
+let onTrack = null;
 
 export function musicPref() {
   try { return localStorage.getItem('lifey.music') === 'on'; } catch (e) { return false; }
@@ -26,11 +27,17 @@ export function trackPref() {
   return TRACKS.find((t) => t.id === id) || TRACKS[0];
 }
 
+// 清單裡的下一首（最後一首接回第一首）
+export function nextTrack() {
+  return TRACKS[(TRACKS.findIndex((t) => t.id === trackPref().id) + 1) % TRACKS.length];
+}
+
 function setup() {
   if (audio) return;
   audio = new Audio(trackPref().src);
-  audio.loop = true;
   audio.preload = 'none';
+  // 播完自動換下一首（同一個 audio 換 src，iPhone 才會讓它接著播）
+  audio.addEventListener('ended', () => { if (wanted) setTrack(nextTrack().id).then(() => onTrack && onTrack()); });
   audio.addEventListener('error', () => {
     failed = true;
     if (wanted && onFail) onFail();
@@ -112,8 +119,8 @@ export function musicPlaying() {
 }
 
 // 開機時呼叫：上次開著的話，等第一次點畫面就開始播；切到背景時暫停
-export function initMusic({ onFailed } = {}) {
-  onFail = onFailed;
+export function initMusic({ onFailed, onTrackChange } = {}) {
+  onFail = onFailed; onTrack = onTrackChange;
   wanted = musicPref();
   // 一直掛著：從背景回來時被擋下的話，下一次點畫面會再接著播
   const kick = () => { if (wanted && !failed && !musicPlaying()) play(); };

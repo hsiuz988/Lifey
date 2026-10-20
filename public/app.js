@@ -10,7 +10,7 @@ import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
-import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack } from './music.js';
+import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack, nextTrack as nextTrackOf } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
 import * as world from './world.js';
@@ -1154,7 +1154,7 @@ function renderEmoPicker() {
       renderEmoPicker();
       if (!same && !form.feel.value) form.feel.focus();
     },
-  }, h('span', { class: 'emo-icon' }, moodFace(e.key, 30)), h('span', { class: 'emo-label' }, e.label))));
+  }, h('span', { class: 'emo-icon' }, h('img', { src: `room/pixel/icon_${e.key}.webp`, alt: '', width: 44, height: 36 })), h('span', { class: 'emo-label' }, e.label))));
   const cur = emotionByKey(ui.emo);
   ui.mood = cur ? cur.mood : ui.baseMood;
   $('#emo-hint').textContent = !cur ? '' : ui.emoManual ? `你選了「${cur.label}」，再點一次可以取消` : `自動判斷是「${cur.label}」，不對的話點別的`;
@@ -2683,8 +2683,7 @@ async function pickTrack(id) {
   if (!ok) musicFailed();
 }
 function nextTrack() {
-  const i = TRACKS.findIndex((t) => t.id === trackPref().id);
-  pickTrack(TRACKS[(i + 1) % TRACKS.length].id);
+  pickTrack(nextTrackOf().id);
 }
 function musicFailed() {
   setMusic(false);
@@ -3464,7 +3463,7 @@ async function showVersion() {
 async function init() {
   showVersion();
   applyTheme();
-  initMusic({ onFailed: musicFailed });
+  initMusic({ onFailed: musicFailed, onTrackChange: renderMusicBtn });
   renderMusicBtn();
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
   bind();

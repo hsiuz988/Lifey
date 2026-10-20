@@ -4,6 +4,7 @@
 存成只有臉的透明圖，疊在頭上面。頭髮、耳朵、外框都用原本的，所以不會有接縫、換髮型也能共用。
 GPT 每次畫的大小不一樣也沒關係：每張臉各自量範圍再縮放。
 重畫某一個表情：放一張單獨的圖，加進 EXTRA（檔名、裁切範圍），會蓋掉 faces.png 裡那一格。
+另外輸出記一筆「心情」選項用的小頭像 icon_<心情>.webp（正面頭＋表情，只留頭）。
 用法：python3 art/tools/pixel_faces.py
 """
 from PIL import Image
@@ -51,6 +52,9 @@ def main():
         out[yy, xx, :3] = src[np.round(sy).astype(int), np.round(sx).astype(int)]
         out[yy, xx, 3] = 255
         Image.fromarray(out).save(f'{OUT}/face_{k}.webp', lossless=True)
+        icon = Image.fromarray(head.copy()); icon.alpha_composite(Image.fromarray(out))
+        icon = icon.crop(Image.fromarray(head).getbbox())
+        icon.resize((icon.width // 2, icon.height // 2), Image.LANCZOS).save(f'{OUT}/icon_{k}.webp', quality=92)
         print(k)
 
 if __name__ == '__main__':

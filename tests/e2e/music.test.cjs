@@ -36,7 +36,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   await p.waitForTimeout(300);
   assert(await playing(p), '按 BGM 開始播');
   assert(await p.$eval('#cy-bgm', (e) => e.classList.contains('on')), 'BGM 變成開啟的樣子');
-  assert(await p.evaluate(() => window.__music.loop), '音樂會循環');
+  assert(!(await p.evaluate(() => window.__music.loop)), '不是單曲循環');
   assert(await p.$eval('#cy-bgm-label', (e) => e.textContent) === '早晨咖啡', 'BGM 旁邊顯示正在播的歌名');
   await p.click('#cy-bgm-next');
   await p.waitForTimeout(300);
@@ -44,6 +44,9 @@ const hide = (p, hidden) => p.evaluate((h) => {
   await p.click('#cy-bgm-next'); await p.click('#cy-bgm-next');
   await p.waitForTimeout(300);
   assert(await p.$eval('#cy-bgm-label', (e) => e.textContent) === '早晨咖啡', '最後一首之後回到第一首');
+  await p.evaluate(() => window.__music.dispatchEvent(new Event('ended')));
+  await p.waitForTimeout(300);
+  assert(await p.evaluate(() => window.__music.src.endsWith('music/chill.mp3')) && await playing(p) && await p.$eval('#cy-bgm-label', (e) => e.textContent) === '慵懶午後', '播完自動換下一首');
   await p.screenshot({ path: OUT + '/music-on.png' });
 
   await hide(p, true);
