@@ -9,7 +9,7 @@ import {
 import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
-import { initMusic, setMusic, musicPref } from './music.js';
+import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
 import * as world from './world.js';
@@ -2549,6 +2549,11 @@ function renderMusicBtn() {
   $('#music-btn').classList.toggle('on', on);
   $('#music-btn').setAttribute('aria-pressed', String(on));
   $('#pref-music').checked = on;
+  const cur = trackPref().id;
+  $('#music-tracks').replaceChildren(...TRACKS.map((t) => h('button', {
+    type: 'button', class: `chip${on && cur === t.id ? ' on' : ''}`, 'aria-pressed': String(on && cur === t.id),
+    onclick: async () => { const ok = await setTrack(t.id); renderMusicBtn(); if (!ok) musicFailed(); },
+  }, t.name)));
 }
 function musicFailed() {
   setMusic(false);

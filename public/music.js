@@ -1,6 +1,11 @@
-// 背景音樂：預設關閉，開關存在這支手機（每台裝置可以不同）
+// 背景音樂：預設關閉，開關和選的曲子存在這支手機（每台裝置可以不同）
 // iPhone 不能自己開始播聲音，要等使用者點一下畫面；也不能用 audio.volume 調音量，所以用 Web Audio 的 GainNode
-const SRC = 'music/room.mp3';
+// 曲子都是 Pixabay 授權（可商用、不需標註）
+export const TRACKS = [
+  { id: 'cafe', name: '咖啡廳', src: 'music/room.mp3' }, // Cafe Lofi — zephiramusic
+  { id: 'chill', name: '慵懶午後', src: 'music/chill.mp3' }, // Chill Cafe Lofi Beat — tunetank
+  { id: 'sunny', name: '晴天爵士', src: 'music/sunny.mp3' }, // Lofi Jazz Trio Sunny Cafe — Alex Morgan
+];
 const VOLUME = 0.3;
 const FADE = 0.8; // 秒
 
@@ -15,9 +20,15 @@ export function musicPref() {
   try { return localStorage.getItem('lifey.music') === 'on'; } catch (e) { return false; }
 }
 
+export function trackPref() {
+  let id = null;
+  try { id = localStorage.getItem('lifey.track'); } catch (e) { /* 無痕模式 */ }
+  return TRACKS.find((t) => t.id === id) || TRACKS[0];
+}
+
 function setup() {
   if (audio) return;
-  audio = new Audio(SRC);
+  audio = new Audio(trackPref().src);
   audio.loop = true;
   audio.preload = 'none';
   audio.addEventListener('error', () => {
@@ -81,6 +92,19 @@ export function setMusic(on) {
   if (on) return play();
   pause();
   return Promise.resolve(true);
+}
+
+// 換曲子：選了就順便打開音樂（在點擊的當下呼叫）
+export function setTrack(id) {
+  const track = TRACKS.find((t) => t.id === id) || TRACKS[0];
+  try { localStorage.setItem('lifey.track', track.id); } catch (e) { /* 無痕模式存不了，只套用這次 */ }
+  if (audio && !audio.src.endsWith(track.src)) {
+    audio.pause();
+    if (gain) { gain.gain.cancelScheduledValues(ctx.currentTime); gain.gain.setValueAtTime(0, ctx.currentTime); } else audio.volume = 0;
+    audio.src = track.src;
+    failed = false;
+  }
+  return setMusic(true);
 }
 
 export function musicPlaying() {

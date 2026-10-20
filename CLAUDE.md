@@ -93,7 +93,12 @@ tests/             Playwright 端對端測試
 
 ### 背景音樂
 
-- `public/music.js`，檔案是 `public/music/room.mp3`：Pixabay 的〈Cafe Lofi〉（zephiramusic，Pixabay 授權，可商用、不需標註），重新壓成 112kbps、頭尾加短淡入淡出。檔案抓不到時打開開關會提示並關回去。
+- `public/music.js` 的 `TRACKS` 有三首，玩家在「我 → 其他」選（`lifey.track`），選了就順便打開音樂。都是 Pixabay 授權（可商用、不需標註）：
+  - 咖啡廳 `music/room.mp3`：〈Cafe Lofi〉zephiramusic（預設）
+  - 慵懶午後 `music/chill.mp3`：〈Chill Cafe Lofi Beat〉tunetank
+  - 晴天爵士 `music/sunny.mp3`：〈Lofi Jazz Trio Sunny Cafe〉Alex Morgan
+- 新增曲子：用 ffmpeg 壓成 112kbps、頭尾 0.3s／2s 淡入淡出，音量調到平均約 -16 dB（三首一致，換歌不會忽大忽小），再加進 `TRACKS` 和測試。
+- 檔案抓不到時打開開關會提示並關回去。
 - 預設關閉，開關存在 localStorage `lifey.music`（每台裝置不同）。房間右上角 `#music-btn`（♪），以及「我 → 其他」的 `#pref-music`。
 - iPhone 要等使用者點畫面才能出聲，`audio.volume` 也沒作用，所以用 Web Audio GainNode 調音量（30%）和淡入淡出；切到背景時暫停。
 - `sw.js` 不處理 mp3/m4a（播放時是分段請求，cache.put 存不了 206）。

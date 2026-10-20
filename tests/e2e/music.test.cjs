@@ -20,7 +20,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   await ctx.addInitScript(spy);
-  await ctx.route('**/music/room.mp3', (r) => r.fulfill({ path: SONG, contentType: 'audio/mpeg' }));
+  await ctx.route('**/music/*.mp3', (r) => r.fulfill({ path: SONG, contentType: 'audio/mpeg' }));
   const p = await ctx.newPage(); await require('./adapt.cjs')(p);
   p.on('pageerror', (e) => errors.push(e.message)); p.on('dialog', (d) => d.accept());
   await p.goto(URL);
@@ -63,10 +63,31 @@ const hide = (p, hidden) => p.evaluate((h) => {
   assert(!(await playing(p)), '設定裡關掉就停');
   assert(await p.$eval('#music-btn', (e) => e.getAttribute('aria-pressed') === 'false'), '房間的 ♪ 跟著變成關');
 
+  // 選曲子：關著時選了會換歌並打開
+  assert(await p.$$eval('#music-tracks .chip', (els) => els.map((e) => e.textContent).join()) === '咖啡廳,慵懶午後,晴天爵士', '可以選三首曲子');
+  await p.click('#music-tracks .chip:has-text("晴天爵士")');
+  await p.waitForTimeout(300);
+  assert(await p.evaluate(() => window.__music.src.endsWith('music/sunny.mp3')) && await playing(p), '選晴天爵士：換成那首並開始播');
+  assert(await p.$eval('#music-tracks .chip.on', (e) => e.textContent) === '晴天爵士', '晴天爵士變成選取的樣子');
+  assert(await p.$eval('#pref-music', (e) => e.checked), '開關跟著打開');
+  await p.screenshot({ path: OUT + '/music-tracks.png' });
+  await p.click('#music-tracks .chip:has-text("慵懶午後")');
+  await p.waitForTimeout(300);
+  assert(await p.evaluate(() => window.__music.src.endsWith('music/chill.mp3')) && await playing(p), '播放中換成慵懶午後');
+
+  // 重新打開：記得選的曲子
+  await p.reload();
+  await p.waitForSelector('#app:not([hidden])');
+  await p.click('#quick-open'); await p.keyboard.press('Escape');
+  await p.waitForTimeout(300);
+  assert(await p.evaluate(() => window.__music.src.endsWith('music/chill.mp3')) && await playing(p), '重新打開還是慵懶午後');
+
   // 音樂檔抓不到：關回去並提示
   const p2 = await ctx.newPage(); await require('./adapt.cjs')(p2);
-  await p2.route('**/music/room.mp3', (r) => r.fulfill({ status: 404, body: '' }));
+  await p2.route('**/music/*.mp3', (r) => r.fulfill({ status: 404, body: '' }));
   await p2.goto(URL);
+  await p2.evaluate(() => localStorage.setItem('lifey.music', 'off'));
+  await p2.reload();
   await p2.waitForSelector('#app:not([hidden])');
   await p2.click('#music-btn');
   await p2.waitForTimeout(800);
