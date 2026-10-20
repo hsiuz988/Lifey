@@ -83,21 +83,23 @@ export function windowView(weather, now = new Date()) {
   if (['cloudy', 'overcast', 'fog'].includes(kind)) return 'cloudy';
   return 'clear';
 }
+// 像素女孩的表情（art/tools/pixel_faces.py）：日記的 10 種心情各一張「只有臉」的圖，站著時疊在正面的頭上
+const PIX_FACES = ['happy', 'excited', 'calm', 'moved', 'love', 'tired', 'sad', 'angry', 'nervous', 'miss'];
 const pixParts = (hair, cloth, view) => [`body_${cloth}_${view}`, `head_${hair}_${view === 'front' ? 'front' : 'side'}`];
-export function lookLayers(look, face = 'smile') {
+export function lookLayers(look, face = 'smile', emo = null) {
   const l = normalizeLook(look);
-  if (l.style === 'pixel') return pixParts(l.hair, l.cloth, 'front').map(pixSrc);
+  if (l.style === 'pixel') return [...pixParts(l.hair, l.cloth, 'front'), PIX_FACES.includes(emo) && `face_${emo}`].filter(Boolean).map(pixSrc);
   if (l.style === 'doll') return dollFrontParts(l.hair, l.cloth).filter(Boolean).map((f) => `${BASE}doll/front/${f}.webp`);
   return [
     l.hair && `hair_${l.hair}_back`, 'body', l.cloth && `cloth_${l.cloth}`, `face_${face}`, l.hair && `hair_${l.hair}_front`, SYM[face] && `sym_${face}`,
   ].filter(Boolean).map((f) => `${BASE}char/${f}.webp`);
 }
 // 一般 HTML 用的小人（捏小人、我的頁面）：一疊 <img>
-export function lookHtml(look, face = 'smile', cls = 'look') {
+export function lookHtml(look, face = 'smile', cls = 'look', emo = null) {
   const box = document.createElement('div');
   const style = normalizeLook(look).style;
   box.className = style === 'classic' ? cls : `${cls} ${style}`;
-  for (const src of lookLayers(look, face)) { const img = document.createElement('img'); img.src = src; img.alt = ''; box.append(img); }
+  for (const src of lookLayers(look, face, emo)) { const img = document.createElement('img'); img.src = src; img.alt = ''; box.append(img); }
   return box;
 }
 
@@ -298,10 +300,10 @@ export class Room {
     return srcs;
   }
   // 暫時換一個表情（記完一筆時），過一下回到今天的心情
-  feel(face, ms = 3000) {
+  feel(face, ms = 3000, emo = null) {
     clearTimeout(this.faceTimer);
-    this.face = face; this.dress();
-    this.faceTimer = setTimeout(() => { this.faceTimer = null; this.face = faceFor(this.state.emo); this.dress(); this.box.dataset.face = this.face; }, ms);
+    this.face = face; this.feelEmo = emo; this.dress();
+    this.faceTimer = setTimeout(() => { this.faceTimer = null; this.face = faceFor(this.state.emo); this.feelEmo = null; this.dress(); this.box.dataset.face = this.face; }, ms);
     this.box.dataset.face = face;
   }
 
@@ -328,6 +330,7 @@ export class Room {
       for (const [k, list] of [['body', bodies], ['head', heads]]) {
         for (const f of list) this.pixImgs[f] = el('image', { class: `pix-${k}`, href: pixSrc(f), width: PIX_W, height: PIX_H, opacity: 0, style: 'image-rendering:pixelated' }, this.pixG);
       }
+      this.pixFace = el('image', { class: 'pix-face', width: PIX_W, height: PIX_H, display: 'none', style: 'image-rendering:pixelated' }, this.pixG);
     }
     const view = this.walking ? `walk${Math.floor(this.pixT / PIX_FRAME) % 4}` : 'front';
     const want = new Set(pixParts(look.hair, look.cloth, view));
@@ -336,6 +339,16 @@ export class Room {
       if (img.classList.contains('on') !== on) { img.classList.toggle('on', on); img.setAttribute('opacity', on ? 1 : 0); }
     }
     this.pixFlip.setAttribute('transform', this.walking ? '' : `scale(${this.me.dir},1)`);
+    this.showPixFace();
+  }
+  // 表情：剛記下的那則心情（feel 帶進來的），不然是今天的心情；走路是側面，不疊
+  showPixFace() {
+    if (!this.pixFace) return;
+    const emo = this.feelEmo || this.state.emo;
+    const show = PIX_FACES.includes(emo) && !this.walking;
+    if (show) { const href = pixSrc(`face_${emo}`); if (this.pixFace.getAttribute('href') !== href) this.pixFace.setAttribute('href', href); }
+    this.pixFace.setAttribute('display', show ? 'inline' : 'none');
+    this.box.dataset.pixface = show ? emo : 'none';
   }
   place() {
     const [x, y] = toXY(this.me.u, this.me.v);
@@ -444,7 +457,7 @@ export class Room {
   celebrate({ emo = null, sad = false, text = null } = {}) {
     if (this.me.asleep) this.wake(true);
     const face = sad ? 'smile' : faceFor(emo || 'happy');
-    this.feel(face);
+    this.feel(face, 3000, emo || (sad ? null : 'happy'));
     if (face !== 'angry' && !sad) { this.jump(); this.sparkle(...toXY(this.me.u, this.me.v).map((n, i) => n - (i ? 180 : 0)), 8); }
     this.say(text || (sad ? '已經好好記下來了' : face === 'angry' ? '記下來了，氣消一點了嗎？' : '記下來了！✨'));
   }

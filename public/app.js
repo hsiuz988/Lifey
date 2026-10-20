@@ -381,7 +381,7 @@ function renderCyHome() {
   $('#cy-title').textContent = `${name}的迷你小窩`;
   $('#cy-sub').textContent = `${age} 歲`;
   const emo = emotionByKey(todayInScene().emo);
-  $('#cy-look').replaceChildren(lookHtml(state.profile.look, faceFor(emo && emo.key), 'look look-head'));
+  $('#cy-look').replaceChildren(lookHtml(state.profile.look, faceFor(emo && emo.key), 'look look-head', emo && emo.key));
   $('#cy-mood').replaceChildren(emo ? moodFace(emo.key, 20) : h('i', { class: 'cy-gem', style: '--c:#e4e8ec' }), emo ? emo.label : '還沒記錄');
   const title = yearTitle(age);
   $('#cy-line').textContent = title || '寫下這一歲的一句話 ›';
@@ -419,7 +419,7 @@ function renderMe() {
   const today = todayStr();
   const ages = new Set(state.moments.map((m) => ageAt(birthday, m.date)));
   const photos = state.moments.reduce((n, m) => n + m.photoIds.length, 0);
-  $('#me-look').replaceChildren(lookHtml(state.profile.look, faceFor(todayInScene().emo), 'look look-head'));
+  $('#me-look').replaceChildren(lookHtml(state.profile.look, faceFor(todayInScene().emo), 'look look-head', todayInScene().emo));
   $('#me-name').textContent = name;
   const tile = (n, label) => h('div', { class: 'me-stat' }, h('b', {}, String(n)), h('span', {}, label));
   $('#me-stats').replaceChildren(tile(state.moments.length, '則紀錄'), tile(photos, '張照片'), tile(`${ages.size}/${ageAt(birthday, today) + 1}`, '個年歲'));

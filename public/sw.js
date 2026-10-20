@@ -1,5 +1,5 @@
 // 版本號：主.次.修（見 CLAUDE.md「版本號」）。改了任何檔案就把最後一位 +1，舊快取才會被清掉
-const VERSION = '0.0.56';
+const VERSION = '0.0.57';
 const CACHE = `lifelog-${VERSION}`;
 const ASSETS = [
   './',
@@ -81,6 +81,16 @@ const ASSETS = [
   './room/pixel/body_sweater_walk1.webp?v=2',
   './room/pixel/body_sweater_walk2.webp?v=2',
   './room/pixel/body_sweater_walk3.webp?v=2',
+  './room/pixel/face_happy.webp?v=2',
+  './room/pixel/face_excited.webp?v=2',
+  './room/pixel/face_calm.webp?v=2',
+  './room/pixel/face_moved.webp?v=2',
+  './room/pixel/face_love.webp?v=2',
+  './room/pixel/face_tired.webp?v=2',
+  './room/pixel/face_sad.webp?v=2',
+  './room/pixel/face_angry.webp?v=2',
+  './room/pixel/face_nervous.webp?v=2',
+  './room/pixel/face_miss.webp?v=2',
   './room/pixel/head_bob_back.webp?v=2',
   './room/pixel/head_bob_front.webp?v=2',
   './room/pixel/head_bob_side.webp?v=2',

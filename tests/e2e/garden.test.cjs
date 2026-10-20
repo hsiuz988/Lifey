@@ -33,6 +33,9 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   assert(await p.isVisible('#timeline .moment-feel:has(.emo-tag svg.mood-face) >> text=累 好累，有點懷疑自己'), '時間軸的心情前面有情緒（像素小臉）');
   let sc = await scene(p);
   assert(sc.emo === 'tired', '場景的小人今天是「累」');
+  await tab(p, 'home'); await p.waitForTimeout(3200); // 等「記下來了」的表情過去
+  assert(await p.$eval('#scene', (e) => e.dataset.pixface) === 'tired' && await p.$eval('#scene .pix-face', (e) => e.getAttribute('href').includes('face_tired')), '像素女孩換成「累」的表情');
+  assert(await p.$eval('#cy-look', (e) => !!e.querySelector('img[src*="face_tired"]')), '個人卡的頭像也是「累」的表情');
   assert(sc.items.split(' ').includes('coffee') && sc.items.split(' ').includes('laptop'), `今天的小東西：咖啡和筆電（${sc.items}）`);
   assert(sc.flowers === '1', '小花圃有今天的一朵（小芽）');
 
