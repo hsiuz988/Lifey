@@ -101,7 +101,9 @@ tests/             Playwright 端對端測試
 - **復古娃娃**（`public/room/doll/`，由 `art/tools/doll.py` 產生）：
   - 切成身體＋頭、左右手、左右腳，加上前後髮；
   - 走路時 `Room.swing()` 每一幀讓手腳繞關節 `DOLL_JOINTS` 轉（用 SVG transform 屬性，不靠 CSS，iPhone 也穩）；
-  - 目前只有一個表情（微笑）和運動服；髮型有長直髮、光頭。
+  - 衣服：每件衣服是一整張「光頭素體穿衣服」的圖，切成自己的身體和手腳（`body_tee`、`arm_l_tee`…）；
+  - 表情：微笑畫在身體上；其他表情只取臉的橢圓範圍，疊在身體和前髮之間（`face_happy`）；
+  - 目前有：長直髮／光頭、T 恤／運動服、微笑／高興。
 - 表情由心情決定（經典角色）：`faceFor(emo)` 把 happy/excited/love/moved 對到 `happy`、angry 對到 `angry`、其他對到 `smile`。
 - 圖層順序：`hair_*_back → body → cloth → face → hair_*_front → sym_*`。
 - 圖層尺寸是 267×420，腳底在 (108.8, 418.6)。

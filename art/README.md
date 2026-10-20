@@ -77,11 +77,14 @@ python3 tools/export.py
 | `doll_base.webp` | 光頭素體：手臂離開身體約 20 度、兩腿分開，有眉毛 |
 | `doll_hair_long.webp` | 同一張圖＋長直髮 |
 | `doll_hair_long_tpose.webp` | 長直髮、雙手平舉成 T 字：用來補手臂後面被擋住的頭髮 |
+| `doll_cloth_<名稱>.webp` | 光頭素體穿上衣服（例：`doll_cloth_tee`）；放進來就會自動輸出那件衣服的身體和手腳 |
+| `doll_expr_<名稱>.webp` | 光頭素體換表情（例：`doll_expr_happy`）；只取臉的範圍 |
 
 ```bash
 python3 tools/doll.py   # → ../public/room/doll/*.webp，並印出尺寸、腳底、關節位置
 ```
 
+- 新衣服、新表情：照上面的檔名放進 `source/` 再執行 `doll.py`，然後把名稱加進 `room.js`（`STYLE_LOOKS.doll` 或 `DOLL_FACES`）和 `sw.js`。
 - 若印出的數字變了，要同步改 `room.js` 的 `DOLL_W`、`DOLL_H`、`DOLL_FOOT`、`DOLL_JOINTS`。
 - 新的長髮型（長過肩膀）需要兩張圖：一般姿勢一張，雙手平舉的 T 字版一張。短髮只要一張。
 - 衣服要用光頭素體生成，袖子只包住手臂、褲管不要蓋住兩腿之間的空隙，之後才能切成手腳。
