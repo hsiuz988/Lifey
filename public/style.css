@@ -974,6 +974,9 @@ dialog.look-dialog[open] { display: flex; }
 .look-opt .look-body { width: 56px; height: auto; transform: scale(1.05) translateY(-14%); }
 .look.doll.look-head { transform: scale(1.3); transform-origin: 50% 2%; }
 .look-opt .look.doll.look-head { transform: scale(1.4); transform-origin: 50% 1%; }
+/* 像素女孩：頭在畫布 20%–74% 的高度 */
+.look.pixel img { image-rendering: pixelated; }
+.look.pixel.look-head, .look-opt .look.pixel.look-head { transform: translateY(-17%) scale(1.1); transform-origin: 50% 0; }
 .look-opt.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 .small-avatar .look-head, #settings-avatar .look-head { width: 48px; }
 #settings-avatar { overflow: hidden; border-radius: 14px; }

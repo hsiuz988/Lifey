@@ -7,9 +7,13 @@ const W = 1536, H = 1024;
 export const VIEW = [130, 0, 1330, 1015];
 
 // 可以選的樣子（之後有新素材就加在這裡）
-// 兩種角色：經典（有表情、衣服）和復古娃娃（手腳分開，走路會擺手擺腳）
-export const STYLES = [['classic', '經典'], ['doll', '復古娃娃']];
+// 三種角色：像素女孩（logo 的女孩，走路是 4 格動畫）、經典（有表情、衣服）、復古娃娃（手腳分開，走路會擺手擺腳）
+export const STYLES = [['pixel', '像素女孩'], ['classic', '經典'], ['doll', '復古娃娃']];
 const STYLE_LOOKS = {
+  pixel: {
+    hair: [['bob', '妹妹頭'], ['', '光頭']],
+    cloth: [['tee', '淡黃 T 恤'], ['', '背心']],
+  },
   classic: {
     hair: [['ponytail', '高馬尾'], ['', '光頭']],
     cloth: [['tee', 'T 恤'], ['hoodie', '帽 T'], ['', '運動服']],
@@ -19,12 +23,13 @@ const STYLE_LOOKS = {
     cloth: [['tee', 'T 恤'], ['', '運動服']],
   },
 };
-const STYLE_DEFAULT = { classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: 'tee' } };
+const STYLE_DEFAULT = { pixel: { hair: 'bob', cloth: 'tee' }, classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: 'tee' } };
 export const LOOKS = STYLE_LOOKS.classic;
 export const looksFor = (style) => STYLE_LOOKS[style] || LOOKS;
-export const DEFAULT_LOOK = { style: 'classic', ...STYLE_DEFAULT.classic };
+export const DEFAULT_LOOK = { style: 'pixel', ...STYLE_DEFAULT.pixel };
+// 還沒選過樣子的新使用者是像素女孩；舊資料沒有 style 的維持經典
 export const normalizeLook = (l) => {
-  const style = l && STYLE_LOOKS[l.style] ? l.style : 'classic';
+  const style = !l ? 'pixel' : STYLE_LOOKS[l.style] ? l.style : 'classic';
   const opts = STYLE_LOOKS[style], def = STYLE_DEFAULT[style];
   return {
     style,
@@ -54,8 +59,15 @@ const dollParts = (hair, cloth, face) => {
   const c = cloth ? `_${cloth}` : '';
   return [hair && `hair_${hair}_back`, `arm_f${c}`, `leg_f${c}`, `leg_n${c}`, `body${c}`, dollFace(face), hair && `hair_${hair}_front`, `arm_n${c}`];
 };
+// 像素女孩（art/tools/pixel_doll.py）：每張 267×420，腳底在 (133.5, 418)；只有兩層：脖子以下的身體、脖子以上的頭
+// 站著用正面；走路用側面的頭＋4 格身體輪流換（往左走整個翻面）
+const PIX_W = 267, PIX_H = 420, PIX_FOOT = [133.5, 418];
+const PIX_SIZE = 340; // 畫布在房間裡的高度（人物本身大約 272，和復古娃娃一樣高）
+const PIX_FRAME = 0.15; // 走路每格幾秒
+const pixParts = (hair, cloth, view) => [`body${cloth ? `_${cloth}` : ''}_${view}`, `head${hair ? `_${hair}` : ''}_${view === 'front' ? 'front' : 'side'}`];
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
+  if (l.style === 'pixel') return pixParts(l.hair, l.cloth, 'front').map((f) => `${BASE}pixel/${f}.webp`);
   if (l.style === 'doll') return dollFrontParts(l.hair, l.cloth).filter(Boolean).map((f) => `${BASE}doll/front/${f}.webp`);
   return [
     l.hair && `hair_${l.hair}_back`, 'body', l.cloth && `cloth_${l.cloth}`, `face_${face}`, l.hair && `hair_${l.hair}_front`, SYM[face] && `sym_${face}`,
@@ -64,7 +76,8 @@ export function lookLayers(look, face = 'smile') {
 // 一般 HTML 用的小人（捏小人、我的頁面）：一疊 <img>
 export function lookHtml(look, face = 'smile', cls = 'look') {
   const box = document.createElement('div');
-  box.className = normalizeLook(look).style === 'doll' ? `${cls} doll` : cls;
+  const style = normalizeLook(look).style;
+  box.className = style === 'classic' ? cls : `${cls} ${style}`;
   for (const src of lookLayers(look, face)) { const img = document.createElement('img'); img.src = src; img.alt = ''; box.append(img); }
   return box;
 }
@@ -166,6 +179,11 @@ export class Room {
     this.dollFrontFlip = el('g', {}, bob);
     this.dollFront = el('g', { transform: `scale(${DOLL_SIZE / DOLL_H}) translate(${-FRONT_FOOT[0]},${-FRONT_FOOT[1]})` }, this.dollFrontFlip);
     this.frontImgs = ['hair-back', 'body', 'hair-front'].map((k) => el('image', { class: `front-${k}`, width: FRONT_W, height: DOLL_H }, this.dollFront));
+    // 像素女孩：外層抵銷左右翻面（站著的正面不翻），裡面兩張圖（身體、頭）
+    this.pixFlip = el('g', { class: 'pix' }, bob);
+    const pix = el('g', { transform: `scale(${PIX_SIZE / PIX_H}) translate(${-PIX_FOOT[0]},${-PIX_FOOT[1]})` }, this.pixFlip);
+    this.pixImgs = ['body', 'head'].map((k) => el('image', { class: `pix-${k}`, width: PIX_W, height: PIX_H, style: 'image-rendering:pixelated' }, pix));
+    this.pixT = 0;
     this.walking = false;
     // 泡泡（HTML，字比較清楚）
     this.bubble = document.createElement('div');
@@ -204,8 +222,10 @@ export class Room {
     const look = normalizeLook(this.state.look);
     const doll = look.style === 'doll';
     this.isDoll = doll;
+    this.isPixel = look.style === 'pixel';
     this.showPose();
-    this.classic.style.display = doll ? 'none' : '';
+    this.classic.style.display = doll || this.isPixel ? 'none' : '';
+    if (this.isPixel) return srcs;
     if (doll) {
       dollFrontParts(look.hair, look.cloth).forEach((f, i) => {
         const img = this.frontImgs[i];
@@ -241,12 +261,25 @@ export class Room {
     const side = this.isDoll && this.walking;
     this.doll.style.display = side ? '' : 'none';
     this.dollFrontFlip.style.display = this.isDoll && !this.walking ? '' : 'none';
-    this.box.dataset.pose = this.isDoll ? (side ? 'side' : 'front') : 'classic';
+    this.pixFlip.style.display = this.isPixel ? '' : 'none';
+    if (this.isPixel) this.pixFrame();
+    this.box.dataset.pose = this.isDoll || this.isPixel ? (this.walking ? 'side' : 'front') : 'classic';
+  }
+  // 像素女孩：站著＝正面；走路＝側面的頭＋第幾格身體
+  pixFrame() {
+    const look = normalizeLook(this.state.look);
+    const view = this.walking ? `walk${Math.floor(this.pixT / PIX_FRAME) % 4}` : 'front';
+    pixParts(look.hair, look.cloth, view).forEach((f, i) => {
+      const href = `${BASE}pixel/${f}.webp`, img = this.pixImgs[i];
+      if (img.getAttribute('href') !== href) img.setAttribute('href', href);
+    });
+    this.pixFlip.setAttribute('transform', this.walking ? '' : `scale(${this.me.dir},1)`);
   }
   place() {
     const [x, y] = toXY(this.me.u, this.me.v);
     this.meG.setAttribute('transform', `translate(${x},${y}) scale(${this.me.dir},1)`);
     this.dollFrontFlip.setAttribute('transform', `scale(${this.me.dir},1)`);
+    if (this.isPixel && !this.walking) this.pixFlip.setAttribute('transform', `scale(${this.me.dir},1)`);
     if (this.bubble.classList.contains('show')) this.placeBubble();
   }
   walkTo(u, v, then) {
@@ -281,6 +314,8 @@ export class Room {
   // 復古娃娃走路：腳前後跨步；手只往不會露出縫的方向擺（近手往前蓋過身體、遠手往後躲到身體後面）
   // 停下來（walking＝false）就回到站姿
   swing(dt, walking = true) {
+    this.pixT = walking ? this.pixT + dt : 0;
+    if (this.isPixel && walking) this.pixFrame();
     this.stride += dt * 2.6;
     const s = Math.sin(this.stride * 2 * Math.PI);
     const ang = walking ? { leg_n: -15 * s, leg_f: 15 * s, arm_n: -9 * (1 - s), arm_f: 8 * (1 - s) } : { leg_n: 0, leg_f: 0, arm_n: 0, arm_f: 0 };
@@ -319,7 +354,7 @@ export class Room {
     const m = this.svg.getScreenCTM();
     if (!m || !box.width) return;
     let [x, y] = toXY(this.me.u, this.me.v);
-    y -= (this.isDoll ? DOLL_SIZE : 320) + 15;
+    y -= (this.isDoll || this.isPixel ? DOLL_SIZE : 320) + 15;
     if (this.me.asleep) [x, y] = [560, 270];
     const p = this.svg.createSVGPoint(); p.x = x; p.y = y;
     const s = p.matrixTransform(m);

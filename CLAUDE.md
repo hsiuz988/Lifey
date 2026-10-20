@@ -110,6 +110,12 @@ tests/             Playwright 端對端測試
   - 衣服：一整張「光頭素體穿衣服」的圖，先用腿和鞋對齊素體，只取脖子以下，頭一律用素體的（頭髮才對得齊）；
   - 目前有：女生、長直髮／鮑伯頭／光頭、T 恤／運動服；這一版沒有表情；
   - 男生素體 `art/source/doll34_boy_base.webp` 已有，髮型和衣服等使用者生成。
+- **像素女孩**（`style: 'pixel'`，新使用者的預設，`cyworld` 分支）：logo 女孩的像素風。
+  - 素材在 `art/source/pixel/`（GPT 生的去背 PNG）：`base.png` 光頭三面、`base_walk.png` 走路 4 格、`hair_<名>.png`、`cloth_<名>.png`、`cloth_<名>_walk.png`；
+  - `python3 art/tools/pixel_doll.py` 會把每張圖用剪影自動對齊到光頭素體（站姿看腿、走路看頭形，吻合度低於 0.94 會提醒重生），輸出 `public/room/pixel/` 的 `body[_衣服]_front|side|walk0-3.webp`、`head[_髮型]_front|side.webp`；
+  - 只有兩層：脖子以下的身體、脖子以上的頭（含臉）；站著是正面，走路是側面的頭＋4 格身體輪流（每格 0.15 秒），往左走整個翻面；
+  - 加新髮型／衣服：放進 `art/source/pixel/`、跑工具、在 `room.js` 的 `STYLE_LOOKS.pixel` 加選項、`sw.js` 加檔案；
+  - 長髮會垂到身體前後，之後要拆前後兩層。
 - 表情由心情決定（經典角色）：`faceFor(emo)` 把 happy/excited/love/moved 對到 `happy`、angry 對到 `angry`、其他對到 `smile`。
 - 圖層順序：`hair_*_back → body → cloth → face → hair_*_front → sym_*`。
 - 圖層尺寸是 267×420，腳底在 (108.8, 418.6)。

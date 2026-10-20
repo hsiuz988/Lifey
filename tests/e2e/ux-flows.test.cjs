@@ -17,6 +17,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   // 第一次使用：選自己的樣子（房間裡的小人）
   assert((await p.textContent('#look-title')) === '選你的樣子' && (await p.textContent('#look-save')) === '就是我了', '註冊後接著選樣子');
+  await p.click('#look-options .look-opt[data-style="classic"]');
   assert(await p.$$eval('#look-preview img', (a) => a.length >= 4), '預覽是疊起來的小人');
   await p.click('#look-options .look-opt:has-text("帽 T")');
   assert(await p.$eval('#look-options .look-opt:has-text("帽 T")', e => e.classList.contains('on')), '選了帽 T');
