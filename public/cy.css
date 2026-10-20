@@ -270,3 +270,5 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .stat-num { font-family: "DotGothic16", var(--mono); color: var(--cy-pop); }
 .stat-bars.compact .stat-track { height: 10px; }
 .stat-label { font-size: 13px; }
+.cy-setup .brand { line-height: 0; }
+.cy-logo { display: block; width: 220px; height: auto; margin: 0 auto; image-rendering: auto; }

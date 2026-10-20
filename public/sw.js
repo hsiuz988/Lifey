@@ -1,5 +1,5 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v40';
+const CACHE = 'lifelog-v41';
 const ASSETS = [
   './',
   './privacy',
@@ -61,6 +61,9 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  './icons/icon-maskable-512.png',
+  './icons/favicon-32.png',
+  './logo.webp',
 ];
 
 // 網址會被轉址的（/index.html → /）不放進快取：Safari 不接受 service worker 回傳轉址過的回應，會變成空白頁
