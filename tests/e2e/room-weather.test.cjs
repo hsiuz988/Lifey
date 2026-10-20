@@ -133,7 +133,7 @@ async function newPage(b, opts = {}) {
   await d.waitForFunction(() => document.querySelector('#look-dialog').open);
   await d.click('#look-options .look-opt[data-style="doll"]');
   assert(await d.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '經典,復古娃娃,長直髮,鮑伯頭,光頭,T 恤,運動服', '復古娃娃：髮型有長直髮、鮑伯頭、光頭，衣服有 T 恤、運動服');
-  assert(await d.$eval('#look-preview .look', (e) => e.classList.contains('doll') && e.querySelectorAll('img').length === 7 && !!e.querySelector('img[src$="body_tee.webp"]') && e.lastChild.getAttribute('src').endsWith('arm_n_tee.webp')), '預覽是穿 T 恤的復古娃娃（近的手在最上層）');
+  assert(await d.$eval('#look-preview .look', (e) => e.classList.contains('doll') && e.querySelectorAll('img').length === 3 && !!e.querySelector('img[src$="front/body_tee.webp"]')), '換裝畫面是正面、穿 T 恤的復古娃娃');
   await d.screenshot({ path: OUT + '/s6-doll-look.png' });
   await d.click('#look-save');
   await d.waitForTimeout(600);
@@ -141,14 +141,16 @@ async function newPage(b, opts = {}) {
   assert(s.profile.look.style === 'doll' && s.profile.look.hair === 'long' && s.profile.look.cloth === 'tee', '存下：復古娃娃、長直髮、T 恤');
   assert(await d.$eval('.doll-arm_n image', (e) => e.getAttribute('href').endsWith('arm_n_tee.webp')), '房間裡娃娃的手穿著 T 恤的袖子');
   assert(await d.$eval('#scene', (e) => e.dataset.style) === 'doll', '房間裡是復古娃娃');
+  assert(await d.$eval('#scene', (e) => e.dataset.pose) === 'front' && await d.$eval('.front-body', (e) => e.getAttribute('href').endsWith('front/body_tee.webp')), '站著的時候是正面');
   const db = await d.$eval('#scene svg', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
   await d.mouse.click(db.x + db.w * 0.3, db.y + db.h * 0.8);
   await d.waitForTimeout(400);
+  assert(await d.$eval('#scene', (e) => e.dataset.pose) === 'side', '走路時轉成側面');
   const swing = await d.$eval('.doll-leg_n', (e) => e.getAttribute('transform'));
   assert(/rotate\(-?\d/.test(swing) && !/rotate\(-?0\.00 /.test(swing), '走路時腳會前後跨步');
   await d.screenshot({ path: OUT + '/s6-doll-walk.png' });
   await d.waitForFunction(() => ['leg_n', 'arm_n'].every((j) => /rotate\(-?0\.00 /.test(document.querySelector('.doll-' + j).getAttribute('transform'))), null, { timeout: 8000 });
-  assert(true, '停下來手腳回到站姿');
+  assert(await d.$eval('#scene', (e) => e.dataset.pose) === 'front', '停下來手腳回到站姿、轉回正面');
   await tab(d, 'me');
   assert(await d.$eval('#me-look .look', (e) => e.classList.contains('doll')), '「我」的個人卡也是復古娃娃');
   await d.close();

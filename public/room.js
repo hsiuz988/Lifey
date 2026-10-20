@@ -45,14 +45,17 @@ const DOLL_W = 242, DOLL_H = 420, DOLL_FOOT = [129.5, 418.6];
 const DOLL_JOINTS = { arm_n: [105.9, 232.6], arm_f: [155.9, 236.0], leg_n: [115.6, 296.8], leg_f: [150.3, 296.8] };
 const DOLL_FACES = new Set(); // 這一版沒有表情，臉畫在身體上
 const dollFace = (face) => (DOLL_FACES.has(face) ? `face_${face}` : null);
-// 疊的順序：後髮 → 遠手 → 遠腳 → 近腳 → 身體 → 表情 → 前髮 → 近手
+// 正面（站著、換裝畫面）：不會動，只有 後髮 → 身體 → 前髮；每張 257×420，腳底在 (128.2, 419.7)（art/tools/doll_front.py）
+const FRONT_W = 257, FRONT_FOOT = [128.2, 419.7];
+const dollFrontParts = (hair, cloth) => [hair && `hair_${hair}_back`, cloth ? `body_${cloth}` : 'body', hair && `hair_${hair}_front`];
+// 側面疊的順序：後髮 → 遠手 → 遠腳 → 近腳 → 身體 → 表情 → 前髮 → 近手
 const dollParts = (hair, cloth, face) => {
   const c = cloth ? `_${cloth}` : '';
   return [hair && `hair_${hair}_back`, `arm_f${c}`, `leg_f${c}`, `leg_n${c}`, `body${c}`, dollFace(face), hair && `hair_${hair}_front`, `arm_n${c}`];
 };
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
-  if (l.style === 'doll') return dollParts(l.hair, l.cloth, face).filter(Boolean).map((f) => `${BASE}doll/${f}.webp`);
+  if (l.style === 'doll') return dollFrontParts(l.hair, l.cloth).filter(Boolean).map((f) => `${BASE}doll/front/${f}.webp`);
   return [
     l.hair && `hair_${l.hair}_back`, 'body', l.cloth && `cloth_${l.cloth}`, `face_${face}`, l.hair && `hair_${l.hair}_front`, SYM[face] && `sym_${face}`,
   ].filter(Boolean).map((f) => `${BASE}char/${f}.webp`);
@@ -158,6 +161,11 @@ export class Room {
     this.dollHair.front = dollImg('hair_long_front', this.doll);
     joint('arm_n');
     this.stride = 0;
+    // 正面：站著的時候顯示；外面那層抵銷整個小人的左右翻面，正面永遠不翻
+    this.dollFrontFlip = el('g', {}, bob);
+    this.dollFront = el('g', { transform: `scale(${320 / DOLL_H}) translate(${-FRONT_FOOT[0]},${-FRONT_FOOT[1]})` }, this.dollFrontFlip);
+    this.frontImgs = ['hair-back', 'body', 'hair-front'].map((k) => el('image', { class: `front-${k}`, width: FRONT_W, height: DOLL_H }, this.dollFront));
+    this.walking = false;
     // 泡泡（HTML，字比較清楚）
     this.bubble = document.createElement('div');
     this.bubble.id = 'scene-bubble';
@@ -194,9 +202,14 @@ export class Room {
     const srcs = lookLayers(this.state.look, this.face);
     const look = normalizeLook(this.state.look);
     const doll = look.style === 'doll';
-    this.doll.style.display = doll ? '' : 'none';
+    this.isDoll = doll;
+    this.showPose();
     this.classic.style.display = doll ? 'none' : '';
     if (doll) {
+      dollFrontParts(look.hair, look.cloth).forEach((f, i) => {
+        const img = this.frontImgs[i];
+        if (f) { const href = `${BASE}doll/front/${f}.webp`; if (img.getAttribute('href') !== href) img.setAttribute('href', href); img.style.display = ''; } else img.style.display = 'none';
+      });
       for (const k of ['back', 'front']) {
         const img = this.dollHair[k];
         if (look.hair) { img.setAttribute('href', `${BASE}doll/hair_${look.hair}_${k}.webp`); img.style.display = ''; } else img.style.display = 'none';
@@ -222,9 +235,17 @@ export class Room {
     this.box.dataset.face = face;
   }
 
+  // 復古娃娃：走路時是側面，停下來轉回正面
+  showPose() {
+    const side = this.isDoll && this.walking;
+    this.doll.style.display = side ? '' : 'none';
+    this.dollFrontFlip.style.display = this.isDoll && !this.walking ? '' : 'none';
+    this.box.dataset.pose = this.isDoll ? (side ? 'side' : 'front') : 'classic';
+  }
   place() {
     const [x, y] = toXY(this.me.u, this.me.v);
     this.meG.setAttribute('transform', `translate(${x},${y}) scale(${this.me.dir},1)`);
+    this.dollFrontFlip.setAttribute('transform', `scale(${this.me.dir},1)`);
     if (this.bubble.classList.contains('show')) this.placeBubble();
   }
   walkTo(u, v, then) {
@@ -233,6 +254,7 @@ export class Room {
     this.me.path = findPath([this.me.u, this.me.v], goal);
     this.me.then = then || null;
     this.pose.setAttribute('class', 'walking');
+    this.walking = true; this.showPose();
     if (!this.raf) { this.last = performance.now(); this.raf = requestAnimationFrame((t) => this.tick(t)); }
   }
   tick(now) {
@@ -250,6 +272,7 @@ export class Room {
     if (me.path.length) { this.raf = requestAnimationFrame((t) => this.tick(t)); return; }
     this.raf = 0;
     this.stride = 0; this.swing(0, false);
+    this.walking = false; this.showPose();
     this.pose.setAttribute('class', 'idle');
     this.markers.replaceChildren();
     const f = me.then; me.then = null; if (f) f();

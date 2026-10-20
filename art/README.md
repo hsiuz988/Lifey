@@ -89,7 +89,12 @@ python3 tools/doll.py   # → ../public/room/doll/*.webp，並印出尺寸、腳
 - 新的長髮型（長過肩膀）需要兩張圖：一般姿勢一張，雙手平舉的 T 字版一張。短髮只要一張。
 - 衣服要用光頭素體生成，袖子只包住手臂、褲管不要蓋住兩腿之間的空隙，之後才能切成手腳。
 
-## 復古娃娃・四分之三側面（App 現在用的版本）
+## 復古娃娃・正面＋側面（App 現在用的版本）
+
+站著、換裝畫面用**正面**（`doll_*.webp`，`python3 tools/doll_front.py` → `../public/room/doll/front/`），走路時用**側面**（下面的 `doll34_*`）。
+每個髮型、衣服都要正面、側面各一張，名稱要一樣（例：`doll_hair_bob` 和 `doll34_hair_bob`）。
+
+### 側面
 
 | 檔案 | 用途 |
 |---|---|
@@ -106,4 +111,4 @@ python3 tools/doll34.py   # → ../public/room/doll/*.webp（會先清空），�
 - 衣服圖的頭常常和素體差幾 px，所以只取脖子以下（`NECK`），頭用素體的。
 - 長髮沒有 T 字版時，手擺開露出來的頭髮用髮色補。
 - 新的髮型、衣服：照檔名放進 `source/`，執行 `doll34.py`，再把名稱加進 `room.js` 的 `STYLE_LOOKS.doll` 和 `sw.js`。
-- 舊的正正面版本（`doll.py`）只輸出到 `preview/doll_front` 留作參考。
+- `doll.py` 是更早的「正面也會走路」版本，只輸出到 `preview/doll_front` 留作參考；正面現在用 `doll_front.py`。

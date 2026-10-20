@@ -98,7 +98,11 @@ tests/             Playwright 端對端測試
   - 髮型：`ponytail` 或 ''（短髮＝素體本身）；
   - 衣服：`tee`、`hoodie` 或 ''。
 - `style` 有兩種角色：`classic`（經典，預設）和 `doll`（復古娃娃）。`looksFor(style)` 回傳該角色可選的髮型和衣服。
-- **復古娃娃**（`public/room/doll/`，由 `art/tools/doll34.py` 產生）：
+- **復古娃娃**有兩個角度（使用者定案：**站著、換裝畫面、預設都是正面，只有走路變側面**）：
+  - **正面** `public/room/doll/front/`（`art/tools/doll_front.py`）：不切手腳，只有 後髮 → 身體 → 前髮；正面永遠不左右翻；
+  - **側面** `public/room/doll/`（`art/tools/doll34.py`）：走路時才顯示，`Room.showPose()` 切換，`#scene` 的 `data-pose` 是 front／side；
+  - 每個髮型、衣服都要正面、側面各一張，名稱要一致；
+- 側面娃娃的細節：
   - **四分之三側面**（臉朝畫面右下），往左走時整個左右翻面；
   - 切成身體＋頭、近手 `arm_n`、遠手 `arm_f`、近腳 `leg_n`、遠腳 `leg_f`，加上前後髮；
   - 疊的順序：後髮 → 遠手 → 遠腳 → 近腳 → 身體 → 前髮 → 近手；
