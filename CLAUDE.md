@@ -19,10 +19,10 @@
 - AI 金鑰（`ANTHROPIC_API_KEY`）只放在 Worker secret，不能出現在前端。
 - 美術是參考《大頭妹》的風格，但不能抄它的角色或素材。
 
-| | 網址 | 分支 |
-|---|---|---|
-| 正式 | https://app.lifey.workers.dev | `main`（上次上線：23ff8f4，SW cache v25） |
-| 測試 | https://develop-app.lifey.workers.dev | `develop` |
+| | 網址 | 分支 | 資料庫／照片 |
+|---|---|---|---|
+| 正式 | https://app.lifey.workers.dev | `main`（上次上線：23ff8f4，SW cache v25） | D1 `lifey-db`、R2 `lifey-photos` |
+| 測試 | https://develop-app.lifey.workers.dev | `develop` | D1 `lifey-db-dev`、R2 `lifey-photos-dev`（`wrangler.jsonc` 的 `previews`） |
 
 部署方式是 Cloudflare Workers Builds：推上 GitHub 後自動執行 `npx wrangler deploy`。
 
@@ -190,7 +190,6 @@ LIFEY_URL=https://develop-app.lifey.workers.dev/ node tests/e2e/ux-flows.test.cj
    - 表情：興奮、緊張、難過、疲勞、陶醉、想念、感動；
    - 衣服：制服、洋裝、男生套裝；
    - 房間裡的寵物和伴侶。
-3. **測試和正式環境共用同一個 D1／R2**（`wrangler.jsonc` 的 env 用同一個 database_id）。需要建立 `lifey-db-dev` 並填入它的 ID。
-4. `privacy.html` 的聯絡信箱還沒填（等使用者提供）。
-5. 「人生重播」還在用舊的像素場景（scene.js／avatar.js），之後要改成房間風格。
-6. 舊的遠端分支（ai-story、cloud、garden、redesign、release-prep 等）等使用者自己刪除。
+3. `privacy.html` 的聯絡信箱還沒填（等使用者提供）。
+4. 「人生重播」還在用舊的像素場景（scene.js／avatar.js），之後要改成房間風格。
+5. 舊的遠端分支（ai-story、cloud、garden、redesign、release-prep 等）等使用者自己刪除。

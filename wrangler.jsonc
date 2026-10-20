@@ -21,19 +21,19 @@
       "bucket_name": "lifey-photos"
     }
   ],
-  // 分支的預覽版本（Workers Builds 的 Preview builds）：和正式機共用同一個資料庫與照片
+  // 分支的預覽版本（Workers Builds 的 Preview builds，例如 develop 測試網址）：用測試專用的資料庫與照片，不碰正式資料
   "previews": {
     "d1_databases": [
       {
         "binding": "DB",
-        "database_name": "lifey-db",
-        "database_id": "abdae2da-d0f9-4606-b320-52a37dd4cbe7"
+        "database_name": "lifey-db-dev",
+        "database_id": "f18eaa12-1812-4ebf-83dd-2528a8b2626d"
       }
     ],
     "r2_buckets": [
       {
         "binding": "PHOTOS",
-        "bucket_name": "lifey-photos"
+        "bucket_name": "lifey-photos-dev"
       }
     ]
   }
