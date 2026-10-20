@@ -3,8 +3,9 @@
 const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (parent) parent.append(e); return e; };
 const BASE = 'room/';
-const W = 1536, H = 1024;
-export const VIEW = [130, 0, 1330, 1015];
+// 像素房間（art/tools/room_pixel.py）：1536×1064，地板前角已補齊
+const W = 1536, H = 1064;
+export const VIEW = [60, -8, 1416, 1081];
 
 // 可以選的樣子（之後有新素材就加在這裡）
 // 三種角色：像素女孩（logo 的女孩，走路是 4 格動畫）、經典（有表情、衣服）、復古娃娃（手腳分開，走路會擺手擺腳）
@@ -86,12 +87,13 @@ export function lookHtml(look, face = 'smile', cls = 'look') {
 }
 
 // ---- 地板座標：u 沿右牆往右下、v 沿左牆往左下，0~1 ----
-const O = [769, 303], EU = [636, 365], EV = [-597, 327];
+const O = [763, 348], EU = [674, 352], EV = [-658, 320];
 const DET = EU[0] * EV[1] - EV[0] * EU[1];
 const toXY = (u, v) => [O[0] + u * EU[0] + v * EV[0], O[1] + u * EU[1] + v * EV[1]];
 const toUV = (x, y) => { const dx = x - O[0], dy = y - O[1]; return [(dx * EV[1] - dy * EV[0]) / DET, (EU[0] * dy - EU[1] * dx) / DET]; };
 // 家具佔的地方（u0, u1, v0, v1）
-const BLOCKS = [[0, .13, .7, 1], [0, .24, .18, .7], [.2, .33, 0, .24], [.34, .58, 0, .32], [.58, .84, 0, .18], [.84, 1, .04, .23], [0, 1, 0, .1]];
+// 床、書架、書桌＋椅子、大盆栽、電視櫃（地毯可以走過去）
+const BLOCKS = [[0, .27, .22, .87], [0, .1, .84, 1], [0, .37, 0, .25], [.38, .49, 0, .17], [.5, .83, 0, .21]];
 const MIN = .03, MAX = .97, PAD = .015;
 const free = (u, v) => u >= MIN && u <= MAX && v >= MIN && v <= MAX
   && !BLOCKS.some(([u0, u1, v0, v1]) => u > u0 - PAD && u < u1 + PAD && v > v0 - PAD && v < v1 + PAD);
@@ -148,9 +150,9 @@ export class Room {
     const defs = el('defs', {}, svg);
     const rg = el('radialGradient', { id: 'room-glow' }, defs);
     el('stop', { offset: 0, 'stop-color': '#fff3b0', 'stop-opacity': .75 }, rg); el('stop', { offset: 1, 'stop-color': '#fff3b0', 'stop-opacity': 0 }, rg);
-    el('image', { href: `${BASE}room.webp`, x: 0, y: 0, width: W, height: H }, svg);
-    this.tvOn = el('image', { href: `${BASE}tv_on.webp`, x: 1095, y: 400, width: 120, height: 120, class: 'room-fade', opacity: 0 }, svg);
-    this.lamp = el('circle', { cx: 778, cy: 345, r: 130, fill: 'url(#room-glow)', class: 'room-fade', opacity: 0 }, svg);
+    el('image', { href: `${BASE}pixel_room/room.webp`, x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated' }, svg);
+    this.tvOn = el('image', { href: `${BASE}pixel_room/tv_on.webp`, x: 1040, y: 405, width: 140, height: 145, class: 'room-fade', opacity: 0 }, svg);
+    this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: 'url(#room-glow)', class: 'room-fade', opacity: 0 }, svg);
     this.markers = el('g', {}, svg);
     this.hots = el('g', {}, svg);
     this.fx = el('g', { class: 'room-nohit' }, svg);
@@ -358,7 +360,7 @@ export class Room {
     if (!m || !box.width) return;
     let [x, y] = toXY(this.me.u, this.me.v);
     y -= (this.isDoll || this.isPixel ? DOLL_SIZE : 320) + 15;
-    if (this.me.asleep) [x, y] = [560, 270];
+    if (this.me.asleep) [x, y] = [380, 380];
     const p = this.svg.createSVGPoint(); p.x = x; p.y = y;
     const s = p.matrixTransform(m);
     const half = Math.min(110, this.bubble.offsetWidth / 2 || 60);
@@ -388,7 +390,7 @@ export class Room {
   sleep() {
     this.me.asleep = true; this.meG.style.display = 'none';
     this.night.setAttribute('opacity', .5);
-    const z = () => { const t = el('text', { x: 560, y: 360, 'font-size': 56, 'font-weight': 900, fill: '#fff', stroke: '#5b3a3e', 'stroke-width': 4, 'paint-order': 'stroke', class: 'room-zz' }, this.fx); t.textContent = 'Z'; setTimeout(() => t.remove(), 1600); };
+    const z = () => { const t = el('text', { x: 360, y: 430, 'font-size': 56, 'font-weight': 900, fill: '#fff', stroke: '#5b3a3e', 'stroke-width': 4, 'paint-order': 'stroke', class: 'room-zz' }, this.fx); t.textContent = 'Z'; setTimeout(() => t.remove(), 1600); };
     z(); this.zz = setInterval(z, 600);
     this.say('晚安… 點一下叫醒我', 3000);
     this.box.dataset.actor = 'sleep';
@@ -405,18 +407,18 @@ export class Room {
   bindHots() {
     const on = this.on;
     const HOTS = [
-      { name: 'diary', label: '書桌上的日記本：記一筆', r: [885, 360, 130, 75], go: [.47, .36, 1], act: () => on.diary && on.diary(), spark: [960, 375] },
-      { name: 'calendar', label: '牆上的月曆：心情月曆', r: [1010, 212, 105, 160], go: [.62, .25, 1], act: () => on.calendar && on.calendar(), spark: [1095, 230] },
-      { name: 'tv', label: '電視：那一年的世界', r: [1095, 395, 135, 140], go: [.72, .27, 1], act: () => { this.tvOn.setAttribute('opacity', 1); on.tv && on.tv(() => this.tvOn.setAttribute('opacity', 0)); }, spark: [1195, 410] },
-      { name: 'letter', label: '信紙：寫給未來的自己', r: [1200, 570, 110, 130], go: [.83, .32, 1], act: () => on.letter && on.letter(), spark: [1290, 585] },
-      { name: 'lamp', label: '檯燈', r: [745, 315, 65, 75], go: [.3, .3, 1], act: () => { const lit = this.lamp.getAttribute('opacity') !== '1'; this.lamp.setAttribute('opacity', lit ? 1 : 0); this.say(lit ? '開燈 💡' : '關燈'); } },
-      { name: 'bed', label: '床', r: [375, 290, 360, 270], go: [.28, .48, -1], act: () => this.sleep() },
-      { name: 'clock', label: '時鐘', r: [768, 110, 82, 92], act: () => this.say(`現在 ${clock()} ⏰`) },
-      { name: 'window', label: '窗戶', r: [410, 105, 255, 270], act: () => { const w = this.state.weather; this.say(w ? `外面 ${w.icon} ${w.label} ${w.temp}°` : '今天天氣不錯 ☀️（設定裡可以打開真實天氣）'); } },
-      { name: 'door', label: '門', r: [1285, 355, 115, 315], go: [.95, .3, 1], act: () => (on.door ? on.door() : this.say('其他房間還在裝潢中 🔨')) },
-      { name: 'shelf', label: '書架：回憶', r: [195, 340, 175, 300], go: [.17, .82, -1], act: () => on.shelf && on.shelf() },
-      { name: 'plant', label: '盆栽：心情花園', r: [715, 220, 80, 100], act: () => (on.plant ? on.plant() : this.say('澆水 💧')) },
-      { name: 'photos', label: '牆上的照片', r: [865, 188, 95, 100], act: () => on.photos && on.photos() },
+      { name: 'diary', label: '書桌上的日記本：記一筆', r: [725, 300, 120, 75], go: [.3, .3, -1], act: () => on.diary && on.diary(), spark: [790, 325] },
+      { name: 'letter', label: '信：寫給未來的自己', r: [815, 345, 90, 55], go: [.33, .28, -1], act: () => on.letter && on.letter(), spark: [870, 360] },
+      { name: 'calendar', label: '牆上的月曆：心情月曆', r: [1110, 275, 90, 165], go: [.68, .26, 1], act: () => on.calendar && on.calendar(), spark: [1180, 295] },
+      { name: 'tv', label: '電視：那一年的世界', r: [1040, 400, 140, 130], go: [.62, .27, 1], act: () => { this.tvOn.setAttribute('opacity', 1); on.tv && on.tv(() => this.tvOn.setAttribute('opacity', 0)); }, spark: [1120, 420] },
+      { name: 'lamp', label: '檯燈', r: [828, 238, 85, 120], go: [.33, .28, -1], act: () => { const lit = this.lamp.getAttribute('opacity') !== '1'; this.lamp.setAttribute('opacity', lit ? 1 : 0); this.say(lit ? '開燈 💡' : '關燈'); } },
+      { name: 'bed', label: '床', r: [255, 390, 445, 300], go: [.31, .55, -1], act: () => this.sleep() },
+      { name: 'clock', label: '時鐘', r: [1215, 315, 90, 100], act: () => this.say(`現在 ${clock()} ⏰`) },
+      { name: 'window', label: '窗戶', r: [365, 190, 225, 240], act: () => { const w = this.state.weather; this.say(w ? `外面 ${w.icon} ${w.label} ${w.temp}°` : '今天天氣不錯 ☀️（設定裡可以打開真實天氣）'); } },
+      { name: 'door', label: '門', r: [1305, 380, 105, 320], go: [.91, .13, 1], act: () => (on.door ? on.door() : this.say('其他房間還在裝潢中 🔨')) },
+      { name: 'shelf', label: '書架：回憶', r: [100, 340, 165, 355], go: [.16, .93, -1], act: () => on.shelf && on.shelf() },
+      { name: 'plant', label: '盆栽：心情花園', r: [915, 390, 110, 160], go: [.45, .25, 1], act: () => (on.plant ? on.plant() : this.say('澆水 💧')) },
+      { name: 'photos', label: '牆上的照片', r: [925, 200, 165, 195], act: () => on.photos && on.photos() },
     ];
     for (const h of HOTS) {
       const [x, y, w, hh] = h.r;
