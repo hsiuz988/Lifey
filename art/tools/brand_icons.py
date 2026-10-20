@@ -1,6 +1,7 @@
 """從 art/source/brand/wowo_logo.png 產生 App 圖示和註冊頁用的 logo。
 
-圖示＝整個正方形小視窗（含 wowo! 字），放大到幾乎填滿，四周露出一點淡藍點點底。python3 art/tools/brand_icons.py
+圖示＝整個正方形小視窗（含 wowo! 字）填滿整張圖，手機的圓角會切掉視窗外框的四個角。
+Android 的圓形裁切版（maskable）和網頁小圖示則縮小放在淡藍點點底上。python3 art/tools/brand_icons.py
 """
 from PIL import Image, ImageDraw
 import os
@@ -27,10 +28,18 @@ def icon(size, scale):
     im.alpha_composite(win.resize((w, h), Image.LANCZOS), ((big - w) // 2, (big - h) // 2))
     return im.convert('RGB').resize((size, size), Image.LANCZOS)
 
-icon(1024, 0.92).save(os.path.join(ROOT, 'art/source/brand/app_icon_1024.png'))
-icon(512, 0.92).save(os.path.join(OUT, 'icon-512.png'))
-icon(192, 0.92).save(os.path.join(OUT, 'icon-192.png'))
-icon(180, 0.92).save(os.path.join(OUT, 'apple-touch-icon.png'))
+def full(size, zoom=1.04):
+    """視窗填滿整張圖：高度撐滿再放大一點，四角露出的地方用視窗外框的藍色補上。"""
+    big = 1024
+    im = Image.new('RGBA', (big, big), win.getpixel((win.width // 2, 6)))
+    h = round(big * zoom); w = round(win.width * h / win.height)
+    im.alpha_composite(win.resize((w, h), Image.LANCZOS), ((big - w) // 2, (big - h) // 2))
+    return im.convert('RGB').resize((size, size), Image.LANCZOS)
+
+full(1024).save(os.path.join(ROOT, 'art/source/brand/app_icon_1024.png'))
+full(512).save(os.path.join(OUT, 'icon-512.png'))
+full(192).save(os.path.join(OUT, 'icon-192.png'))
+full(180).save(os.path.join(OUT, 'apple-touch-icon.png'))
 # Android 會把圖示裁成圓形或其他形狀：重要內容要在中間 80% 的圓裡
 icon(512, 0.78).save(os.path.join(OUT, 'icon-maskable-512.png'))
 icon(32, 0.98).save(os.path.join(OUT, 'favicon-32.png'))
