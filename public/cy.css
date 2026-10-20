@@ -31,17 +31,18 @@ html, body {
 }
 a, .link-btn { color: var(--cy-blue); }
 
-/* 筆記本外框：整個 App 是一本放在桌上的小冊子 */
+/* 筆記本外框：整個 App 是一本放在桌上的小冊子；底部不畫框線，直接接到下面的索引貼 */
+html, body { background-attachment: fixed; }
 main#app {
   box-sizing: border-box;
   margin: 10px 8px 0;
-  padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
   background: #ffffff;
   border: 2px solid var(--cy-frame);
-  border-radius: 12px;
-  min-height: calc(100vh - 24px);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  min-height: calc(100vh - 10px);
 }
-@media (min-width: 660px) { main#app { margin: 16px auto 0; } }
 .tab-page { padding: 0 12px; }
 .page-head { padding: 14px 0 8px; border-bottom: 1px dashed var(--line); margin-bottom: 10px; }
 .page-head h1 { font-size: 19px; font-weight: 700; color: var(--cy-blue); }
@@ -56,31 +57,38 @@ main#app {
 .panel-head h2 { font-size: 15px; color: var(--cy-blue); }
 .btn { border-radius: 6px; }
 
-/* 底部分頁：從外框底部垂下來的索引貼，中間是橘色的「記一筆」 */
+/* 底部分頁：和外框一樣寬，外框的底線就是標籤垂下來的地方
+   沒選到的標籤和底線同色、接成一片；目前這頁是白色，往上蓋住底線，和頁面連在一起 */
 .tabbar {
-  background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
+  left: 8px; right: 8px;
+  grid-template-columns: 1fr 1fr 1.25fr 1fr 1fr; gap: 3px; align-items: start;
+  padding: 0 0 calc(10px + env(safe-area-inset-bottom));
   border-top: 2px solid var(--cy-frame);
-  align-items: start; gap: 4px;
-  padding: 0 max(8px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  backdrop-filter: none; -webkit-backdrop-filter: none;
   background-color: var(--cy-desk);
   background-image: radial-gradient(#b3c3d4 1.2px, transparent 1.2px);
   background-size: 8px 8px;
+  background-attachment: fixed;
 }
-.tabbar button[data-tab-btn] {
-  height: 54px; justify-content: center; gap: 2px;
-  margin-top: -2px;
+.tabbar button {
+  height: 54px; margin: 0; padding: 0; justify-content: center; gap: 2px;
   border: 2px solid var(--cy-frame); border-top: 0; border-radius: 0 0 10px 10px;
   background: var(--cy-frame); color: #ffffff;
-  font-size: 12px; font-weight: 700; letter-spacing: .08em;
+  font-size: 12px; font-weight: 700; letter-spacing: .06em;
 }
-.tabbar button[data-tab-btn][aria-current="page"] { background: #ffffff; color: var(--cy-blue); }
+.tabbar button[data-tab-btn][aria-current="page"] {
+  height: 56px; margin-top: -2px;
+  background: #ffffff; color: var(--cy-blue);
+}
 .tabbar .tab-ic { font-size: inherit; filter: none; opacity: 1; }
 .tabbar .tab-add {
-  width: 58px; height: 58px; margin: 6px auto 0; border-radius: 50%;
-  border: 2px solid #9e4207; background: #c9560a; color: #ffffff;
-  box-shadow: 0 3px 0 #9e4207;
+  width: auto; height: 54px; margin: 0; border-radius: 0 0 10px 10px; box-shadow: none;
+  border-color: #9e4207; background: #c9560a; color: #ffffff; font-size: 12px; font-weight: 700; line-height: inherit;
 }
-@media (min-width: 700px) { .tabbar { border-radius: 0; border-left: 0; border-right: 0; } }
+@media (min-width: 660px) {
+  main#app { margin: 16px auto 0; }
+  .tabbar { left: 50%; right: auto; width: 640px; transform: translateX(-50%); border-radius: 0; border-left: 0; border-right: 0; }
+}
 
 /* 首頁：TODAY／TOTAL、名字、個人小卡 */
 .cy-top { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 2px; }
@@ -157,4 +165,4 @@ main#app {
 .cy-empty-box p { margin: 0; font-size: 13px; color: var(--muted); }
 
 /* 提示訊息：在分頁上方，不擋住手指（點得到後面的按鈕） */
-.toast { pointer-events: none; bottom: calc(100px + env(safe-area-inset-bottom)); }
+.toast { pointer-events: none; bottom: calc(84px + env(safe-area-inset-bottom)); }
