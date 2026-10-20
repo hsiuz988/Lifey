@@ -3286,7 +3286,17 @@ function bind() {
   window.addEventListener('online', () => scheduleSync(300));
 }
 
+// 「我的」最下面顯示目前是哪一版（service worker 的快取名稱），回報問題時好對照
+async function showVersion() {
+  try {
+    const keys = window.caches ? await caches.keys() : [];
+    const v = keys.map((k) => (k.match(/^lifelog-(v\d+)$/) || [])[1]).filter(Boolean).sort((a, b) => parseInt(b.slice(1), 10) - parseInt(a.slice(1), 10))[0];
+    $('#app-version').textContent = `LIFEY ${v || ''}`.trim();
+  } catch (e) { /* 拿不到就不顯示 */ }
+}
+
 async function init() {
+  showVersion();
   applyTheme();
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
   bind();
