@@ -6,6 +6,12 @@
   <meta name="theme-color" content="#ffffff">
   <meta name="color-scheme" content="light dark">
   <script>
+    // 出錯時記下來：畫面沒出來時顯示在「沒有順利載入」那裡，方便截圖回報
+    window.__bootErrors = [];
+    window.addEventListener('error', function (e) { window.__bootErrors.push((e.message || 'error') + (e.filename ? ' @' + e.filename.split('/').pop() + ':' + e.lineno : '')); });
+    window.addEventListener('unhandledrejection', function (e) { var r = e.reason; window.__bootErrors.push('promise: ' + (r && (r.message || r.name) || r)); });
+  </script>
+  <script>
     // 外觀在畫面出來前就套用，避免閃一下：light（預設）、dark、auto（跟隨系統）
     (function () {
       var pref = 'light';
@@ -552,12 +558,15 @@
   <div id="boot-fail" class="boot-fail" hidden>
     <p>畫面沒有順利載入。<br>往下拉，或按下面的按鈕更新到最新版本。</p>
     <button type="button" class="btn primary" id="boot-reload">重新載入最新版本</button>
+    <pre id="boot-info" class="boot-info"></pre>
   </div>
   <script>
     setTimeout(function () {
       var s = document.getElementById('setup'), a = document.getElementById('app');
       if (!(s.hidden && a.hidden) || document.querySelector('.fatal')) return;
       var box = document.getElementById('boot-fail'); box.hidden = false;
+      var info = document.getElementById('boot-info');
+      info.textContent = (window.__bootErrors.length ? window.__bootErrors.slice(0, 4).join('\n') : '沒有錯誤訊息') + '\n' + navigator.userAgent;
       document.getElementById('boot-reload').onclick = function () {
         var done = function () { location.reload(); };
         if (!('caches' in window)) return done();
@@ -565,7 +574,7 @@
           .then(function () { return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations() : []; })
           .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }).then(done, done);
       };
-    }, 6000);
+    }, 4000);
   </script>
 </body>
 </html>

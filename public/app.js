@@ -290,6 +290,12 @@ function hydrateThumbs(root) {
 
 // ---------- 畫面 ----------
 function render() {
+  try { renderAll(); } catch (e) {
+    console.error(e);
+    toast(`畫面有一部分沒載入：${e.message}`, 8000);
+  }
+}
+function renderAll() {
   const hasProfile = !!state.profile;
   $('#setup').hidden = hasProfile;
   $('#app').hidden = !hasProfile;

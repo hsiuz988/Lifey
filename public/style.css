@@ -1043,3 +1043,4 @@ dialog.info-dialog > div:first-child { display: flex; flex-direction: column; ga
 .family-add .btn { font-size: 14px; }
 
 .boot-fail { max-width: 360px; margin: 30vh auto 0; padding: 0 20px; text-align: center; display: flex; flex-direction: column; gap: 12px; }
+.boot-info { white-space: pre-wrap; word-break: break-all; text-align: left; font-size: 11px; color: var(--muted); background: var(--panel-2); padding: 10px; border-radius: 10px; }
