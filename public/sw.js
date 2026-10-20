@@ -1,5 +1,5 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v46';
+const CACHE = 'lifelog-v47';
 const ASSETS = [
   './',
   './privacy',
@@ -64,6 +64,8 @@ const ASSETS = [
   './icons/icon-maskable-512.png',
   './icons/favicon-32.png',
   './logo.webp',
+  './room/pixel_room/room.webp',
+  './room/pixel_room/tv_on.webp',
   './room/pixel/body_sweater_back.webp?v=2',
   './room/pixel/body_sweater_front.webp?v=2',
   './room/pixel/body_sweater_side.webp?v=2',
