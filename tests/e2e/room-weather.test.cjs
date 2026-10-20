@@ -105,6 +105,15 @@ async function newPage(b, opts = {}) {
   assert((await p.textContent('#now-caption')).includes('🌧️ 22° 下雨'), '開啟天氣：說明列顯示 🌧️ 22° 下雨');
   assert(!(await p.$eval('#hud-weather', (e) => e.hidden)) && (await p.textContent('#hud-weather')).includes('22°'), '房間上方顯示天氣');
   assert(await p.$eval('#scene', e => e.dataset.weather) === 'rain', '場景切換成下雨');
+  assert(/^rain(_night)?$/.test(await p.$eval('#scene', (e) => e.dataset.window)) && await p.$eval('#scene svg image[href*="window_rain"]', (e) => !e.hasAttribute('display')), '窗外換成下雨');
+  const views = await p.evaluate(async () => {
+    const { windowView } = await import('./room.js');
+    const at = (h) => new Date(2026, 9, 18, h, 0);
+    const w = (kind) => ({ kind, sunrise: '2026-10-18T05:52', sunset: '2026-10-18T17:25' });
+    return [windowView(null, at(12)), windowView(null, at(20)), windowView(w('rain'), at(12)), windowView(w('thunder'), at(18)), windowView(w('overcast'), at(9)),
+      windowView(w('fog'), at(9)), windowView(w('snow'), at(15)), windowView(w('clear'), at(5)), windowView(w('cloudy'), at(17))];
+  });
+  assert(views.join() === 'clear,clear_night,rain,rain_night,cloudy,cloudy,snow,clear_night,cloudy', `窗外依天氣和日出日落切換（${views.join()}）`);
   assert(p.apiCalls.length === 1 && p.apiCalls[0].includes('latitude=25.03') && p.apiCalls[0].includes('longitude=121.57'), '只送出四捨五入到小數兩位的位置');
   const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('lifey.weather')));
   assert(stored.lat === 25.03 && stored.lon === 121.57, '位置只存約略值在手機上');
@@ -116,6 +125,7 @@ async function newPage(b, opts = {}) {
   await p.click('#weather-toggle');
   await p.waitForTimeout(200);
   assert(!(await p.textContent('#now-caption')).includes('下雨') && await p.$eval('#scene', e => e.dataset.weather) === 'none', '關閉天氣：回到預設場景');
+  assert(/^clear(_night)?$/.test(await p.$eval('#scene', (e) => e.dataset.window)), '關閉天氣：窗外回到晴天');
   await p.click('#settings-dialog [data-close] >> nth=-1');
 
   // 沒給定位權限

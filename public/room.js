@@ -68,6 +68,21 @@ const PIX_FRAME = 0.15; // 走路每格幾秒
 // 像素女孩的圖改過就把這個數字 +1（sw.js 的清單也要一起改）：網址不同，舊版程式和新圖才不會混在一起
 const PIX_REV = 2;
 const pixSrc = (f) => `${BASE}pixel/${f}.webp?v=${PIX_REV}`;
+// 窗外（art/tools/room_window.py）：房間原圖的窗外就是白天晴天；其他天氣疊一張只有玻璃的圖
+// 晚上：有日出日落就照當地時間，沒開天氣就用 18 點到 6 點
+const WINDOW_BOX = [355, 180, 220, 260];
+export function windowView(weather, now = new Date()) {
+  const hm = (iso) => { const m = /T(\d\d):(\d\d)/.exec(iso || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  const t = now.getHours() * 60 + now.getMinutes(), rise = weather && hm(weather.sunrise), set = weather && hm(weather.sunset);
+  const night = rise != null && set != null ? t < rise || t >= set : t < 6 * 60 || t >= 18 * 60;
+  const kind = weather ? weather.kind : 'clear';
+  const wet = ['drizzle', 'rain', 'heavyrain', 'thunder'].includes(kind);
+  if (night) return wet ? 'rain_night' : 'clear_night'; // 還沒有夜晚多雲、夜晚下雪，先用晴朗的夜空
+  if (wet) return 'rain';
+  if (kind === 'snow') return 'snow';
+  if (['cloudy', 'overcast', 'fog'].includes(kind)) return 'cloudy';
+  return 'clear';
+}
 const pixParts = (hair, cloth, view) => [`body_${cloth}_${view}`, `head_${hair}_${view === 'front' ? 'front' : 'side'}`];
 export function lookLayers(look, face = 'smile') {
   const l = normalizeLook(look);
@@ -151,6 +166,9 @@ export class Room {
     const rg = el('radialGradient', { id: 'room-glow' }, defs);
     el('stop', { offset: 0, 'stop-color': '#fff3b0', 'stop-opacity': .75 }, rg); el('stop', { offset: 1, 'stop-color': '#fff3b0', 'stop-opacity': 0 }, rg);
     el('image', { href: `${BASE}pixel_room/room.webp`, x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated' }, svg);
+    const [wx, wy, ww, wh] = WINDOW_BOX;
+    this.window = el('image', { x: wx, y: wy, width: ww, height: wh, style: 'image-rendering:pixelated', display: 'none' }, svg);
+    setInterval(() => this.showWindow(), 60000); // 天黑、天亮時換窗外
     this.tvOn = el('image', { href: `${BASE}pixel_room/tv_on.webp`, x: 1040, y: 405, width: 140, height: 145, class: 'room-fade', opacity: 0 }, svg);
     this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: 'url(#room-glow)', class: 'room-fade', opacity: 0 }, svg);
     this.markers = el('g', {}, svg);
@@ -211,12 +229,21 @@ export class Room {
     const face = faceFor(st.emo);
     if (face !== this.face && !this.faceTimer) { this.face = face; }
     this.dress();
+    this.showWindow();
     // 讓測試和樣式知道目前狀態
     Object.assign(this.box.dataset, {
       weather: st.weather ? st.weather.kind : 'none', emo: st.emo || 'none', companions: String((st.companions || []).slice(0, 3).length),
       pets: String((st.pets || []).length), flowers: String((st.flowers || []).length), items: (st.items || []).join(' '),
       look: `${normalizeLook(st.look).hair}/${normalizeLook(st.look).cloth}`, face: this.face, style: normalizeLook(st.look).style,
     });
+  }
+  showWindow() {
+    const v = windowView(this.state.weather);
+    if (v === this.box.dataset.window) return;
+    this.box.dataset.window = v;
+    if (v === 'clear') { this.window.setAttribute('display', 'none'); return; }
+    this.window.setAttribute('href', `${BASE}pixel_room/window_${v}.webp`);
+    this.window.removeAttribute('display');
   }
   start() {}
   stop() {}

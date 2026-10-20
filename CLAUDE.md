@@ -105,6 +105,13 @@ tests/             Playwright 端對端測試
 - 4 秒後如果 #setup 和 #app 都沒出現，就顯示 `#boot-fail`：錯誤清單、UA，以及「重新載入最新版本」按鈕（會清快取、移除 SW、重新載入）。
 - `render()` 有 try/catch，出錯時用 toast 顯示。
 
+### 窗外天氣
+
+- `room.js` 的 `windowView(weather, now)` 決定窗外：`clear`（房間原圖，不疊）、`cloudy`、`rain`、`snow`、`clear_night`、`rain_night`；`#scene` 的 `data-window` 是目前的值。
+- 晚上：有開真實天氣就照日出日落，沒開就用 18 點到 6 點；每分鐘檢查一次。
+- 對應：毛毛雨／大雨／雷雨 → 雨；陰天／有霧 → 多雲；夜晚多雲、夜晚下雪還沒有圖，先用 `clear_night`。
+- 新增景色：用**同一間空房間只換窗外**的圖放進 `art/source/room2/window/<名稱>.webp`，加進 `art/tools/room_window.py` 的 `KINDS`，跑一次，再改 `windowView` 和 `sw.js`。
+
 ### 背景音樂
 
 - `public/music.js` 的 `TRACKS` 有三首，玩家在「我 → 其他」選（`lifey.track`），選了就順便打開音樂。都是 Pixabay 授權（可商用、不需標註）：
