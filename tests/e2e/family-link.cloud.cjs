@@ -22,7 +22,7 @@ async function device(b, label) {
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 const synced = (p) => p.waitForFunction(() => { const b = document.querySelector('#sync-btn'); return b && !b.hidden && b.classList.contains('ok'); }, null, { timeout: 20000 });
 const closed = (p, sel) => p.waitForFunction((s) => !document.querySelector(s).open, sel);
-// 填完名字生日後，可以建立帳號時會跳出「用 Face ID 建立帳號」；signup 為 true 就直接按，否則按「之後再說」
+// 被邀請的人填完名字生日後會跳出「用 Face ID 建立帳號」；signup 為 true 就直接按，否則按「之後再說」
 async function signupSheet(p, signup = false) {
   const up = await p.waitForFunction(() => { const d = document.querySelector('#letter-dialog'); return d.open && d.textContent.includes('用 Face ID 建立帳號'); }, null, { timeout: 4000 }).then(() => true).catch(() => false);
   if (!up) return false;
@@ -64,12 +64,12 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   const A = await device(b, 'A');
   await A.goto(URL);
   await setup(A, 'Hsiu', '1995-03-02');
-  await tab(A, 'me').then(() => A.click('#open-settings'));
+  await tab(A, 'me').then(() => A.click('.me-family [data-open=people]'));
   await addPerson(A, 'Ken', '伴侶');
   await addPerson(A, '媽媽', '媽媽');
   await register(A);
   await A.waitForSelector('#cloud-section >> text=已登入');
-  await A.click('#settings-dialog [data-close] >> nth=-1');
+  await A.click('#settings-dialog .win-x');
   await synced(A);
   let sA = await st(A);
   const kenCard = sA.people.find(x => x.name === 'Ken'), momCard = sA.people.find(x => x.name === '媽媽');
@@ -77,14 +77,14 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   assert(remote.doc.people.length === 2, '人物卡同步到雲端');
 
   // 從 Ken 的人物卡發邀請
-  await tab(A, 'me').then(() => A.click('#open-settings'));
+  await tab(A, 'me').then(() => A.click('.me-family [data-open=people]'));
   await A.click('#people-section button:has-text("Ken")');
   await A.click('#person-body button:text-is("邀請Ken加入")');
   const kenLink = await A.inputValue('#person-body input[readonly]');
   assert(kenLink.includes('#invite='), '從人物卡產生邀請連結');
   await A.click('#person-body button:text-is("完成")');
   await A.click('#person-body button:text-is("關閉")');
-  await A.click('#settings-dialog [data-close] >> nth=-1');
+  await A.click('#settings-dialog .win-x');
 
   // ===== C：Ken 用連結加入 =====
   const C = await device(b, 'C');
@@ -114,7 +114,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   await A.reload(); await synced(A);
   await A.waitForFunction(() => document.querySelector('#scene').dataset.companions === '1', null, { timeout: 15000 });
   assert(true, 'Ken 選好樣子後算進 A 的家人');
-  await tab(A, 'me').then(() => A.click('#open-settings')); await A.click('#people-section button:has-text("Ken")');
+  await tab(A, 'me').then(() => A.click('.me-family [data-open=people]')); await A.click('#people-section button:has-text("Ken")');
   assert((await A.textContent('#person-body')).includes('已連結 Ken 的帳號') && await A.$eval('#person-body .person-avatar', e => e.querySelectorAll('img').length >= 4), 'Ken 的人物卡顯示已連結＋他的小人');
   await A.click('#person-body button:text-is("關閉")');
 
@@ -123,7 +123,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   await A.click('#cloud-section button:text-is("產生邀請連結")');
   const momLink = await A.inputValue('#cloud-section input[readonly]');
   await A.click('#cloud-section button:text-is("完成")');
-  await A.click('#settings-dialog [data-close] >> nth=-1');
+  await A.click('#settings-dialog .win-x');
 
   const D = await device(b, 'D');
   await D.goto(momLink);
@@ -176,8 +176,8 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   let sB = await st(B);
   assert(sB.people.length === 2 && sB.moments.find(m => m.text === '全家一起吃飯').people.length === 2, '第二支手機：人物卡與「和誰」都同步');
   // 刪除人物卡會同步（墓碑）
-  await tab(A, 'me').then(() => A.click('#open-settings')); await A.click('#people-section button:has-text("媽媽")'); await A.click('#person-body button:text-is("編輯")'); await A.click('#person-body .danger-zone button'); await pick(A, '刪除');
-  await closed(A, '#person-dialog'); await A.click('#settings-dialog [data-close] >> nth=-1');
+  await tab(A, 'me').then(() => A.click('.me-family [data-open=people]')); await A.click('#people-section button:has-text("媽媽")'); await A.click('#person-body button:text-is("編輯")'); await A.click('#person-body .danger-zone button'); await pick(A, '刪除');
+  await closed(A, '#person-dialog'); await A.click('#settings-dialog .win-x');
   await A.waitForTimeout(2600); await synced(A);
   await B.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await B.waitForTimeout(1500); await synced(B);
   sB = await st(B);
@@ -186,10 +186,10 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   assert(me.links.find(l => l.name === 'Mom').personId === null, '刪掉人物卡後，媽媽的帳號連結還在但不再對應');
 
   // 解除連結
-  await tab(A, 'me').then(() => A.click('#open-settings'));
+  await tab(A, 'me').then(() => A.click('.me-menu [data-open=cloud]'));
   await A.click('#cloud-section .member-row:has-text("Mom") button:text-is("解除連結")'); await pick(A, '解除連結');
   await A.waitForFunction(() => document.querySelectorAll('#cloud-section .member-row').length === 1);
-  await A.click('#settings-dialog [data-close] >> nth=-1');
+  await A.click('#settings-dialog .win-x');
   await A.waitForFunction(() => document.querySelector('#scene').dataset.companions === '1', null, { timeout: 15000 });
   assert(await D.evaluate((id) => fetch('/api/members/' + id).then(r => r.status), me.user.id) === 404, '解除後媽媽就看不到了，場景剩 Ken');
   console.log('errors', errors);

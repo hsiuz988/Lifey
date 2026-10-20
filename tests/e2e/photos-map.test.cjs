@@ -111,7 +111,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   await p.screenshot({ path: S + '/s2-main.png', fullPage: true });
 
   // 7. 匯出 ZIP（兩段式）
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=backup]'));
   await p.click('#export-btn');
   await p.waitForFunction(() => document.querySelector('#export-btn').textContent.startsWith('儲存備份檔'));
   console.log('  ', await p.textContent('#export-btn'), '|', await p.textContent('#storage-status'));
@@ -121,7 +121,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   assert(await p.waitForFunction(() => document.querySelector('#backup-banner').hidden, null, { timeout: 5000 }).then(() => true, () => false), '匯出後不再提醒備份');
 
   // 8. 刪除時刻會刪照片
-  await p.click('#settings-dialog [data-close] >> nth=-1').catch(() => {});
+  await p.click('#settings-dialog .win-x').catch(() => {});
   await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
   const before = await photoCount(p);
   await p.click('#moment-menu-btn'); await p.click('#moment-delete');
@@ -136,7 +136,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   assert(await photoCount(p) === 0, '復原時間過了，照片也刪掉');
 
   // 9. 匯入 ZIP（取代）
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=backup]'));
   await p.setInputFiles('#import-file', S + '/backup.zip');
   await pick(p, '整個取代成備份檔');
   await p.waitForFunction(() => !document.querySelector('#settings-dialog').open, null, { timeout: 15000 });

@@ -62,7 +62,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   assert(await playing(p), '點一下畫面就接著播（記得上次是開的）');
 
   // 設定裡的開關
-  await tab(p, 'me'); await p.click('#open-settings');
+  await tab(p, 'me'); await p.click('.me-menu [data-open=other]');
   await p.evaluate(() => document.querySelector('#settings-dialog .settings-page[data-page="other"]').hidden = false);
   assert(await p.$eval('#pref-music', (e) => e.checked), '設定裡的開關也是開的');
   await p.click('#pref-music');

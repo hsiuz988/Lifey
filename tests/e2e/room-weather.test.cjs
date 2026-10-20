@@ -64,7 +64,7 @@ async function newPage(b, opts = {}) {
   assert(await p.$eval('#scene-bubble', (e) => e.classList.contains('show') && e.textContent.length > 0), '點房間裡的自己會說句話');
   // 版本號是 主.次.修（例如 0.0.50）：0.0.10 比 0.0.9 新，舊的 v49 格式不算
   await p.evaluate(() => Promise.all(['lifelog-0.0.9', 'lifelog-0.0.10', 'lifelog-v99'].map((k) => caches.open(k))));
-  await p.evaluate(() => { document.querySelector('#open-settings').click(); });
+  await p.evaluate(() => { document.querySelector('.me-menu [data-open=other]').click(); });
   assert(await p.waitForFunction(() => document.querySelector('#settings-version').textContent.startsWith('App 版本：0.0.10 '), null, { timeout: 3000 }).then(() => true, () => false), '設定裡顯示 App 版本：主.次.修');
   await p.evaluate(() => { const d = document.querySelector('#settings-dialog'); if (d.open) d.close(); });
   await p.waitForTimeout(100);
@@ -99,7 +99,7 @@ async function newPage(b, opts = {}) {
   assert(errors.length === 0, '房間互動沒有錯誤');
 
   // 真實天氣
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=weather]'));
   await p.click('#weather-toggle');
   await p.waitForFunction(() => document.querySelector('#now-caption').textContent.includes('下雨'), null, { timeout: 10000 });
   assert((await p.textContent('#now-caption')).includes('🌧️ 22° 下雨'), '開啟天氣：說明列顯示 🌧️ 22° 下雨');
@@ -121,19 +121,19 @@ async function newPage(b, opts = {}) {
   await p.reload();
   await p.waitForFunction(() => document.querySelector('#now-caption').textContent.includes('下雨'));
   assert(p.apiCalls.length === 1, '30 分鐘內重開不會重複查天氣（用快取）');
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=weather]'));
   await p.click('#weather-toggle');
   await p.waitForTimeout(200);
   assert(!(await p.textContent('#now-caption')).includes('下雨') && await p.$eval('#scene', e => e.dataset.weather) === 'none', '關閉天氣：回到預設場景');
   assert(/^clear(_night)?$/.test(await p.$eval('#scene', (e) => e.dataset.window)), '關閉天氣：窗外回到晴天');
-  await p.click('#settings-dialog [data-close] >> nth=-1');
+  await p.click('#settings-dialog .win-x');
 
   // 沒給定位權限
   const q = await newPage(b);
   await q.goto(URL);
   await q.fill('#setup-form [name=name]', 'X'); await q.fill('#setup-form [name=birthday]', '1990-01-01'); await q.click('#setup-form button');
   await q.waitForFunction(() => document.querySelector('#look-dialog').open); await q.keyboard.press('Escape');
-  await tab(q, 'me').then(() => q.click('#open-settings'));
+  await tab(q, 'me').then(() => q.click('.me-menu [data-open=weather]'));
   await q.click('#weather-toggle');
   assert(await q.waitForFunction(() => /定位/.test(document.querySelector('#toast').textContent), null, { timeout: 20000 }).then(() => true, () => false), '沒給定位權限：提示怎麼開啟');
 

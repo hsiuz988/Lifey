@@ -31,7 +31,7 @@ async function copyPasskeys(from, to) {
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 const photoCount = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('photos').objectStore('photos').count(); t.onsuccess = () => r(t.result); }; }));
 const synced = (p) => p.waitForFunction(() => { const b = document.querySelector('#sync-btn'); return b && !b.hidden && b.classList.contains('ok') && !b.classList.contains('syncing'); }, null, { timeout: 20000 });
-// 填完名字生日後，可以建立帳號時會跳出「用 Face ID 建立帳號」；signup 為 true 就直接按，否則按「之後再說」
+// 可以建立帳號時會跳出「用 Face ID 建立帳號」（被邀請的人：填完資料；其他人：記完第一筆）；signup 為 true 就直接按，否則按「之後再說」
 async function signupSheet(p, signup = false) {
   const up = await p.waitForFunction(() => { const d = document.querySelector('#letter-dialog'); return d.open && d.textContent.includes('用 Face ID 建立帳號'); }, null, { timeout: 4000 }).then(() => true).catch(() => false);
   if (!up) return false;
@@ -62,10 +62,11 @@ async function addMoment(p, text, { photo, share, date } = {}) {
   const A = await device(b, 'A');
   await A.goto(URL);
   await setup(A, 'Hsiu', '1995-03-02');
-  assert(A.sheetShown, '還沒有任何帳號時，第一個人填完資料就問要不要用 Face ID 建立帳號');
+  assert(!A.sheetShown, '填完資料不先問雲端，直接進房間');
   await addMoment(A, '花蓮看海', { photo: FIXTURES + '/rotated.jpg' });
+  assert(await signupSheet(A, false), '記完第一筆才問要不要用 Face ID 建立帳號');
   await addMoment(A, '私人日記', { date: '2026-01-01' });
-  await tab(A, 'me').then(() => A.click('#open-settings'));
+  await tab(A, 'me').then(() => A.click('.me-menu [data-open=cloud]'));
   await A.waitForSelector('#cloud-section button:text-is("用 Face ID 建立帳號")');
   await A.click('#cloud-section button:text-is("用 Face ID 建立帳號")');
   await A.waitForSelector('#cloud-section >> text=已登入：Hsiu', { timeout: 20000 });
@@ -76,7 +77,7 @@ async function addMoment(p, text, { photo, share, date } = {}) {
   const photosA = await A.evaluate(() => fetch('/api/photos').then(r => r.json()));
   assert(photosA.ids.length === 1, 'A：照片上傳到雲端');
   assert(!('recall' in remoteA.doc), '回憶進度不會上傳');
-  await A.click('#settings-dialog [data-close] >> nth=-1');
+  await A.click('#settings-dialog .win-x');
 
   // 沒有邀請就不能再註冊
   const anon = await device(b, 'anon');
@@ -133,7 +134,7 @@ async function addMoment(p, text, { photo, share, date } = {}) {
   assert(JSON.stringify(textsA) === JSON.stringify(textsB) && textsA.length === 4, `兩台同時新增都保留（${textsA.length} 則，兩邊一致）`);
 
   // 登出
-  await tab(B, 'me').then(() => B.click('#open-settings'));
+  await tab(B, 'me').then(() => B.click('.me-menu [data-open=cloud]'));
   await B.click('#cloud-section button:text-is("登出")'); await pick(B, '登出');
   await B.waitForSelector('#cloud-section button:text-is("用 Face ID 登入")');
   assert(await B.evaluate(() => fetch('/api/me').then(r => r.json()).then(j => j.user)) === null && (await st(B)).moments.length === 4, '登出：不再同步，手機上的資料保留');

@@ -31,7 +31,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert((await st(p)).achievements.first, '但背後有記錄（第一步）');
 
   // 新增人物與寵物
-  await tab(p, 'me').then(() => p.click('#open-settings'));
+  await tab(p, 'me').then(() => p.click('.me-family [data-open=people]'));
   await p.click('#add-person-btn');
   await p.fill('#person-body input[aria-label=名字]', '媽媽');
   await p.click('#person-body button:text-is("媽媽")');
@@ -50,7 +50,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.waitForTimeout(150);
   assert(!(await p.isHidden('#achievements-panel')), '設定打開「顯示成就」後出現');
   await p.uncheck('#pref-achievements');
-  await p.click('#settings-dialog [data-close] >> nth=-1');
+  await p.click('#settings-dialog .win-x');
   assert(await p.$eval('#scene', e => e.dataset.pets) === '1', '小白出現在場景裡');
   let s = await st(p);
   const pet = s.people.find(x => x.name === '小白'); const mom = s.people.find(x => x.name === '媽媽');
@@ -129,13 +129,13 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(!s.people.some(x => x.name === '小寶') && s.moments.some(x => x.event === 'baby' && x.people.length === 0), '刪除人物：紀錄還在，標記拿掉');
 
   // 備份還原保留人物
-  await tab(p, 'me').then(() => p.click('#open-settings')); await p.click('#export-btn');
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=backup]')); await p.click('#export-btn');
   await p.waitForFunction(() => document.querySelector('#export-btn').textContent.startsWith('儲存備份檔'));
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#export-btn')]); await dl.saveAs(S + '/people.zip');
   await p.click('#reset-btn'); await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.fill('#ask-body input', '清除'); await pick(p, '全部清除'); await p.waitForSelector('#setup:not([hidden])');
   await p.fill('#setup-form [name=name]', 'X'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open); await p.keyboard.press('Escape');
-  await tab(p, 'me').then(() => p.click('#open-settings')); await p.setInputFiles('#import-file', S + '/people.zip'); await closed('#settings-dialog');
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=backup]')); await p.setInputFiles('#import-file', S + '/people.zip'); await closed('#settings-dialog');
   s = await st(p);
   assert(s.people.length === 3 && s.moments.find(x => x.event === 'wedding').people.length === 1, '匯出再匯入：人物與標記都在');
   await p.waitForTimeout(1500);

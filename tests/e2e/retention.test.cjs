@@ -23,6 +23,10 @@ const STATE = { version: 2, profile: { name: '秀', birthday: '1998-10-19', avat
   await p.goto(URL);
   await p.evaluate((s) => new Promise((r) => { const q = indexedDB.open('lifey', 1); q.onupgradeneeded = () => { q.result.createObjectStore('meta'); q.result.createObjectStore('photos', { keyPath: 'id' }); }; q.onsuccess = () => { const t = q.result.transaction('meta', 'readwrite'); t.objectStore('meta').put(s, 'state'); t.oncomplete = () => { q.result.close(); r(); }; }; }), STATE);
   await p.reload(); await p.waitForSelector('#app:not([hidden])'); await p.waitForTimeout(1600);
+  const first = await p.$$eval('#today-panel .today-card b', els => els.map(e => e.textContent));
+  assert(first.length === 1 && first[0].includes('來自 25 歲的信'), '今日卡一次只放一張，最重要的是到期的信');
+  assert((await p.textContent('#today-panel .today-more')).includes('還有 3 張'), '其他的收在「還有 3 張小卡片」');
+  await p.click('#today-panel .today-more');
   const cards = await p.$$eval('#today-panel .today-card b', els => els.map(e => e.textContent));
   console.log('   cards:', cards);
   assert(cards.some(c => c.includes('生日快樂')), '生日當天出現生日卡');
