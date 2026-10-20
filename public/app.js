@@ -9,6 +9,7 @@ import {
 import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
+import { initMusic, setMusic, musicPref } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
 import * as world from './world.js';
@@ -2495,6 +2496,7 @@ function openSettings(page = 'home') {
   $('#pref-achievements').checked = !!state.prefs.showAchievements;
   $('#pref-world-sad').checked = state.prefs.worldSad !== false;
   $('#pref-ai-story').checked = !!state.prefs.aiStory;
+  $('#pref-music').checked = musicPref();
   renderThemeChips();
   renderSettingsStatus();
   renderStorageStatus();
@@ -2539,6 +2541,24 @@ function renderThemeChips() {
     type: 'button', class: `chip${pref === v ? ' on' : ''}`, 'aria-pressed': String(pref === v),
     onclick: () => { try { localStorage.setItem('lifey.theme', v); } catch (e) { /* 無痕模式存不了，只套用這次 */ } applyTheme(); renderThemeChips(); },
   }, label)));
+}
+
+// ---------- 背景音樂 ----------
+function renderMusicBtn() {
+  const on = musicPref();
+  $('#music-btn').classList.toggle('on', on);
+  $('#music-btn').setAttribute('aria-pressed', String(on));
+  $('#pref-music').checked = on;
+}
+function musicFailed() {
+  setMusic(false);
+  renderMusicBtn();
+  toast('音樂還沒準備好，晚點再試試');
+}
+async function toggleMusic(on) {
+  const ok = await setMusic(on);
+  renderMusicBtn();
+  if (on && !ok) musicFailed();
 }
 
 // ---------- 雲端同步 ----------
@@ -3099,6 +3119,8 @@ function bind() {
   $('#me-add-person').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
   $('#me-add-pet').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
   $('#recall-event').addEventListener('click', () => openEventPicker('recall'));
+  $('#music-btn').addEventListener('click', () => toggleMusic(!musicPref()));
+  $('#pref-music').addEventListener('change', (e) => toggleMusic(e.target.checked));
   $('#pref-ai-story').addEventListener('change', async (e) => {
     if (e.target.checked && !cloud.me) {
       e.target.checked = false;
@@ -3209,6 +3231,8 @@ function bind() {
 
 async function init() {
   applyTheme();
+  initMusic({ onFailed: musicFailed });
+  renderMusicBtn();
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
   bind();
   try {

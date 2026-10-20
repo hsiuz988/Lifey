@@ -1,5 +1,5 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v36';
+const CACHE = 'lifelog-v37';
 const ASSETS = [
   './',
   './privacy',
@@ -25,6 +25,7 @@ const ASSETS = [
   './pets.js',
   './garden.js',
   './room.js',
+  './music.js',
   './room/room.webp',
   './room/tv_on.webp',
   './room/char/body.webp',
@@ -88,6 +89,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   // API（登入、同步、照片）一律走網路，絕對不能快取
   if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  // 音樂檔：交給瀏覽器自己處理（播放時會分段要檔案，service worker 快取不了分段的回應）
+  if (/\.(?:mp3|m4a)$/.test(url.pathname)) return;
   const fresh = req.mode === 'navigate' || url.pathname.endsWith('/') || FRESH.test(url.pathname);
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {

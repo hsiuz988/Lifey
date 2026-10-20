@@ -75,6 +75,7 @@
           <span id="hud-age" class="hud-chip"></span>
           <span id="hud-weather" class="hud-chip" hidden></span>
           <span class="spacer"></span>
+          <button id="music-btn" class="hud-btn music-btn" type="button" aria-label="背景音樂" aria-pressed="false">♪</button>
           <button id="partner-btn" class="hud-btn" type="button" aria-label="連結的家人" hidden>💞</button>
           <button id="sync-btn" class="hud-btn sync-btn" type="button" aria-label="同步狀態" hidden>☁︎</button>
         </div>
@@ -537,6 +538,7 @@
         <span class="field-label">外觀</span>
         <div id="theme-chips" class="chips"></div>
       </div>
+      <label class="switch"><input id="pref-music" type="checkbox"><span>🎵 背景音樂（也可以按房間右上角的 ♪）</span></label>
       <label class="switch"><input id="pref-ai-story" type="checkbox"><span>✨ 記下來之後，用 AI 寫成一段小故事</span></label>
       <p class="hint">需要登入雲端同步。開啟後，送出的事件和心情會傳給 Anthropic 的 Claude 改寫，不會被拿去訓練 AI；原文一樣會留著。每天最多 5 次。</p>
       <label class="switch"><input id="pref-world-sad" type="checkbox"><span>「那一年的世界」裡顯示災難、離別這類難過的事</span></label>

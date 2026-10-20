@@ -929,6 +929,8 @@ main#app { padding: 0 0 calc(84px + env(safe-area-inset-bottom)); max-width: 640
 .room-hud > * { pointer-events: auto; }
 .hud-chip { background: rgba(255, 255, 255, .94); color: #2c2c30; border-radius: 999px; padding: 3px 11px; font-size: 12.5px; font-weight: 700; box-shadow: 0 1px 4px rgba(0, 0, 0, .08); pointer-events: none; }
 .hud-btn { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .94); color: #2c2c30; font-size: 16px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08); cursor: pointer; }
+.music-btn { color: #9a9aa2; }
+.music-btn.on { color: var(--accent); }
 .home-sheet { position: relative; margin-top: -18px; padding: 18px 16px 8px; background: var(--bg); border-radius: 22px 22px 0 0; }
 .home-sheet .banner { margin: 0 0 12px; }
 .home-sheet .today-cards { margin-top: 4px; }

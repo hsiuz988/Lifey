@@ -91,6 +91,14 @@ tests/             Playwright 端對端測試
 - 4 秒後如果 #setup 和 #app 都沒出現，就顯示 `#boot-fail`：錯誤清單、UA，以及「重新載入最新版本」按鈕（會清快取、移除 SW、重新載入）。
 - `render()` 有 try/catch，出錯時用 toast 顯示。
 
+### 背景音樂
+
+- `public/music.js`，檔案放在 `public/music/room.mp3`（**還沒放**，等使用者從 Suno 下載；沒檔案時打開開關會提示並關回去）。
+- 預設關閉，開關存在 localStorage `lifey.music`（每台裝置不同）。房間右上角 `#music-btn`（♪），以及「我 → 其他」的 `#pref-music`。
+- iPhone 要等使用者點畫面才能出聲，`audio.volume` 也沒作用，所以用 Web Audio GainNode 調音量（30%）和淡入淡出；切到背景時暫停。
+- `sw.js` 不處理 mp3/m4a（播放時是分段請求，cache.put 存不了 206）。
+- Suno 免費方案的歌不能商用，正式上線前要用付費方案重新生成或換成可商用的曲子。
+
 ### 人物外觀（look）
 
 - 存在 `state.profile.look = { style, hair, cloth }`，會同步給家人（`sharedView` 有帶 look）。
@@ -119,7 +127,7 @@ tests/             Playwright 端對端測試
 
 ```bash
 npm i -D playwright && npx playwright install chromium   # 第一次
-tests/run.sh                 # 離線測試，10 支約 210 項，應全部通過
+tests/run.sh                 # 離線測試，12 支約 250 項，應全部通過
 tests/run-cloud.sh           # 雲端測試（本機 wrangler D1/R2 + 虛擬 Face ID），3 支
 node tests/e2e/room-weather.test.cjs   # 單跑一支（需要先自己開伺服器，見 run.sh）
 LIFEY_URL=https://develop-app.lifey.workers.dev/ node tests/e2e/ux-flows.test.cjs
