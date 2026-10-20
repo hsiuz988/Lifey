@@ -1,4 +1,4 @@
-# 人生紀錄 Lifey — 交接文件（給接手的 Claude／開發者）
+# wowo — 交接文件（給接手的 Claude／開發者）
 
 > Claude Code 會自動讀這個檔案。換帳號、換電腦（例如 Warp 終端機）時：
 > ```bash
@@ -18,6 +18,8 @@
 - 不要把使用者的 email 寫進公開頁面。
 - AI 金鑰（`ANTHROPIC_API_KEY`）只放在 Worker secret，不能出現在前端。
 - 美術是參考《大頭妹》的風格，但不能抄它的角色或素材。
+- **產品名稱是 `wowo`（全小寫）**，舊名「Lifey」「人生紀錄」不要再出現在畫面、分享文字、檔名或 AI 提示裡。
+  - 內部名稱**刻意保留** `lifey`：IndexedDB `lifey`、localStorage／sessionStorage 的 `lifey.*`、測試的 `LIFEY_URL`、GitHub repo、D1／R2 名稱、`lifey.workers.dev` 網址。改了會讓使用者的資料、設定或 Face ID 登入不見，要搬家得另外做轉移。
 
 | | 網址 | 分支 | 資料庫／照片 |
 |---|---|---|---|

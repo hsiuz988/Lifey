@@ -1,4 +1,4 @@
-# Lifey · 人生紀錄
+# wowo
 
 🔗 **網址：https://app.lifey.workers.dev**
 

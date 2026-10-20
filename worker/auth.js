@@ -8,7 +8,7 @@ import { HttpError, json, readJson, nowIso, addSeconds, randomToken, sha256, get
 const COOKIE = 'lifey_session';
 const SESSION_DAYS = 180;
 const CHALLENGE_SECONDS = 300;
-const RP_NAME = '人生紀錄 Lifey';
+const RP_NAME = 'wowo';
 
 function rp(request) {
   const url = new URL(request.url);

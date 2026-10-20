@@ -1691,7 +1691,7 @@ async function makeYearCard(age) {
   g.addColorStop(0, '#fff6e6'); g.addColorStop(1, '#f3ecff');
   ctx.fillStyle = g; ctx.fillRect(0, 0, Wc, Hc);
   ctx.fillStyle = '#2a2230';
-  ctx.font = font(34, 600); ctx.fillText('人生紀錄 · LIFE LOG', 80, 110);
+  ctx.font = font(34, 600); ctx.fillText('wowo · LIFE LOG', 80, 110);
   ctx.font = font(120, 800); ctx.fillText(`${age} 歲`, 80, 250);
   ctx.font = font(36); ctx.fillStyle = '#6b6476';
   ctx.fillText(`${fmtDate(start)} – ${fmtDate(end)} · ${stage.key === 'adult' ? '出社會' : stage.label}`, 80, 310);
@@ -1741,7 +1741,7 @@ async function makeYearCard(age) {
     ctx.font = font(34); ctx.fillStyle = '#2a2230';
     for (const e of events) { if (y > Hc - 120) break; y = wrap(`${world.CATS[e.cat] || '🌏'} ${e.title}`, 80, y, 920, 48); }
   }
-  ctx.font = font(28); ctx.fillStyle = '#9a93a6'; ctx.fillText(`${state.profile.name} 的人生紀錄`, 80, Hc - 70);
+  ctx.font = font(28); ctx.fillStyle = '#9a93a6'; ctx.fillText(`${state.profile.name} 的人生紀錄 · wowo`, 80, Hc - 70);
   return new Promise((resolve) => c.toBlob((b) => resolve(b), 'image/png'));
 }
 
@@ -1751,7 +1751,7 @@ async function showYearCard(age) {
   if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
   const blob = await makeYearCard(age);
   const url = URL.createObjectURL(blob);
-  const file = new File([blob], `lifey-${age}歲.png`, { type: 'image/png' });
+  const file = new File([blob], `wowo-${age}歲.png`, { type: 'image/png' });
   const share = h('button', { type: 'button', class: 'btn primary' }, '分享或儲存');
   share.addEventListener('click', async () => {
     try {
@@ -2276,7 +2276,7 @@ async function onExportClick() {
       files.push({ name: `photos/${p.id}.jpg`, blob: p.blob }, { name: `photos/${p.id}-thumb.jpg`, blob: p.thumb });
     }
     const zip = await createZip(files);
-    ui.preparedExport = { exportedAt, file: new File([zip], `lifey-${todayStr()}.zip`, { type: 'application/zip' }) };
+    ui.preparedExport = { exportedAt, file: new File([zip], `wowo-${todayStr()}.zip`, { type: 'application/zip' }) };
     btn.textContent = `儲存備份檔（${fmtSize(zip.size)}）`;
     btn.classList.add('primary');
   } catch (e) {
@@ -2310,7 +2310,7 @@ async function deliverExport() {
 }
 
 function validateImport(data) {
-  if (!data || ![1, 2].includes(data.version) || !Array.isArray(data.moments)) return '不是人生紀錄的備份檔';
+  if (!data || ![1, 2].includes(data.version) || !Array.isArray(data.moments)) return '不是 wowo 的備份檔';
   if (data.profile && (!data.profile.name || !isValidDateStr(data.profile.birthday))) return '個人資料格式不正確';
   for (const m of data.moments) {
     if (!m || typeof m.id !== 'string' || !isValidDateStr(m.date) || typeof m.text !== 'string') return '紀錄格式不正確';
@@ -2974,7 +2974,7 @@ function inviteLinkBox() {
   const share = h('button', { type: 'button', class: 'btn primary' }, `傳給${who}`);
   share.addEventListener('click', async () => {
     try {
-      if (navigator.share) await navigator.share({ title: '人生紀錄', text: `${cloud.me.user.name} 邀請你一起用人生紀錄`, url: cloud.inviteLink });
+      if (navigator.share) await navigator.share({ title: 'wowo', text: `${cloud.me.user.name} 邀請你一起用 wowo`, url: cloud.inviteLink });
       else { await navigator.clipboard.writeText(cloud.inviteLink); toast('已複製連結'); }
     } catch (e) { /* 取消分享 */ }
   });
@@ -3424,7 +3424,7 @@ function bind() {
       dlg.querySelectorAll('.win-dup').forEach((el) => { if (el !== heads[0]) el.classList.remove('win-dup'); });
       const text = heads[0] ? heads[0].textContent.replace(/^[^\p{L}\p{N}]+/u, '').trim() : '';
       if (heads[0] && !heads[0].classList.contains('win-dup')) heads[0].classList.add('win-dup');
-      const next = text || dlg.dataset.win || 'Lifey';
+      const next = text || dlg.dataset.win || 'wowo';
       if (title.textContent !== next) title.textContent = next;
     };
     let queued = false;
@@ -3465,7 +3465,7 @@ async function appVersion() {
 async function showVersion() {
   try {
     const v = await appVersion();
-    $('#app-version').textContent = `LIFEY ${v}`.trim();
+    $('#app-version').textContent = `wowo ${v}`.trim();
   } catch (e) { /* 拿不到就不顯示 */ }
 }
 
