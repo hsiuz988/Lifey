@@ -588,7 +588,12 @@
     </section>
   </dialog>
 
-  <div id="toast" class="toast" hidden></div>
+  <!-- 確認視窗（取代瀏覽器的 confirm）：按鈕直接寫出會發生什麼 -->
+  <dialog id="ask-dialog" class="sheet ask-dialog">
+    <div id="ask-body"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="ptr.js"></script>
   <script type="module" src="app.js"></script>

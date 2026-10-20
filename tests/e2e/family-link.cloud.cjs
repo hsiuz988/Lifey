@@ -4,6 +4,8 @@ const URL = process.env.LIFEY_URL || 'http://localhost:8787/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+// 自己畫的確認視窗：點寫著某個字的按鈕
+const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = [];
@@ -174,7 +176,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   let sB = await st(B);
   assert(sB.people.length === 2 && sB.moments.find(m => m.text === '全家一起吃飯').people.length === 2, '第二支手機：人物卡與「和誰」都同步');
   // 刪除人物卡會同步（墓碑）
-  await tab(A, 'me').then(() => A.click('#open-settings')); await A.click('#people-section button:has-text("媽媽")'); await A.click('#person-body button:text-is("編輯")'); await A.click('#person-body .danger-zone button');
+  await tab(A, 'me').then(() => A.click('#open-settings')); await A.click('#people-section button:has-text("媽媽")'); await A.click('#person-body button:text-is("編輯")'); await A.click('#person-body .danger-zone button'); await pick(A, '刪除');
   await closed(A, '#person-dialog'); await A.click('#settings-dialog [data-close] >> nth=-1');
   await A.waitForTimeout(2600); await synced(A);
   await B.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await B.waitForTimeout(1500); await synced(B);
@@ -185,7 +187,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
 
   // 解除連結
   await tab(A, 'me').then(() => A.click('#open-settings'));
-  await A.click('#cloud-section .member-row:has-text("Mom") button:text-is("解除連結")');
+  await A.click('#cloud-section .member-row:has-text("Mom") button:text-is("解除連結")'); await pick(A, '解除連結');
   await A.waitForFunction(() => document.querySelectorAll('#cloud-section .member-row').length === 1);
   await A.click('#settings-dialog [data-close] >> nth=-1');
   await A.waitForFunction(() => document.querySelector('#scene').dataset.companions === '1', null, { timeout: 15000 });

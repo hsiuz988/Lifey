@@ -6,12 +6,14 @@ const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
+// 自己畫的確認視窗：點寫著某個字的按鈕
+const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
 (async () => {
   const b = await chromium.launch();
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
   const errors = []; p.on('pageerror', e => errors.push(e.message));
-  let answer = true, prompted = []; p.on('dialog', d => { prompted.push(d.message()); d.type() === 'prompt' ? d.accept(answer === true ? '清除' : String(answer)) : (answer ? d.accept() : d.dismiss()); });
+  const native = []; p.on('dialog', d => { native.push(d.message()); d.dismiss(); });
   await p.goto(URL);
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
@@ -31,9 +33,9 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(await p.$$eval('#moment-form .opt-sec', els => els.every(e => e.hidden)), '選填區塊一開始都收起來');
   assert(await p.textContent('#date-btn-label') === '今天', '日期按鈕顯示今天');
   await p.fill('#moment-form [name=text]', '只寫一句');
-  answer = false; await p.keyboard.press('Escape'); await p.waitForTimeout(150);
-  assert(await p.$eval('#moment-dialog', d => d.open), '寫了東西按返回鍵，選否就不關');
-  answer = true; await p.click('#moment-save'); await p.waitForTimeout(200);
+  await p.keyboard.press('Escape'); await pick(p, '繼續編輯');
+  assert(await p.$eval('#moment-dialog', d => d.open) && await p.inputValue('#moment-form [name=text]') === '只寫一句', '寫了東西按返回鍵，選「繼續編輯」就不關、字還在');
+  await p.click('#moment-save'); await p.waitForTimeout(200);
   let s = await st(p);
   assert(s.moments.length === 1 && s.moments[0].text === '只寫一句', '一句話直接存');
   await p.waitForTimeout(150);
@@ -66,8 +68,8 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#event-open'); await p.fill('#event-search', '馬拉松');
   assert((await p.$$('#event-grid .event-btn')).length === 1, '人生大事可以搜尋');
   await p.click('#event-grid .event-btn'); assert(await p.inputValue('#moment-form [name=text]') === '完成了馬拉松', '搜尋後選到');
-  answer = true; await p.click('#moment-dialog [data-close]'); await p.waitForTimeout(150);
-  assert(!(await p.$eval('#moment-dialog', d => d.open)), '確定放棄就關閉');
+  await p.click('#moment-dialog [data-close]'); await pick(p, '放棄');
+  assert(!(await p.$eval('#moment-dialog', d => d.open)), '選「放棄」就關閉');
 
   // 設定：清單、人物名字選填
   await tab(p, 'me').then(() => p.click('#open-settings'));
@@ -85,7 +87,12 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.waitForTimeout(200);
   assert(!(await p.isHidden('[data-page=home]')) && (await p.textContent('#profile-card-name')) === 'Hsiu2', '儲存個人資料後回到首頁');
   // 清除要輸入「清除」
-  await p.click('[data-go=backup]'); answer = '不要'; await p.click('#reset-btn'); await p.waitForTimeout(200);
+  await p.click('[data-go=backup]'); await p.click('#reset-btn'); await p.waitForFunction(() => document.querySelector('#ask-dialog').open);
+  assert(await p.$eval('#ask-body button.danger', b => b.disabled), '還沒輸入「清除」時，清除按鈕按不下去');
+  await p.fill('#ask-body input', '不要');
+  assert(await p.$eval('#ask-body button.danger', b => b.disabled), '輸入別的字也按不下去');
+  await pick(p, '先不要');
   s = await st(p); assert(s && s.moments.length === 3, '沒輸入「清除」就不清除');
+  assert(native.length === 0, `沒有跳出瀏覽器原生的確認視窗（${native.join(' / ')}）`);
   console.log('errors', errors); await b.close();
 })().catch(e => { console.log('💥', e.message.split('\n').slice(0, 4).join(' | ')); process.exit(1); });

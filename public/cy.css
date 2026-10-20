@@ -194,7 +194,17 @@ html.room-full, html.room-full body { overflow: hidden; }
 .cy-empty-box p { margin: 0; font-size: 13px; color: var(--muted); }
 
 /* 提示訊息：在分頁上方，不擋住手指（點得到後面的按鈕） */
-.toast { pointer-events: none; bottom: calc(84px + env(safe-area-inset-bottom)); }
+.toast { pointer-events: none; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 30; }
+/* 有「復原」按鈕的提示：只有按鈕本身點得到 */
+.toast.has-act { display: flex; align-items: center; gap: 14px; padding-right: 8px; }
+.toast-act { pointer-events: auto; border: 0; background: none; color: #7fd6e0; font: inherit; font-weight: 700; padding: 6px 10px; min-height: 36px; cursor: pointer; }
+/* 確認視窗：按鈕直接寫出結果，一個一列，危險的放最下面 */
+dialog.ask-dialog { max-width: 420px; }
+#ask-body { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
+#ask-body p { margin: 0; line-height: 1.6; }
+#ask-body input { font-size: 16px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
+.ask-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.ask-actions .btn { width: 100%; min-height: 46px; justify-content: center; text-align: center; }
 
 /* ---------- 彈出視窗：藍色漸層標題列＋×、粗外框、硬陰影（像 2000 年的小視窗） ---------- */
 dialog.sheet { border: 2px solid #5f7690; border-bottom: 0; border-radius: 10px 10px 0 0; padding-top: 0; }

@@ -4,6 +4,8 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+// 自己畫的確認視窗：點寫著某個字的按鈕
+const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = []; const toasts = [];
@@ -122,7 +124,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#recall-dialog [data-close]');
 
   // 刪除人物：紀錄留著、標記拿掉
-  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await p.click('.person-chip:has-text("小寶")'); await p.click('#person-body button:text-is("編輯")'); await p.click('#person-body .danger-zone button'); await closed('#person-dialog');
+  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await p.click('.person-chip:has-text("小寶")'); await p.click('#person-body button:text-is("編輯")'); await p.click('#person-body .danger-zone button'); await pick(p, '刪除'); await closed('#person-dialog');
   s = await st(p);
   assert(!s.people.some(x => x.name === '小寶') && s.moments.some(x => x.event === 'baby' && x.people.length === 0), '刪除人物：紀錄還在，標記拿掉');
 
@@ -130,7 +132,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await tab(p, 'me').then(() => p.click('#open-settings')); await p.click('#export-btn');
   await p.waitForFunction(() => document.querySelector('#export-btn').textContent.startsWith('儲存備份檔'));
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#export-btn')]); await dl.saveAs(S + '/people.zip');
-  await p.click('#reset-btn'); await p.waitForSelector('#setup:not([hidden])');
+  await p.click('#reset-btn'); await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.fill('#ask-body input', '清除'); await pick(p, '全部清除'); await p.waitForSelector('#setup:not([hidden])');
   await p.fill('#setup-form [name=name]', 'X'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open); await p.keyboard.press('Escape');
   await tab(p, 'me').then(() => p.click('#open-settings')); await p.setInputFiles('#import-file', S + '/people.zip'); await closed('#settings-dialog');

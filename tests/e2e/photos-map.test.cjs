@@ -4,6 +4,8 @@ const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT, IMG = FIXTURES;
+// 自己畫的確認視窗：點寫著某個字的按鈕
+const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const idb = (p, fn) => p.evaluate(fn);
@@ -83,7 +85,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 2);
   await p.setInputFiles('#photo-input', [IMG + '/p0.jpg']);
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 3);
-  await p.click('#moment-dialog [data-close]');
+  await p.click('#moment-dialog [data-close]'); await pick(p, '放棄');
   assert(await photoCount(p) === 2, '取消編輯不會多存照片');
   await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 2);
@@ -121,13 +123,22 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   // 8. 刪除時刻會刪照片
   await p.click('#settings-dialog [data-close] >> nth=-1').catch(() => {});
   await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
+  const before = await photoCount(p);
   await p.click('#moment-menu-btn'); await p.click('#moment-delete');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
-  assert(await photoCount(p) === 0, '刪除時刻後照片也刪掉');
+  assert(!(await p.isVisible('.moment-body:has-text("花蓮")')) && await p.isVisible('.toast-act:text-is("復原")'), '刪除不先問，直接刪，提示上有「復原」');
+  await p.click('.toast-act'); await p.waitForTimeout(300);
+  assert(await p.isVisible('.moment-body:has-text("花蓮")') && await photoCount(p) === before, '按「復原」紀錄和照片都回來');
+  await p.click('.moment-body:has-text("花蓮")'); await p.click('#moment-menu-btn'); await p.click('#moment-delete');
+  await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
+  assert(await photoCount(p) === before, '復原時間內照片先留著');
+  await p.waitForTimeout(6500);
+  assert(await photoCount(p) === 0, '復原時間過了，照片也刪掉');
 
   // 9. 匯入 ZIP（取代）
   await tab(p, 'me').then(() => p.click('#open-settings'));
   await p.setInputFiles('#import-file', S + '/backup.zip');
+  await pick(p, '整個取代成備份檔');
   await p.waitForFunction(() => !document.querySelector('#settings-dialog').open, null, { timeout: 15000 });
   assert(await photoCount(p) === 4, '匯入 ZIP 還原 4 張照片');
   await p.waitForFunction(() => [...document.querySelectorAll('.thumb img')].length === 4 && [...document.querySelectorAll('.thumb img')].every(i => i.complete && i.naturalWidth > 0));

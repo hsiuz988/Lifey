@@ -4,6 +4,8 @@ const URL = process.env.LIFEY_URL || 'http://localhost:8787/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
+// 自己畫的確認視窗：點寫著某個字的按鈕
+const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = [];
@@ -132,7 +134,7 @@ async function addMoment(p, text, { photo, share, date } = {}) {
 
   // 登出
   await tab(B, 'me').then(() => B.click('#open-settings'));
-  await B.click('#cloud-section button:text-is("登出")');
+  await B.click('#cloud-section button:text-is("登出")'); await pick(B, '登出');
   await B.waitForSelector('#cloud-section button:text-is("用 Face ID 登入")');
   assert(await B.evaluate(() => fetch('/api/me').then(r => r.json()).then(j => j.user)) === null && (await st(B)).moments.length === 4, '登出：不再同步，手機上的資料保留');
 

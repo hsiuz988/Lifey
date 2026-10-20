@@ -252,12 +252,50 @@ function h(tag, attrs = {}, ...children) {
 }
 
 let toastTimer;
-function toast(msg, ms = 2600) {
+// action：{ label, fn } 時，提示旁邊多一顆按鈕（例如「復原」）
+function toast(msg, ms = 2600, action = null) {
   const el = $('#toast');
-  el.textContent = msg;
+  // 有抽屜打開時，放進最上層的抽屜裡，才不會被蓋住、按鈕也按得到
+  const dialogs = [...document.querySelectorAll('dialog[open]')];
+  const host = dialogs[dialogs.length - 1] || document.body;
+  if (el.parentNode !== host) host.append(el);
+  el.replaceChildren(h('span', {}, msg), action ? h('button', {
+    type: 'button', class: 'toast-act', onclick: () => { clearTimeout(toastTimer); el.hidden = true; action.fn(); },
+  }, action.label) : null);
+  el.classList.toggle('has-act', !!action);
   el.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+
+// 自己畫的確認視窗（取代 confirm／prompt）：按鈕直接寫出結果，不用猜「確定」「取消」是什麼
+// actions：[{ label, value, kind: 'primary' | 'danger' }]；點遮罩、✕ 或 Esc 會回傳 null
+// typed：要求先輸入這幾個字，危險的按鈕才按得下去
+let askResolve = null;
+function ask({ title, body = '', actions, typed = null }) {
+  const dlg = $('#ask-dialog');
+  if (askResolve) askResolve(null);
+  const input = typed ? h('input', { 'aria-label': `輸入「${typed}」`, placeholder: `輸入「${typed}」`, autocomplete: 'off' }) : null;
+  const done = (value) => { const r = askResolve; askResolve = null; dlg.close(); if (r) r(value); };
+  const btns = actions.map((a) => h('button', {
+    type: 'button', class: `btn${a.kind ? ` ${a.kind}` : ''}`, onclick: () => done(a.value),
+  }, a.label));
+  if (input) {
+    const gated = btns.filter((b, i) => actions[i].kind === 'danger');
+    const sync = () => gated.forEach((b) => { b.disabled = input.value.trim() !== typed; });
+    input.addEventListener('input', sync);
+    sync();
+  }
+  $('#ask-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, title)),
+    ...[].concat(body).filter(Boolean).map((p) => (p instanceof Node ? p : h('p', {}, p))),
+    ...(input ? [input] : []),
+    h('div', { class: 'ask-actions' }, btns));
+  return new Promise((resolve) => {
+    askResolve = resolve;
+    if (!dlg.open) dlg.showModal();
+    if (input) input.focus();
+  });
 }
 
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -1250,17 +1288,33 @@ async function saveMoment(e) {
   }
 }
 
+// 刪除不先問，改成 toast 上可以「復原」；照片等復原時間過了才真的刪
+const UNDO_MS = 6000;
+const undoKeep = new Set(); // 還能復原的照片，清孤兒照片時先跳過
 async function deleteMoment() {
-  if (!ui.editingId || !confirm('確定要刪除這則紀錄嗎？照片也會一起刪除。')) return;
+  if (!ui.editingId) return;
   const m = state.moments.find((x) => x.id === ui.editingId);
   state.moments = state.moments.filter((x) => x.id !== ui.editingId);
   state.deleted[m.id] = new Date().toISOString(); // 讓其他裝置同步時也刪掉
   if (!(await saveState())) return;
-  await db.deletePhotos(m.photoIds).catch(() => {});
-  m.photoIds.forEach(forgetThumb);
+  m.photoIds.forEach((id) => undoKeep.add(id));
+  let undone = false;
+  setTimeout(async () => {
+    m.photoIds.forEach((id) => undoKeep.delete(id));
+    if (undone) return;
+    await db.deletePhotos(m.photoIds).catch(() => {});
+    m.photoIds.forEach(forgetThumb);
+  }, UNDO_MS);
   ui.momentSnapshot = null;
   $('#moment-dialog').close();
-  toast('已刪除');
+  toast('已刪除這則紀錄', UNDO_MS, { label: '復原', fn: async () => {
+    undone = true;
+    delete state.deleted[m.id];
+    state.moments.push({ ...m, updatedAt: new Date().toISOString() }); // 比墓碑新，其他裝置同步時也會留下
+    await saveState();
+    toast('已復原');
+    render();
+  } });
   render();
 }
 
@@ -1573,10 +1627,16 @@ function openLetterEditor(age) {
     sealed.length ? h('div', { class: 'field' }, h('span', { class: 'field-label' }, `已經封存 ${sealed.length} 封`), h('ul', { class: 'sealed-list' }, sealed.map((l) => h('li', {},
       h('span', {}, `寫於 ${fmtDate(parseDate(l.writtenOn))}`),
       h('button', { type: 'button', class: 'link-btn', onclick: async () => {
-        if (!confirm('確定要刪除這封還沒打開的信嗎？')) return;
         state.letters = state.letters.filter((x) => x.id !== l.id);
         state.deleted[l.id] = new Date().toISOString(); // 讓其他裝置同步時也刪掉
         await saveState(); render(); openLetterEditor(age);
+        toast('已刪除這封信', UNDO_MS, { label: '復原', fn: async () => {
+          delete state.deleted[l.id];
+          state.letters.push({ ...l, updatedAt: new Date().toISOString() });
+          await saveState(); render();
+          if ($('#letter-dialog').open) openLetterEditor(age);
+          toast('已復原');
+        } });
       } }, '刪除'))))) : null,
     h('div', { class: 'sheet-actions' }, h('button', { type: 'button', class: 'btn', onclick: () => $('#letter-dialog').close() }, '取消'), h('span', { class: 'spacer' }), save));
   if (!$('#letter-dialog').open) $('#letter-dialog').showModal();
@@ -1912,7 +1972,11 @@ async function savePerson() {
 
 async function deletePerson(id) {
   const p = personById(id);
-  if (!p || !confirm(`確定要刪除「${personName(p)}」嗎？紀錄會留著，只是不再標記這個人。`)) return;
+  if (!p || !(await ask({
+    title: `刪除「${personName(p)}」？`,
+    body: '紀錄會留著，只是不再標記這個人。',
+    actions: [{ label: '先不要', value: false }, { label: '刪除', value: true, kind: 'danger' }],
+  }))) return;
   const now = new Date().toISOString();
   state.people = state.people.filter((x) => x.id !== id);
   state.deleted[id] = now;
@@ -2179,7 +2243,11 @@ async function saveProfile(form) {
   if (!name || !isValidDateStr(birthday)) return false;
   if (birthday > todayStr()) { toast('生日不能在未來'); return false; }
   const early = state.moments.filter((m) => m.date < birthday).length;
-  if (early && !confirm(`有 ${early} 則紀錄早於這個生日，仍要儲存嗎？`)) return false;
+  if (early && !(await ask({
+    title: '有紀錄比這個生日還早',
+    body: `有 ${early} 則紀錄的日期早於這個生日，存了之後它們會算在「還沒出生」。`,
+    actions: [{ label: '再改一下', value: false }, { label: '照樣儲存', value: true, kind: 'primary' }],
+  }))) return false;
   state.profile = { ...state.profile, name, birthday, updatedAt: new Date().toISOString() };
   return saveState();
 }
@@ -2300,8 +2368,17 @@ async function importData(file) {
 
   const incoming = normalize(data);
   const photoMeta = new Map((Array.isArray(data.photos) ? data.photos : []).map((p) => [p.id, p]));
-  const replace = state.moments.length === 0 || confirm(
-    `備份檔有 ${incoming.moments.length} 則紀錄。\n\n按「確定」：整個取代目前資料\n按「取消」：合併（同一則保留較新的版本）`);
+  let replace = state.moments.length === 0;
+  if (!replace) {
+    const how = await ask({
+      title: '要怎麼匯入這份備份？',
+      body: [`備份檔有 ${incoming.moments.length} 則紀錄，這支手機上有 ${state.moments.length} 則。`,
+        h('p', { class: 'hint' }, '合併：兩邊都留著，同一則保留比較新的版本。取代：手機上的資料換成備份檔的內容。')],
+      actions: [{ label: '合併兩邊（建議）', value: 'merge', kind: 'primary' }, { label: '整個取代成備份檔', value: 'replace', kind: 'danger' }],
+    });
+    if (!how) return;
+    replace = how === 'replace';
+  }
 
   try {
     if (replace) {
@@ -2351,7 +2428,7 @@ async function importData(file) {
 
 // 刪掉沒有任何時刻引用的照片（中途失敗或匯入取代後留下的）
 async function cleanupOrphanPhotos() {
-  const referenced = new Set(state.moments.flatMap((m) => m.photoIds));
+  const referenced = new Set([...state.moments.flatMap((m) => m.photoIds), ...undoKeep]);
   const orphans = (await db.getAllPhotoIds()).filter((id) => !referenced.has(id));
   if (orphans.length) {
     await db.deletePhotos(orphans);
@@ -2705,7 +2782,7 @@ async function afterLogin(result) {
   const local = state.profile;
   if (remote && remote.profile && local && state.moments.length
     && (remote.profile.name !== local.name || remote.profile.birthday !== local.birthday)
-    && !confirm(`這支手機上的資料（${local.name}）和雲端帳號（${remote.profile.name}）不一樣。\n\n按「確定」：合併兩邊\n按「取消」：只用雲端的資料（手機上的會被取代，建議先匯出備份）`)) {
+    && await askCloudOnly(local, remote)) {
     state = normalize(remote);
     await saveState({ fromSync: true });
   } else if (remote && !state.profile) {
@@ -2717,6 +2794,24 @@ async function afterLogin(result) {
   renderCloudSection();
   await runSync();
   renderCloudSection();
+}
+
+// 手機和雲端是不同人的資料：預設合併（不會弄丟東西），要「只用雲端」得再確認一次
+async function askCloudOnly(local, remote) {
+  const n = state.moments.length;
+  const how = await ask({
+    title: '手機和雲端的資料不一樣',
+    body: [`這支手機上是「${local.name}」的 ${n} 則紀錄，雲端帳號是「${remote.profile.name}」。`,
+      h('p', { class: 'hint' }, '合併會把兩邊的紀錄放在一起，什麼都不會刪掉。')],
+    actions: [{ label: '合併兩邊（建議）', value: 'merge', kind: 'primary' }, { label: '只用雲端的資料…', value: 'cloud' }],
+  });
+  if (how !== 'cloud') return false;
+  const sure = await ask({
+    title: `刪除手機上的 ${n} 則紀錄？`,
+    body: ['手機上的紀錄和照片會被雲端的資料取代，刪掉就找不回來。', h('p', { class: 'hint' }, '不確定的話，先到「我 → 備份與資料」匯出一份。')],
+    actions: [{ label: '改成合併', value: false, kind: 'primary' }, { label: '刪除，只用雲端的', value: true, kind: 'danger' }],
+  });
+  return !!sure;
 }
 
 async function withBusy(btn, fn) {
@@ -2792,7 +2887,11 @@ async function renderCloudSection() {
   syncBtn.addEventListener('click', () => withBusy(syncBtn, runSync));
   const logoutBtn = h('button', { type: 'button', class: 'btn' }, '登出');
   logoutBtn.addEventListener('click', () => withBusy(logoutBtn, async () => {
-    if (!confirm('登出後這支手機不會再同步，但手機上的資料會留著。確定登出？')) return;
+    if (!(await ask({
+      title: '登出雲端？',
+      body: '登出後這支手機不會再同步，但手機上的資料會留著。',
+      actions: [{ label: '先不要', value: false }, { label: '登出', value: true, kind: 'danger' }],
+    }))) return;
     await cloudApi.logout();
     cloud.me = null;
     setCloudStatus('off', '');
@@ -2820,7 +2919,11 @@ async function renderCloudSection() {
     view.addEventListener('click', () => { $('#settings-dialog').close(); openMembers(link.id); });
     const unlinkBtn = h('button', { type: 'button', class: 'btn small danger' }, '解除連結');
     unlinkBtn.addEventListener('click', () => withBusy(unlinkBtn, async () => {
-      if (!confirm(`確定要和 ${link.name} 解除連結嗎？之後彼此都看不到分享的紀錄。`)) return;
+      if (!(await ask({
+        title: `和 ${link.name} 解除連結？`,
+        body: '之後彼此都看不到分享的紀錄。',
+        actions: [{ label: '先不要', value: false }, { label: '解除連結', value: true, kind: 'danger' }],
+      }))) return;
       cloud.me = await cloudApi.unlink(link.id);
       cloud.views.delete(link.id);
       setCloudStatus(cloud.status, cloud.message);
@@ -2892,7 +2995,11 @@ async function handleInvite() {
     try {
       const { inviter } = await cloudApi.signupStatus(cloud.invite);
       if (!inviter) { toast('邀請連結已失效'); return; }
-      if (!confirm(`要和 ${inviter} 連結嗎？之後可以互看彼此分享的紀錄。`)) return;
+      if (!(await ask({
+        title: `💞 ${inviter} 邀請你`,
+        body: '連結之後，可以互看彼此「分享」的紀錄。沒分享的都是私人的。',
+        actions: [{ label: '先不要', value: false }, { label: '連結', value: true, kind: 'primary' }],
+      }))) return;
       cloud.me = await cloudApi.acceptInvite(cloud.invite);
       cloud.invite = null;
       setCloudStatus(cloud.status, cloud.message);
@@ -3261,8 +3368,12 @@ function bind() {
     if (file) importData(file);
   });
   $('#reset-btn').addEventListener('click', async () => {
-    const typed = prompt(`清除後這支手機上的所有紀錄和照片都會消失，無法復原。${cloud.me ? '雲端的資料不受影響，會一併登出。' : '建議先匯出備份。'}\n\n確定要清除的話，請輸入「清除」：`);
-    if ((typed || '').trim() !== '清除') { if (typed !== null) toast('沒有清除'); return; }
+    if (!(await ask({
+      title: '清除這支手機上的所有資料？',
+      body: [`${state.moments.length} 則紀錄和所有照片都會消失，無法復原。`, h('p', { class: 'hint' }, `${cloud.me ? '雲端的資料不受影響，會一併登出。' : '建議先匯出備份。'}確定的話，請在下面輸入「清除」。`)],
+      typed: '清除',
+      actions: [{ label: '先不要', value: false, kind: 'primary' }, { label: '全部清除', value: true, kind: 'danger' }],
+    }))) return;
     if (cloud.me) await cloudApi.logout().catch(() => {});
     cloud.me = null;
     setCloudStatus('off', '');
@@ -3280,11 +3391,13 @@ function bind() {
   $('#search').addEventListener('input', (e) => { ui.query = e.target.value.trim(); renderTimeline(); });
 
   // 有沒存的內容時，關閉前先問一下（取消、點遮罩、返回鍵都一樣）
+  const discard = (title) => ask({ title, actions: [{ label: '繼續編輯', value: false, kind: 'primary' }, { label: '放棄', value: true, kind: 'danger' }] });
   const guards = {
-    'moment-dialog': () => !momentDirty() || confirm('這筆還沒存，要放棄嗎？'),
-    'avatar-dialog': () => !(ui.avatar && ui.avatar.history.length) || confirm('小人的修改還沒存，要放棄嗎？'),
+    'moment-dialog': async () => !momentDirty() || !!(await discard('這筆還沒存，要放棄嗎？')),
+    'avatar-dialog': async () => !(ui.avatar && ui.avatar.history.length) || !!(await discard('小人的修改還沒存，要放棄嗎？')),
   };
-  const tryClose = (dlg) => { const g = guards[dlg.id]; if (!g || g()) dlg.close(); };
+  const tryClose = async (dlg) => { const g = guards[dlg.id]; if (!g || await g()) dlg.close(); };
+  $('#ask-dialog').addEventListener('close', () => { const r = askResolve; askResolve = null; if (r) r(null); });
   document.querySelectorAll('[data-close]').forEach((btn) =>
     btn.addEventListener('click', () => tryClose(btn.closest('dialog'))));
   // 點對話框外的遮罩也可以關閉
@@ -3295,7 +3408,8 @@ function bind() {
       const r = dlg.getBoundingClientRect();
       if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) tryClose(dlg);
     });
-    dlg.addEventListener('cancel', (e) => { const g = guards[dlg.id]; if (g && !g()) e.preventDefault(); });
+    // Esc／返回鍵：有守門的抽屜先擋下來，問過再關
+    dlg.addEventListener('cancel', (e) => { if (guards[dlg.id]) { e.preventDefault(); tryClose(dlg); } });
   });
   // 迷你小窩風：每個抽屜上面加一條藍色視窗標題列（標題取裡面第一個標題，原本的標題藏起來）
   document.querySelectorAll('dialog.sheet:not(.composer-page)').forEach((dlg) => {
