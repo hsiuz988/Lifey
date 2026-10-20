@@ -58,7 +58,7 @@
   </section>
 
   <!-- 主畫面 -->
-  <div id="ptr" class="ptr" aria-hidden="true"><span id="ptr-icon" class="ptr-icon">↓</span><span id="ptr-text">下拉重新整理</span></div>
+  <div id="ptr" class="ptr" aria-hidden="true"><span id="ptr-icon" class="ptr-icon">↓</span><span id="ptr-text">下拉更新到最新版本</span></div>
 
   <main id="app" hidden>
     <!-- 家：上半是房間（遊戲），下半是今天 -->
@@ -546,10 +546,11 @@
 
   <div id="toast" class="toast" hidden></div>
 
+  <script src="ptr.js"></script>
   <script type="module" src="app.js"></script>
   <!-- 保險：程式沒能載入時（例如新舊版本混在一起），不要留白畫面，給一個重新載入的按鈕 -->
   <div id="boot-fail" class="boot-fail" hidden>
-    <p>畫面沒有順利載入。</p>
+    <p>畫面沒有順利載入。<br>往下拉，或按下面的按鈕更新到最新版本。</p>
     <button type="button" class="btn primary" id="boot-reload">重新載入最新版本</button>
   </div>
   <script>

@@ -465,7 +465,7 @@ dialog.partner[open] { display: flex; }
 /* ---------- 下拉重新整理 ---------- */
 .ptr {
   position: fixed; top: env(safe-area-inset-top); left: 50%; z-index: 20;
-  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; margin-left: -80px; width: 160px; justify-content: center;
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; margin-left: -95px; width: 190px; justify-content: center;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 4px 14px var(--shadow);
   font-size: 13px; color: var(--muted); transform: translateY(-60px); opacity: 0; pointer-events: none;
   transition: transform .2s, opacity .2s;
