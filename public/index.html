@@ -29,6 +29,7 @@
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="cy.css">
 </head>
 <body>
   <!-- 第一次開啟：介紹＋姓名與生日 -->
@@ -69,6 +70,26 @@
   <main id="app" hidden>
     <!-- 家：上半是房間（遊戲），下半是今天 -->
     <section class="tab-page home-page" data-tab="home">
+      <!-- 迷你小窩：今天／總共、背景音樂、名字、個人小卡、最近更新 -->
+      <div class="cy-top">
+        <span class="cy-count">TODAY <b id="cy-today">0</b> <i>|</i> TOTAL <b id="cy-total">0</b></span>
+        <button id="cy-bgm" class="cy-bgm" type="button" aria-label="背景音樂"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z" fill="currentColor"></path></svg>BGM</button>
+      </div>
+      <div class="cy-head"><h1 id="cy-title"></h1><span id="cy-sub"></span></div>
+      <div class="cy-profile">
+        <button id="cy-card" class="cy-card" type="button" aria-label="換我的樣子">
+          <span id="cy-look" class="cy-look"></span>
+          <span class="cy-today-is">TODAY IS..</span>
+          <span id="cy-mood" class="cy-mood"></span>
+        </button>
+        <div class="cy-side">
+          <button id="cy-line" class="cy-line" type="button"></button>
+          <div class="cy-box-title">Updated news</div>
+          <div id="cy-news" class="cy-news"></div>
+          <div id="cy-counts" class="cy-counts"></div>
+        </div>
+      </div>
+      <div class="cy-box-title cy-room-title">Mini Room</div>
       <div class="room-box">
         <div id="scene" class="room"></div>
         <div class="room-hud">
@@ -89,13 +110,17 @@
           <button id="quick-photo" class="quick-photo" type="button" aria-label="用一張照片記錄">📷</button>
         </div>
         <div id="quick-done" class="hint" hidden></div>
+        <section class="cy-family">
+          <div class="cy-box-title"><span>家人說</span><button id="cy-family-more" class="link-btn" type="button">全部 ›</button></div>
+          <div id="cy-family"></div>
+        </section>
         <section id="today-panel" class="today-cards" hidden></section>
       </div>
     </section>
 
     <!-- 回憶：依年紀的時間軸 -->
     <section class="tab-page" data-tab="memories" hidden>
-      <header class="page-head"><h1>回憶</h1></header>
+      <header class="page-head"><h1>日記</h1></header>
       <section class="panel" id="timeline-panel">
         <div class="filters">
           <input id="search" type="search" placeholder="搜尋紀錄…" autocomplete="off">
@@ -186,11 +211,11 @@
 
     <!-- 底部分頁 -->
     <nav id="tabbar" class="tabbar" aria-label="主要分頁">
-      <button type="button" data-tab-btn="home" aria-current="page"><span class="tab-ic">🏠</span>家</button>
-      <button type="button" data-tab-btn="memories"><span class="tab-ic">📖</span>回憶</button>
-      <button id="add-btn" type="button" class="tab-add" aria-label="記一筆">＋</button>
-      <button type="button" data-tab-btn="map"><span class="tab-ic">🗺</span>地圖</button>
-      <button type="button" data-tab-btn="me"><span class="tab-ic">🙂</span>我</button>
+      <button type="button" data-tab-btn="home" aria-current="page"><svg class="tab-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9H3z"></path><path d="M10 20v-6h4v6"></path></svg>首頁</button>
+      <button type="button" data-tab-btn="memories"><svg class="tab-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"></path><path d="M8 9h8M8 13h6"></path></svg>日記</button>
+      <button id="add-btn" type="button" class="tab-add" aria-label="記一筆"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+      <button type="button" data-tab-btn="map"><svg class="tab-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>地圖</button>
+      <button type="button" data-tab-btn="me"><svg class="tab-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>我的</button>
     </nav>
   </main>
 

@@ -1,0 +1,160 @@
+/* 迷你小窩風（試做分支）：2000 年代網頁感——藍灰點點桌面、筆記本外框、底部垂下來的索引標籤、橘色數字 */
+@import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
+
+:root, :root[data-theme="dark"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f3f6f9;
+  --line: #d3dce6;
+  --text: #2b2f33;
+  --muted: #5e6b78;
+  --accent: #c9560a;
+  --accent-ink: #ffffff;
+  --accent-soft: #fff1e6;
+  --radius: 8px;
+  --card-shadow: none;
+  --toast-bg: #2b2f33;
+  --avatar-bg: #f3f6f9;
+  --stage-bg: #f3f6f9;
+  --room-bg: #fdf1f4;
+  --cy-blue: #2f5f99;
+  --cy-frame: #7f95ad;
+  --cy-orange: #b84e00;
+  --cy-desk: #c9d6e3;
+}
+
+html, body {
+  background-color: var(--cy-desk);
+  background-image: radial-gradient(#b3c3d4 1.2px, transparent 1.2px);
+  background-size: 8px 8px;
+}
+a, .link-btn { color: var(--cy-blue); }
+
+/* 筆記本外框：整個 App 是一本放在桌上的小冊子 */
+main#app {
+  box-sizing: border-box;
+  margin: 10px 8px 0;
+  padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  background: #ffffff;
+  border: 2px solid var(--cy-frame);
+  border-radius: 12px;
+  min-height: calc(100vh - 24px);
+}
+@media (min-width: 660px) { main#app { margin: 16px auto 0; } }
+.tab-page { padding: 0 12px; }
+.page-head { padding: 14px 0 8px; border-bottom: 1px dashed var(--line); margin-bottom: 10px; }
+.page-head h1 { font-size: 19px; font-weight: 700; color: var(--cy-blue); }
+
+/* 卡片和面板：細框線、不要陰影，標題下面一條虛線 */
+.panel, .today-card, .me-card, .me-stat, .action-card, .menu {
+  box-shadow: none !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 8px !important;
+}
+.panel-head { border-bottom: 1px dashed var(--line); padding-bottom: 6px; margin-bottom: 8px; }
+.panel-head h2 { font-size: 15px; color: var(--cy-blue); }
+.btn { border-radius: 6px; }
+
+/* 底部分頁：從外框底部垂下來的索引貼，中間是橘色的「記一筆」 */
+.tabbar {
+  background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
+  border-top: 2px solid var(--cy-frame);
+  align-items: start; gap: 4px;
+  padding: 0 max(8px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  background-color: var(--cy-desk);
+  background-image: radial-gradient(#b3c3d4 1.2px, transparent 1.2px);
+  background-size: 8px 8px;
+}
+.tabbar button[data-tab-btn] {
+  height: 54px; justify-content: center; gap: 2px;
+  margin-top: -2px;
+  border: 2px solid var(--cy-frame); border-top: 0; border-radius: 0 0 10px 10px;
+  background: var(--cy-frame); color: #ffffff;
+  font-size: 12px; font-weight: 700; letter-spacing: .08em;
+}
+.tabbar button[data-tab-btn][aria-current="page"] { background: #ffffff; color: var(--cy-blue); }
+.tabbar .tab-ic { font-size: inherit; filter: none; opacity: 1; }
+.tabbar .tab-add {
+  width: 58px; height: 58px; margin: 6px auto 0; border-radius: 50%;
+  border: 2px solid #9e4207; background: #c9560a; color: #ffffff;
+  box-shadow: 0 3px 0 #9e4207;
+}
+@media (min-width: 700px) { .tabbar { border-radius: 0; border-left: 0; border-right: 0; } }
+
+/* 首頁：TODAY／TOTAL、名字、個人小卡 */
+.cy-top { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 2px; }
+.cy-count { font-family: "DotGothic16", var(--mono); font-size: 14px; letter-spacing: .04em; color: #3e4c5a; }
+.cy-count b { font-weight: 400; color: var(--cy-orange); }
+.cy-count i { font-style: normal; color: #b9c7d6; margin: 0 4px; }
+.cy-bgm {
+  display: flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px;
+  border: 1px solid #8fa3b8; border-radius: 4px; background: var(--panel-2);
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--cy-blue); cursor: pointer;
+}
+.cy-bgm svg { color: #c9560a; }
+.cy-head { display: flex; align-items: baseline; justify-content: space-between; margin: 6px 12px 10px; padding-bottom: 8px; border-bottom: 1px dashed #b9c7d6; }
+.cy-head h1 { margin: 0; font-size: 18px; color: var(--cy-blue); }
+.cy-head span { font-size: 13px; color: var(--muted); }
+
+.cy-profile { display: flex; gap: 10px; margin: 0 12px 12px; }
+.cy-card {
+  width: 104px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; align-items: stretch;
+  padding: 0; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
+}
+.cy-look { display: block; width: 104px; height: 104px; overflow: hidden; border: 1px solid #b9c7d6; background: var(--panel-2); }
+.cy-look .look-head { width: 104px; transform: scale(1.18); transform-origin: 42% 4%; }
+.cy-look .look.doll.look-head { transform: scale(1.05); transform-origin: 50% 2%; }
+.cy-today-is { font-family: "DotGothic16", var(--mono); font-size: 12px; color: #3e4c5a; }
+.cy-mood { display: flex; align-items: center; gap: 5px; font-size: 14px; }
+.cy-gem { width: 11px; height: 13px; background: var(--c); clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%); flex-shrink: 0; }
+
+.cy-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.cy-line {
+  min-height: 44px; padding: 6px 8px; text-align: left; border: 1px dashed #d3dce6; border-radius: 4px; background: #ffffff;
+  font: inherit; font-size: 14px; line-height: 1.45; color: var(--text); cursor: pointer;
+}
+.cy-line.empty { color: var(--cy-blue); }
+.cy-box-title {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 700; color: #3e4c5a; border-bottom: 1px solid var(--line); padding-bottom: 3px;
+}
+.cy-box-title .link-btn { font-size: 13px; font-weight: 400; padding: 8px 0; }
+.cy-news { display: flex; flex-direction: column; }
+.cy-news-item {
+  display: flex; gap: 6px; align-items: center; min-height: 36px; padding: 0; border: 0; border-bottom: 1px dashed #e4eaf0;
+  background: none; font: inherit; font-size: 13px; color: var(--cy-blue); text-align: left; cursor: pointer; min-width: 0;
+}
+.cy-tag { color: var(--cy-orange); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.cy-news-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cy-empty { margin: 4px 0; font-size: 13px; color: var(--muted); }
+.cy-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); }
+.cy-count-cell {
+  display: flex; justify-content: space-between; align-items: center; min-height: 36px; padding: 0 8px;
+  border: 0; border-bottom: 1px solid #eef2f6; background: none; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer;
+}
+.cy-count-cell:nth-child(odd) { border-right: 1px solid #eef2f6; }
+.cy-count-cell b { color: var(--cy-orange); }
+
+/* Mini Room：房間放在細框裡 */
+.cy-room-title { margin: 0 12px 4px; border: 0; }
+.home-page .room-box { margin: 0 12px; border: 1px solid #b9c7d6; border-radius: 8px; overflow: hidden; }
+.home-sheet { margin-top: 0; padding: 12px; border-radius: 0; background: #ffffff; }
+
+/* 記一筆：像舊網頁的輸入框＋橘色按鈕 */
+.quick-open { border: 1px solid #8fa3b8 !important; border-radius: 6px !important; background: var(--panel-2) !important; box-shadow: none !important; }
+.quick-photo { border: 1px solid #8fa3b8 !important; border-radius: 6px !important; box-shadow: none !important; }
+
+/* 家人說 */
+.cy-family { margin-top: 12px; }
+.cy-family-item {
+  display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 52px; padding: 8px 0;
+  border: 0; border-bottom: 1px dashed var(--line); background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.cy-family-text { font-size: 14px; color: var(--text); }
+.cy-family-who { font-size: 12px; color: var(--muted); }
+.cy-empty-box { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; margin-top: 8px; border: 1px dashed #b9c7d6; border-radius: 8px; text-align: center; }
+.cy-empty-box p { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* 提示訊息：在分頁上方，不擋住手指（點得到後面的按鈕） */
+.toast { pointer-events: none; bottom: calc(100px + env(safe-area-inset-bottom)); }

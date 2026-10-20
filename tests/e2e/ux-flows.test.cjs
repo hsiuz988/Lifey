@@ -35,6 +35,10 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   answer = true; await p.click('#moment-save'); await p.waitForTimeout(200);
   let s = await st(p);
   assert(s.moments.length === 1 && s.moments[0].text === '只寫一句', '一句話直接存');
+  await p.waitForTimeout(150);
+  assert(await p.textContent('#cy-today') === '1' && await p.textContent('#cy-total') === '1', '迷你小窩：TODAY／TOTAL 算到這一筆');
+  assert((await p.textContent('#cy-news')).includes('只寫一句'), '迷你小窩：最近更新出現這一筆');
+  assert((await p.textContent('#cy-family')).includes('邀請家人'), '迷你小窩：還沒有家人時邀請');
   // 只放一張照片也能存；什麼都沒有時不會存
   await tab(p, 'home').then(() => p.click('#quick-open'));
   assert(await p.$eval('#moment-save', (e) => e.classList.contains('off')), '還沒寫也沒照片時，「記下來」是淡的');

@@ -297,14 +297,17 @@ function render() {
 }
 function renderAll() {
   const hasProfile = !!state.profile;
+  const entering = hasProfile && $('#app').hidden;
   $('#setup').hidden = hasProfile;
   $('#app').hidden = !hasProfile;
+  if (entering) window.scrollTo(0, 0); // 從設定頁進來：不要停在設定頁捲到的位置
   if (!hasProfile) return;
   renderHeader();
   renderNow();
   renderQuickNote();
   renderToday();
   renderMe();
+  renderCyHome();
   renderBackupBanner();
   renderLifeMap();
   renderFilters();
@@ -323,6 +326,49 @@ function renderHeader() {
   const passed = daysBetween(start, now) + 1;
   $('#hud-age').textContent = `${age} 歲 · 第 ${passed} 天`;
   $('#age-sub').textContent = `${fmtDate(parseDate(birthday))} · ${age} 歲 · 距離 ${age + 1} 歲還有 ${total - passed} 天`;
+}
+
+// 首頁的迷你小窩：今天／總共記了幾天、個人小卡、最近更新、各項數字
+function renderCyHome() {
+  const { name, birthday } = state.profile;
+  const today = todayStr();
+  const age = ageAt(birthday, today);
+  const dated = state.moments.filter((m) => !m.approx);
+  $('#cy-today').textContent = String(dated.filter((m) => m.date === today).length);
+  $('#cy-total').textContent = String(new Set(dated.map((m) => m.date)).size);
+  $('#cy-title').textContent = `${name}的迷你小窩`;
+  $('#cy-sub').textContent = `${age} 歲`;
+  const emo = emotionByKey(todayInScene().emo);
+  $('#cy-look').replaceChildren(lookHtml(state.profile.look, faceFor(emo && emo.key), 'look look-head'));
+  $('#cy-mood').replaceChildren(h('i', { class: 'cy-gem', style: `--c:${emo ? MOOD_COLORS[emo.mood - 1] : '#e4e8ec'}` }), emo ? emo.label : '還沒記錄');
+  const title = yearTitle(age);
+  $('#cy-line').textContent = title || '寫下這一歲的一句話 ›';
+  $('#cy-line').classList.toggle('empty', !title);
+  const recent = state.moments.slice().sort((a, b) => (b.date + (b.createdAt || '')).localeCompare(a.date + (a.createdAt || ''))).slice(0, 3);
+  $('#cy-news').replaceChildren(...(recent.length ? recent.map((m) => h('button', { type: 'button', class: 'cy-news-item', onclick: () => openMoment(m.id) },
+    h('span', { class: 'cy-tag' }, m.photoIds.length ? '[相簿]' : '[日記]'), h('span', { class: 'cy-news-text' }, m.text || '（照片）'))) : [h('p', { class: 'cy-empty' }, '寫下第一筆，小窩就會熱鬧起來')]));
+  const photos = state.moments.reduce((n, m) => n + m.photoIds.length, 0);
+  const ages = new Set(state.moments.map((m) => ageAt(birthday, m.date))).size;
+  const cell = (label, n, go) => h('button', { type: 'button', class: 'cy-count-cell', onclick: go }, h('span', {}, label), h('b', {}, String(n)));
+  $('#cy-counts').replaceChildren(
+    cell('日記', state.moments.length, () => showTab('memories')),
+    cell('相簿', photos, () => wallPhotos()),
+    cell('信', state.letters.length, () => openLetters()),
+    cell('人生', `${ages}/90`, () => showTab('map')));
+  renderCyFamily();
+}
+// 家人說：連結的家人最近分享的一句話；還沒有就邀請
+function renderCyFamily() {
+  const links = cloud.me ? cloud.me.links : [];
+  const said = links.flatMap((l) => {
+    const v = cloud.views.get(l.id);
+    if (!v || !v.moments) return [];
+    return v.moments.filter((m) => m.text).map((m) => ({ m, who: l.name || (v.profile && v.profile.name) || '家人', id: l.id }));
+  }).sort((a, b) => b.m.date.localeCompare(a.m.date)).slice(0, 3);
+  $('#cy-family').replaceChildren(...(said.length ? said.map(({ m, who, id }) => h('button', { type: 'button', class: 'cy-family-item', onclick: () => openMembers(id) },
+    h('span', { class: 'cy-family-text' }, m.text), h('span', { class: 'cy-family-who' }, `${who} · ${m.date.slice(5).replace('-', '/')}`)))
+    : [h('div', { class: 'cy-empty-box' }, h('p', {}, '邀請家人或另一半，他們分享的話會出現在這裡。'),
+      h('button', { type: 'button', class: 'btn small', onclick: () => openSettings('cloud') }, '邀請家人'))]));
 }
 
 // 我：個人卡（房間裡的小人）、三個數字、各項摘要
@@ -2827,6 +2873,7 @@ let lastCompanions = [];
 async function loadCompanions() {
   if (!scene) return;
   if (cloud.me) await loadMemberViews();
+  if (state.profile) renderCyFamily();
   const links = cloud.me ? cloud.me.links : [];
   const count = (personId) => state.moments.filter((m) => m.people.includes(personId)).length;
   const rank = (l) => {
@@ -3122,6 +3169,10 @@ function bind() {
   // 底部分頁
   document.querySelectorAll('#tabbar [data-tab-btn]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tabBtn)));
   $('#me-card').addEventListener('click', () => openLook());
+  $('#cy-card').addEventListener('click', () => openLook());
+  $('#cy-line').addEventListener('click', () => openYear(ageAt(state.profile.birthday, todayStr())));
+  $('#cy-bgm').addEventListener('click', () => toast('背景音樂即將推出 🎵'));
+  $('#cy-family-more').addEventListener('click', () => (cloud.me && cloud.me.links.length ? openMembers() : openSettings('cloud')));
   document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {
     const page = b.dataset.open;
     if (page === 'letters') openLetters(); else openSettings(page);
