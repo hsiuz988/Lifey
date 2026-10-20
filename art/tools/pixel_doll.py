@@ -68,13 +68,24 @@ def check(name, iou):
     print(f'  {name}: 吻合度 {iou:.3f}{flag}')
 
 def neck_row(a):
-    """脖子：白色背心最上面那一列。"""
+    """頭和身體的分界：下巴到肩膀之間剪影最窄的那一列（脖子）。
+    切在這裡，頭那層就不會帶到背心的肩膀，換別件衣服時才不會疊出兩條肩線。"""
     c = a[..., :3].astype(int); white = (c.min(-1) > 235) & (a[..., 3] > 0); H = a.shape[0]
-    return next(y for y in range(int(H * .45), int(H * .85)) if white[y].sum() > 8)
+    top = next(y for y in range(int(H * .45), int(H * .85)) if white[y].sum() > 8)   # 背心最上面
+    op = a[..., 3] > 0
+    width = lambda y: (lambda xs: xs.max() - xs.min() if len(xs) else 0)(np.where(op[y])[0])
+    rows = range(top - int(H * .12), top + 4)
+    return min(rows, key=width)
 
 def hairish(a):
-    c = a[..., :3].astype(int); r, g, b = c[..., 0], c[..., 1], c[..., 2]
-    return (r < 190) & (r >= g) & (g >= b - 10) & (c.sum(-1) < 430) & (a[..., 3] > 0)
+    """脖子以下要留的頭髮（髮尾）：頭髮本身的棕色，加上緊貼著它的外框。
+    衣服的深色外框（約 44,16,16）比頭髮（約 64,40,32）暗，不貼著頭髮就不要，免得背心的肩帶跑到別件衣服上。"""
+    from PIL import ImageFilter
+    c = a[..., :3].astype(int); r, g, b = c[..., 0], c[..., 1], c[..., 2]; op = a[..., 3] > 0
+    fill = op & (r >= 52) & (r < 190) & (g >= 28) & (r >= g) & (g >= b - 10) & (c.sum(-1) < 430)
+    outline = op & (c.sum(-1) < 150)
+    near = np.asarray(Image.fromarray(fill.astype('uint8') * 255).filter(ImageFilter.MaxFilter(3))) > 0
+    return fill | (outline & near)
 
 def export(img, name, foot):
     """master 座標 → 267×420 畫布（腳底對齊），存 webp。"""
@@ -99,7 +110,8 @@ def main():
         yy = rows_of(img)
         body = img.copy(); body[yy < neck[v]] = 0
         head = np.zeros_like(img); keep = yy < neck[v]
-        if hair: keep |= (yy >= neck[v]) & (yy < neck[v] + 60) & hairish(img)
+        # 髮尾：只留垂在身體外面的部分；蓋在肩膀上的那一點點不要，免得帶到素體背心的線
+        if hair: keep |= (yy >= neck[v]) & (yy < neck[v] + 60) & hairish(img) & ~(master[v][..., 3] > 0)
         head[keep] = img[keep]
         return body, head
 
