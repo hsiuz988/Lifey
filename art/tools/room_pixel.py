@@ -49,8 +49,8 @@ TV_BOX = (1040, 405, 140, 145)
 def tv_on():
     from PIL import ImageDraw
     s = Image.open(f'{SRC}/small.webp').convert('RGBA')
-    dst = [(1053, 419), (1161, 465), (1053, 489)]   # 房間電視螢幕：左上、右上、左下
-    src = [(1096, 540), (1292, 600), (1096, 655)]   # 小物件圖裡的同三個角
+    dst = [(1055, 414), (1150, 461.5), (1055, 487)]   # 房間電視螢幕：左上、右上、左下（量內框，上下邊斜率都是 0.5）
+    src = [(1098, 538), (1292, 625), (1098, 656)]   # 小物件圖裡的同三個角
     A = np.array([[x, y, 1] for x, y in dst], float)
     cx = np.linalg.solve(A, [p[0] for p in src]); cy = np.linalg.solve(A, [p[1] for p in src])
     X0, Y0, w, h = TV_BOX
