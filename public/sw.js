@@ -1,9 +1,8 @@
 // 改了任何檔案就把版本號 +1，舊快取才會被清掉
-const CACHE = 'lifelog-v29';
+const CACHE = 'lifelog-v30';
 const ASSETS = [
   './',
-  './index.html',
-  './privacy.html',
+  './privacy',
   './style.css',
   './app.js',
   './ptr.js',
@@ -43,9 +42,13 @@ const ASSETS = [
   './icons/apple-touch-icon.png',
 ];
 
+// 網址會被轉址的（/index.html → /）不放進快取：Safari 不接受 service worker 回傳轉址過的回應，會變成空白頁
+const clean = async (res) => (res.redirected ? new Response(await res.blob(), { status: res.status, statusText: res.statusText, headers: res.headers }) : res);
 self.addEventListener('install', (e) => {
-  // cache: 'reload'：安裝新版時一定向伺服器拿，不要拿到瀏覽器快取裡的舊檔
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
+  // cache: 'reload'：安裝新版時一定向伺服器拿；一個檔案失敗不影響安裝（不然會一直卡在舊版）
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(ASSETS.map((u) =>
+    fetch(new Request(u, { cache: 'reload' })).then(clean).then((res) => (res.ok ? c.put(u, res) : null)).catch(() => null))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -68,8 +71,8 @@ self.addEventListener('fetch', (e) => {
   const fresh = req.mode === 'navigate' || url.pathname.endsWith('/') || FRESH.test(url.pathname);
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const cached = () => cache.match(req, { ignoreSearch: true }).then((r) => r || (req.mode === 'navigate' ? cache.match('./index.html') : undefined));
-      const network = fetch(req).then((res) => { if (res.ok) cache.put(req, res.clone()); return res; });
+      const cached = () => cache.match(req, { ignoreSearch: true }).then((r) => r || (req.mode === 'navigate' ? cache.match('./') : undefined));
+      const network = fetch(req).then(clean).then((res) => { if (res.ok && res.type === 'basic') cache.put(req, res.clone()); return res; });
       if (fresh) {
         try { return await Promise.race([network, timeout(4000)]); } catch (err) { return (await cached()) || network.catch(() => Response.error()); }
       }
