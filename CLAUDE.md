@@ -93,11 +93,11 @@ tests/             Playwright 端對端測試
 
 ### 背景音樂
 
-- `public/music.js`，檔案放在 `public/music/room.mp3`（**還沒放**，等使用者從 Suno 下載；沒檔案時打開開關會提示並關回去）。
+- `public/music.js`，檔案是 `public/music/room.mp3`：Pixabay 的〈Cafe Lofi〉（zephiramusic，Pixabay 授權，可商用、不需標註），重新壓成 112kbps、頭尾加短淡入淡出。檔案抓不到時打開開關會提示並關回去。
 - 預設關閉，開關存在 localStorage `lifey.music`（每台裝置不同）。房間右上角 `#music-btn`（♪），以及「我 → 其他」的 `#pref-music`。
 - iPhone 要等使用者點畫面才能出聲，`audio.volume` 也沒作用，所以用 Web Audio GainNode 調音量（30%）和淡入淡出；切到背景時暫停。
 - `sw.js` 不處理 mp3/m4a（播放時是分段請求，cache.put 存不了 206）。
-- Suno 免費方案的歌不能商用，正式上線前要用付費方案重新生成或換成可商用的曲子。
+- 換歌：Suno 免費方案的歌不能商用也不能下載；換成別首要確認授權可商用。
 
 ### 人物外觀（look）
 
