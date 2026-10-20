@@ -169,7 +169,7 @@ main#app {
 }
 /* 晚上：房間外面的底色跟著變深（data-light 由 room.js 設） */
 .home-page .room-box { transition: background-color .4s; }
-.home-page .room-box:has(#scene[data-light="night"]) { background: #1e1c33; border-color: #3a3756; }
+.home-page .room-box:has(#scene[data-light="night"]) { background: #34407a; border-color: #4b5794; /* 跟窗外夜空差不多的深藍 */ }
 /* 寬螢幕：整間放到最大；手機直向：放大到畫面高度的六成，左右滑動看整間 */
 .room-box.full .room {
   flex: none; margin: 0 auto;

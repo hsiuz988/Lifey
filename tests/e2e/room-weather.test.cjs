@@ -154,7 +154,7 @@ async function newPage(b, opts = {}) {
   await n.waitForTimeout(300);
   const nightRoom = () => n.$eval('#scene svg image[href*="room_night"]', (e) => e.getAttribute('opacity'));
   assert(await n.$eval('#scene', (e) => e.dataset.light + e.dataset.lamp) === 'nighton' && await nightRoom() === '1', '晚上 8 點：房間換成夜晚、檯燈亮著');
-  assert(await n.$eval('.home-page .room-box', (e) => getComputedStyle(e).backgroundColor) === 'rgb(30, 28, 51)', '晚上：房間外面的底色也變深');
+  assert(await n.$eval('.home-page .room-box', (e) => getComputedStyle(e).backgroundColor) === 'rgb(52, 64, 122)', '晚上：房間外面的底色也變深');
   await n.click('#scene .hot[data-name="lamp"]');
   await n.waitForFunction(() => document.querySelector('#scene').dataset.lamp === 'off', null, { timeout: 8000 });
   assert(await n.$eval('#scene svg .room-night', (e) => e.getAttribute('opacity')) === '0.4', '晚上關檯燈：整間暗下來');
