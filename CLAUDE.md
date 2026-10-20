@@ -137,6 +137,7 @@ tests/             Playwright 端對端測試
   - 慵懶午後 `music/chill.mp3`：〈Chill Cafe Lofi Beat〉tunetank
   - 晴天爵士 `music/sunny.mp3`：〈Lofi Jazz Trio Sunny Cafe〉Alex Morgan
 - 新增曲子：用 ffmpeg 壓成 112kbps、頭尾 0.3s／2s 淡入淡出，音量調到平均約 -16 dB（三首一致，換歌不會忽大忽小），再加進 `TRACKS` 和測試。
+- 一首播完自動換下一首（最後一首接回第一首），`initMusic` 的 `onTrackChange` 會更新首頁的歌名。
 - 檔案抓不到時打開開關會提示並關回去。
 - 預設關閉，開關存在 localStorage `lifey.music`（每台裝置不同）。首頁右上角的 `#cy-bgm`（▶ BGM，播放時顯示歌名，旁邊 `#cy-bgm-next` ⏭ 換下一首），以及「我 → 其他」的 `#pref-music`。
 - iPhone 要等使用者點畫面才能出聲，`audio.volume` 也沒作用，所以用 Web Audio GainNode 調音量（30%）和淡入淡出；切到背景時暫停。
@@ -173,7 +174,7 @@ tests/             Playwright 端對端測試
   - `python3 art/tools/pixel_parts.py`：每張用自己外框的粗細算出「一格像素多大」統一縮放，**不用和別張對齊**；輸出 `public/room/pixel/` 的 `body_<衣服>_front|side|back|walk0-3.webp`、`head_<髮型>_front|side|back.webp`，脖子固定在畫布 (133.5, 225)，頭的下巴蓋在脖子上；
   - 任何頭都能疊任何身體；站著正面、走路側面的頭＋4 格身體（每格 0.15 秒），往左走整個翻面；
   - 教訓：不要從「一整個人」的圖裡挖頭髮或切脖子——GPT 每張都會偏移縮放，疊起來會有雙線和接縫；
-  - **表情**：日記的 10 種心情各一張「只有臉」的圖 `face_<心情>.webp`，站著時疊在正面的頭上（走路側面不疊）；房間顯示今天的心情，記完一筆時先顯示那則的心情 3 秒；首頁和「我」的頭像也一樣。`#scene` 的 `data-pixface` 是目前的表情。
+  - **表情**：日記的 10 種心情各一張「只有臉」的圖 `face_<心情>.webp`，站著時疊在正面的頭上（走路側面不疊）；房間顯示今天的心情，記完一筆時先顯示那則的心情 3 秒；首頁和「我」的頭像也一樣。`#scene` 的 `data-pixface` 是目前的表情。記一筆的心情選項用 `icon_<心情>.webp`（同一支工具輸出的小頭像）。
     - 來源 `art/source/pixel2/faces.png`（GPT 照 `head_bob.png` 畫的 5×2 顆正面頭）＋單獨重畫的 `face_miss.png`；`python3 art/tools/pixel_faces.py` 只取每顆的臉（瀏海下面的皮膚＋五官），各自量範圍縮放到房間正面頭的臉上，所以 GPT 畫的大小不同也沒關係。重畫某個表情：放單張圖、加進工具的 `EXTRA`。
     - 提示詞要點：附 `head_bob.png`＋`faces.png`，五官、眼淚、汗都要在臉的皮膚範圍內，頭外面不要有符號；「想念」要照 🥺 畫（水汪汪大眼、眉毛上揚、噘嘴），不然會跟感動、平靜撞在一起。
   - 髮色可以換色；加新髮型／衣服：放進 `art/source/pixel2/`、跑工具、在 `room.js` 的 `STYLE_LOOKS.pixel` 加選項、`sw.js` 加檔案。
