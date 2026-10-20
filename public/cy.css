@@ -1,4 +1,4 @@
-/* 迷你小窩風（試做分支）：2000 年代網頁感——藍灰點點桌面、筆記本外框、底部垂下來的索引標籤、橘色數字 */
+/* 迷你小窩風（試做分支）：2000 年代網頁感——藍灰點點桌面、筆記本外框、底部垂下來的索引標籤、邦迪藍果凍按鈕 */
 @import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
 
 :root, :root[data-theme="dark"] {
@@ -9,9 +9,10 @@
   --line: #d3dce6;
   --text: #2b2f33;
   --muted: #5e6b78;
-  --accent: #c9560a;
+  --accent: #13808c; /* 文字用深一點的邦迪藍，白底上才看得清楚 */
+  --cy-aqua: #1fa9b8; /* 按鈕、分頁的果凍底色 */
   --accent-ink: #ffffff;
-  --accent-soft: #fff1e6;
+  --accent-soft: #e3f6f8;
   --radius: 8px;
   --card-shadow: none;
   --toast-bg: #2b2f33;
@@ -20,7 +21,10 @@
   --room-bg: #fdf1f4;
   --cy-blue: #2f5f99;
   --cy-frame: #7f95ad;
-  --cy-orange: #b84e00;
+  --cy-pop: #13808c;
+  --cy-pop-edge: #0f6f7a;
+  /* 果凍光澤：上半亮、中間一條反光分界，像 iMac G3 和舊 Mac 的按鈕 */
+  --cy-gel: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.15) 48%, rgba(255,255,255,0) 52%, rgba(255,255,255,.25));
   --cy-desk: #c9d6e3;
 }
 
@@ -83,7 +87,8 @@ main#app {
 .tabbar .tab-ic { font-size: inherit; filter: none; opacity: 1; }
 .tabbar .tab-add {
   width: auto; height: 54px; margin: 0; border-radius: 0 0 10px 10px; box-shadow: none;
-  border-color: #9e4207; background: #c9560a; color: #ffffff; font-size: 12px; font-weight: 700; line-height: inherit;
+  border-color: var(--cy-pop-edge); background: var(--cy-gel), var(--cy-aqua); color: #ffffff; font-size: 12px; font-weight: 700; line-height: inherit;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .12); text-shadow: 0 1px 1px rgba(0, 0, 0, .2);
 }
 @media (min-width: 660px) {
   main#app { margin: 16px auto 0; }
@@ -93,14 +98,14 @@ main#app {
 /* 首頁：TODAY／TOTAL、名字、個人小卡 */
 .cy-top { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 2px; }
 .cy-count { font-family: "DotGothic16", var(--mono); font-size: 14px; letter-spacing: .04em; color: #3e4c5a; }
-.cy-count b { font-weight: 400; color: var(--cy-orange); }
+.cy-count b { font-weight: 400; color: var(--cy-pop); }
 .cy-count i { font-style: normal; color: #b9c7d6; margin: 0 4px; }
 .cy-bgm {
   display: flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px;
   border: 1px solid #8fa3b8; border-radius: 4px; background: var(--panel-2);
   font: inherit; font-size: 12px; font-weight: 700; color: var(--cy-blue); cursor: pointer;
 }
-.cy-bgm svg { color: #c9560a; }
+.cy-bgm svg { color: var(--cy-aqua); }
 .cy-head { display: flex; align-items: baseline; justify-content: space-between; margin: 6px 12px 10px; padding-bottom: 8px; border-bottom: 1px dashed #b9c7d6; }
 .cy-head h1 { margin: 0; font-size: 18px; color: var(--cy-blue); }
 .cy-head span { font-size: 13px; color: var(--muted); }
@@ -133,7 +138,7 @@ main#app {
   display: flex; gap: 6px; align-items: center; min-height: 36px; padding: 0; border: 0; border-bottom: 1px dashed #e4eaf0;
   background: none; font: inherit; font-size: 13px; color: var(--cy-blue); text-align: left; cursor: pointer; min-width: 0;
 }
-.cy-tag { color: var(--cy-orange); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.cy-tag { color: var(--cy-pop); font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .cy-news-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cy-empty { margin: 4px 0; font-size: 13px; color: var(--muted); }
 .cy-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); }
@@ -142,14 +147,14 @@ main#app {
   border: 0; border-bottom: 1px solid #eef2f6; background: none; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer;
 }
 .cy-count-cell:nth-child(odd) { border-right: 1px solid #eef2f6; }
-.cy-count-cell b { color: var(--cy-orange); }
+.cy-count-cell b { color: var(--cy-pop); }
 
 /* Mini Room：房間放在細框裡 */
 .cy-room-title { margin: 0 12px 4px; border: 0; }
 .home-page .room-box { margin: 0 12px; border: 1px solid #b9c7d6; border-radius: 8px; overflow: hidden; }
 .home-sheet { margin-top: 0; padding: 12px; border-radius: 0; background: #ffffff; }
 
-/* 記一筆：像舊網頁的輸入框＋橘色按鈕 */
+/* 記一筆：像舊網頁的輸入框＋果凍按鈕 */
 .quick-open { border: 1px solid #8fa3b8 !important; border-radius: 6px !important; background: var(--panel-2) !important; box-shadow: none !important; }
 .quick-photo { border: 1px solid #8fa3b8 !important; border-radius: 6px !important; box-shadow: none !important; }
 
@@ -189,13 +194,16 @@ dialog.sheet::backdrop { background: rgba(43, 47, 51, .45); }
 .composer-head .icon-btn { color: #ffffff; background: none; border: 0; }
 dialog.composer-page { border: 2px solid #5f7690; }
 
-/* 按鈕：主要＝橘色厚底；一般＝白到淺灰漸層、藍字 */
-.btn.primary { background: #c9560a; color: #ffffff; border: 0; border-bottom: 3px solid #9e4207; border-radius: 4px; font-weight: 700; }
+/* 按鈕：主要＝邦迪藍果凍厚底；一般＝白到淺灰漸層、藍字 */
+.btn.primary, .save-pill {
+  background: var(--cy-gel), var(--cy-aqua); color: #ffffff; border: 0; border-bottom: 3px solid var(--cy-pop-edge); border-radius: 4px; font-weight: 700;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .12); text-shadow: 0 1px 1px rgba(0, 0, 0, .2);
+}
 .btn:where(:not(.primary, .danger, .link-btn)) {
   background: linear-gradient(#ffffff, #eef2f6); color: var(--cy-blue);
   border: 1px solid #8fa3b8; border-bottom: 2px solid #7f95ad; border-radius: 4px; font-weight: 700;
 }
-.save-pill { border-radius: 4px !important; border-bottom: 3px solid #9e4207 !important; }
+.save-pill { border-radius: 4px !important; }
 
 /* 輸入框：淺藍灰底、細框 */
 :where(input[type="text"], input[type="search"], input[type="date"], input:not([type]), textarea, select) {
@@ -227,7 +235,7 @@ dialog.composer-page { border: 2px solid #5f7690; }
 .cy-setup .setup-body { margin: 0; padding: 14px; border-radius: 0; background: #ffffff; }
 .cy-setup .intro-list { gap: 6px; margin: 0 0 12px; }
 .cy-setup .intro-list li { font-size: 14px; gap: 8px; }
-.cy-setup .intro-list li::before { content: "·"; color: #c9560a; font-weight: 700; }
+.cy-setup .intro-list li::before { content: "·"; color: var(--accent); font-weight: 700; }
 .cy-setup .setup-form { margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 12px; }
 .cy-setup .setup-form label { font-size: 13px; font-weight: 700; color: #3e4c5a; }
 .cy-setup .setup-form .hint { margin: -6px 0 0; font-size: 12px; }
@@ -240,7 +248,7 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .menu-item, .menu > button { border-bottom: 1px dashed #e4eaf0 !important; }
 .menu { border-radius: 6px !important; }
 .menu-item { min-height: 44px; padding: 0 10px; gap: 8px; font-size: 14px; border-bottom: 1px dashed #e4eaf0; }
-.menu-item::before { content: "▶"; color: #c9560a; font-size: 10px; flex-shrink: 0; }
+.menu-item::before { content: "▶"; color: var(--cy-aqua); font-size: 10px; flex-shrink: 0; }
 .menu-item .menu-sub { font-size: 12px; }
 .me-card { border-radius: 6px !important; }
 .me-look { width: 96px; height: 96px; border-radius: 0; border: 1px solid #b9c7d6; background: var(--panel-2); }
@@ -251,7 +259,7 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
   background: var(--panel-2); color: var(--cy-blue); font-size: 13px; font-weight: 700;
 }
 .me-stat { border-radius: 6px !important; padding: 8px; }
-.me-stat b { font-family: "DotGothic16", var(--mono); font-weight: 400; font-size: 20px; color: var(--cy-orange); }
+.me-stat b { font-family: "DotGothic16", var(--mono); font-weight: 400; font-size: 20px; color: var(--cy-pop); }
 /* 狀態條：一格一格的方塊（像老遊戲的能量條） */
 .stat-track {
   height: 12px; border-radius: 1px; background: #eef2f6;
@@ -259,6 +267,6 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
   mask: repeating-linear-gradient(90deg, #000 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
 }
 .stat-fill { border-radius: 0; }
-.stat-num { font-family: "DotGothic16", var(--mono); color: var(--cy-orange); }
+.stat-num { font-family: "DotGothic16", var(--mono); color: var(--cy-pop); }
 .stat-bars.compact .stat-track { height: 10px; }
 .stat-label { font-size: 13px; }
