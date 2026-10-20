@@ -5,6 +5,8 @@ const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 const FIXTURES = require('path').join(__dirname, '..', 'fixtures');
 const S = OUT;
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
+// 地圖點格子會打開「這一歲」抽屜；要看日記再按「看這一歲的日記」
+const openAge = async (p, sel) => { await tab(p, 'map'); await p.click(sel); await p.click('#year-view'); await p.waitForTimeout(100); };
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 (async () => {
   const b = await chromium.launch();
@@ -56,20 +58,20 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   assert(s.years['31'].focus === 'health', '重心存在今年');
 
   // 一句話與重心共存
-  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
+  await openAge(p, '#life-map .cell.now'); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   await p.fill('#year-form [name=summary]', '開始寫人生紀錄');
   await p.click('#year-form button[type=submit]');
   await p.waitForFunction(() => !document.querySelector('#year-dialog').open);
   s = await st();
   assert(s.years['31'].focus === 'health' && s.years['31'].title === '開始寫人生紀錄', '寫一句話不會蓋掉重心');
-  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
+  await openAge(p, '#life-map .cell.now'); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   await p.fill('#year-form [name=summary]', '');
   await p.click('#year-form button[type=submit]');
   s = await st();
   assert(s.years['31'].focus === 'health' && !s.years['31'].title, '清掉一句話時重心還在');
   assert(await p.textContent('#map-summary').then(t => t.startsWith('已記錄 1 /')), '只有重心的年份不算「已記錄」');
   // 年歲對話框顯示狀態
-  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
+  await openAge(p, '#life-map .cell.now'); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   assert((await p.$$('#year-stats .stat')).length === 4, '年歲對話框顯示四項狀態');
   await p.click('#year-dialog [data-close]');
 

@@ -7,6 +7,8 @@ const S = OUT;
 // 自己畫的確認視窗：點寫著某個字的按鈕
 const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
+// 地圖點格子會打開「這一歲」抽屜；要看日記再按「看這一歲的日記」
+const openAge = async (p, sel) => { await tab(p, 'map'); await p.click(sel); await p.click('#year-view'); await p.waitForTimeout(100); };
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const errors = [];
 
@@ -99,12 +101,12 @@ async function addMoment(p, text, { photo, share, date } = {}) {
 
   // B 新增、刪除 → A 同步後也看到
   await addMoment(B, '在 B 手機記的');
-  await tab(B, 'map').then(() => B.click('#life-map .cell >> nth=30')); await B.click('.moment-body:has-text("私人日記")');
+  await openAge(B, '#life-map .cell >> nth=30'); await B.click('.moment-body:has-text("私人日記")');
   await B.click('#moment-menu-btn'); await B.click('#moment-delete');
   await B.waitForFunction(() => !document.querySelector('#moment-dialog').open);
   await B.waitForTimeout(2500); await synced(B);
   await A.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await tab(A, 'map').then(() => A.click('#life-map .cell.now'));
+  await openAge(A, '#life-map .cell.now');
   await A.waitForFunction(() => document.body.textContent.includes('在 B 手機記的'), null, { timeout: 20000 });
   const sA = await st(A);
   assert(sA.moments.some(m => m.text === '在 B 手機記的') && !sA.moments.some(m => m.text === '私人日記'), 'A：同步到 B 的新增與刪除');

@@ -7,6 +7,8 @@ const S = OUT, IMG = FIXTURES;
 // 自己畫的確認視窗：點寫著某個字的按鈕
 const pick = async (p, label) => { await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.click(`#ask-body .ask-actions button:text-is("${label}")`); await p.waitForTimeout(100); };
 const tab = (p, t) => p.click(`#tabbar [data-tab-btn="${t}"]`);
+// 地圖點格子會打開「這一歲」抽屜；要看日記再按「看這一歲的日記」
+const openAge = async (p, sel) => { await tab(p, 'map'); await p.click(sel); await p.click('#year-view'); await p.waitForTimeout(100); };
 const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exitCode = 1; } else console.log('✅', msg); };
 const idb = (p, fn) => p.evaluate(fn);
 const photoCount = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('photos').objectStore('photos').count(); t.onsuccess = () => r(t.result); }; }));
@@ -26,11 +28,11 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   await p.evaluate(() => localStorage.setItem('lifelog.v1', JSON.stringify({ version: 1, profile: { name: 'Hsiu', birthday: '1995-03-02' }, lastExportAt: null,
     moments: [{ id: 'old1', date: '2013-09-01', text: '上大學第一天', mood: 4, tags: ['學習'], starred: true, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z' }] })));
   await p.reload();
-  await tab(p, 'map'); await p.waitForSelector('#life-map .cell.filled'); await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=18'));
+  await tab(p, 'map'); await p.waitForSelector('#life-map .cell.filled'); await openAge(p, '#life-map .cell >> nth=18');
   await p.waitForSelector('.moment');
   assert(await p.textContent('.moment') .then(t => t.includes('上大學第一天')), '階段 1 資料搬到 IndexedDB');
   assert(await p.evaluate(() => !localStorage.getItem('lifelog.v1') && !!localStorage.getItem('lifelog.v1.migrated')), '舊資料改名保留');
-  await p.reload(); await tab(p, 'map'); await p.waitForSelector('#life-map .cell.filled'); await tab(p, 'map').then(() => p.click('#life-map .cell >> nth=18')); await p.waitForSelector('.moment');
+  await p.reload(); await tab(p, 'map'); await p.waitForSelector('#life-map .cell.filled'); await openAge(p, '#life-map .cell >> nth=18'); await p.waitForSelector('.moment');
   assert((await p.$$('.moment')).length === 1, '重新整理後不會重複搬家');
 
   // 2. 人生地圖
@@ -68,12 +70,12 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   assert(!(await p.evaluate(() => document.querySelector('#lightbox').open)), '點一下關閉大圖');
 
   // 5. 年歲的一句話 + 在這一歲記一筆
-  await tab(p, 'map').then(() => p.click('#life-map .cell:nth-child(19)')); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
+  await openAge(p, '#life-map .cell:nth-child(19)'); await tab(p, 'memories').then(() => p.click('#timeline .year-title-btn'));
   await p.fill('#year-form [name=summary]', '離家上大學的一年');
   await p.click('#year-form button[type=submit]');
   await p.waitForFunction(() => !document.querySelector('#year-dialog').open);
   assert((await p.textContent('#timeline .year-title-btn')).includes('離家上大學的一年'), '時間軸顯示這一歲的一句話');
-  await tab(p, 'map').then(() => p.click('#life-map .cell:nth-child(8)')); // 7 歲
+  await openAge(p, '#life-map .cell:nth-child(8)'); // 7 歲
   await tab(p, 'memories').then(() => p.click('#timeline .year-add button'));
   assert(await p.inputValue('#moment-form [name=date]') === '2002-03-02', '在 7 歲記一筆，日期預設 7 歲生日');
   await p.fill('#moment-form [name=text]', '小學一年級');
@@ -81,7 +83,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
 
   // 6. 編輯：移除一張照片 + 加一張，取消不留垃圾
-  await tab(p, 'map').then(() => p.click('#life-map .cell.now')); await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
+  await openAge(p, '#life-map .cell.now'); await tab(p, 'memories'); await p.click('.moment-body:has-text("花蓮")');
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 2);
   await p.setInputFiles('#photo-input', [IMG + '/p0.jpg']);
   await p.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length === 3);
@@ -142,7 +144,7 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   await p.waitForFunction(() => !document.querySelector('#settings-dialog').open, null, { timeout: 15000 });
   assert(await photoCount(p) === 4, '匯入 ZIP 還原 4 張照片');
   await p.waitForFunction(() => [...document.querySelectorAll('.thumb img')].length === 4 && [...document.querySelectorAll('.thumb img')].every(i => i.complete && i.naturalWidth > 0));
-  await tab(p, 'map').then(() => p.click('#life-map .cell:nth-child(19)')); assert((await p.textContent('#timeline .year-title-btn')).includes('離家上大學'), '匯入後這一歲的一句話也在');
+  await openAge(p, '#life-map .cell:nth-child(19)'); assert((await p.textContent('#timeline .year-title-btn')).includes('離家上大學'), '匯入後這一歲的一句話也在');
   console.log('errors', errors);
   await b.close();
 })();
