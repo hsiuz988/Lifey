@@ -115,10 +115,10 @@
           <span id="backup-text"></span>
           <button id="banner-export" class="btn small">立即備份</button>
         </div>
-        <div id="quick-note" class="quick-note">
-          <button id="quick-open" class="quick-open" type="button"><span>今天過得怎麼樣？一句話就好</span></button>
-          <button id="quick-photo" class="quick-photo" type="button" aria-label="用一張照片記錄">📷</button>
-        </div>
+        <section class="joys" aria-label="累積幸福">
+          <div class="cy-box-title"><span>累積幸福</span><button id="joy-all" class="link-btn" type="button">全部 ›</button></div>
+          <div id="joy-row" class="joy-row"></div>
+        </section>
         <div id="quick-done" class="hint" hidden></div>
         <section class="cy-family">
           <div class="cy-box-title"><span>家人說</span><button id="cy-family-more" class="link-btn" type="button">全部 ›</button></div>
@@ -178,6 +178,7 @@
       </section>
       <div class="menu me-menu">
         <button class="menu-item" type="button" data-open="people"><span>人物與寵物</span><span id="me-people" class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="joys"><span>累積幸福</span><span class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-open="letters"><span>給未來的信</span><span id="me-letters" class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-open="cloud"><span>家人與好友</span><span id="me-cloud" class="menu-sub"></span><span class="chev">›</span></button>
       </div>
@@ -446,6 +447,11 @@
   </dialog>
 
   <!-- 心情花園：一個月一片花圃，一天一朵花 -->
+  <!-- 累積幸福：詳情、編輯、全部（內容由 joys.js 換） -->
+  <dialog id="joy-dialog" class="sheet joy-dialog">
+    <div id="joy-body"></div>
+  </dialog>
+
   <dialog id="garden-dialog" class="sheet garden-dialog">
     <div id="garden-body"></div>
   </dialog>

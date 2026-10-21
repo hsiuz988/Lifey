@@ -49,7 +49,7 @@ const STATE = { version: 2, profile: { name: '秀', birthday: '1998-10-19', avat
   assert(!(await p.textContent('#letter-body')).includes('給 32 歲的我') && (await p.textContent('#letter-body')).includes('已經封存 1 封'), '封存的信看不到內容');
   await p.click('#letter-body button:text-is("取消")');
   // 一秒日記
-  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '今天吃到好吃的拉麵'); await p.click('#emo-picker .chip >> text=開心'); await p.click('#moment-save'); await p.waitForTimeout(300);
+  await tab(p, 'home').then(() => p.click('#add-btn')); await p.fill('#moment-form [name=text]', '今天吃到好吃的拉麵'); await p.click('#emo-picker .chip >> text=開心'); await p.click('#moment-save'); await p.waitForTimeout(300);
   s = await st(p); const q = s.moments.find(x => x.text === '今天吃到好吃的拉麵');
   assert(q && q.mood === 5 && q.date === '2026-10-19', '首頁入口記的存成今天，選「開心」就是心情 5');
   assert((await p.textContent('#quick-done')).includes('今天記了 1 則'), '顯示今天記過了');

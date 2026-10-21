@@ -41,7 +41,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert((await p.textContent('#cy-news')).includes('只寫一句'), '迷你小窩：最近更新出現這一筆');
   assert((await p.textContent('#cy-family')).includes('邀請家人'), '迷你小窩：還沒有家人時邀請');
   // 只放一張照片也能存；什麼都沒有時不會存
-  await tab(p, 'home').then(() => p.click('#quick-open'));
+  await tab(p, 'home').then(() => p.click('#add-btn'));
   assert(await p.$eval('#moment-save', (e) => e.classList.contains('off')), '還沒寫也沒照片時，「記下來」是淡的');
   await p.click('#moment-save'); await p.waitForTimeout(150);
   assert(await p.$eval('#moment-dialog', d => d.open) && (await st(p)).moments.length === 1, '什麼都沒有時按了不會存');

@@ -57,7 +57,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   await p.reload();
   await p.waitForSelector('#app:not([hidden])');
   assert(!(await playing(p)), '重新打開時不會自己出聲');
-  await p.click('#quick-open'); await p.keyboard.press('Escape');
+  await p.click('#add-btn'); await p.keyboard.press('Escape');
   await p.waitForTimeout(300);
   assert(await playing(p), '點一下畫面就接著播（記得上次是開的）');
 
@@ -85,7 +85,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   // 重新打開：記得選的曲子
   await p.reload();
   await p.waitForSelector('#app:not([hidden])');
-  await p.click('#quick-open'); await p.keyboard.press('Escape');
+  await p.click('#add-btn'); await p.keyboard.press('Escape');
   await p.waitForTimeout(300);
   assert(await p.evaluate(() => window.__music.src.endsWith('music/chill.mp3')) && await playing(p), '重新打開還是慵懶午後');
 
