@@ -10,7 +10,7 @@ import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
-import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints } from './joys.js';
+import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints, todayJoyCount } from './joys.js';
 import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack, nextTrack as nextTrackOf } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
@@ -433,11 +433,11 @@ function renderCyHome() {
   const { name, birthday } = state.profile;
   const today = todayStr();
   const age = ageAt(birthday, today);
-  // 最上面：○ 歲又 ○ 天（從今年生日算起）、收藏過幾次小幸福
+  // 最上面：○ 歲又 ○ 天（從今年生日算起）、今天收藏了幾個小幸福（不累加，免得變成壓力）
   const days = daysBetween(ageRange(birthday, age)[0], parseDate(today));
   $('#cy-age-n').textContent = String(age);
   $('#cy-age-d').textContent = days ? `又 ${days} 天` : '生日快樂！';
-  $('#cy-joy-count').textContent = String((state.joyLog || []).length);
+  $('#cy-joy-count').textContent = String(todayJoyCount(state, today));
   $('#cy-title').textContent = name;
   const emo = emotionByKey(todayInScene().emo);
   $('#cy-look').replaceChildren(lookHtml(state.profile.look, faceFor(emo && emo.key), 'look look-head', emo && emo.key));
@@ -3740,7 +3740,7 @@ async function showVersion() {
 }
 
 async function init() {
-  initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), ask, addDiary: addJoyDiary, h, toast, todayStr, toDateStr, newId, $ });
+  initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), onCount: () => { $('#cy-joy-count').textContent = String(todayJoyCount(state, todayStr())); }, ask, addDiary: addJoyDiary, h, toast, todayStr, toDateStr, newId, $ });
   showVersion();
   applyTheme();
   initMusic({ onFailed: musicFailed, onTrackChange: renderMusicBtn });

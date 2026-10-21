@@ -1,6 +1,6 @@
 const { chromium } = require(process.env.PLAYWRIGHT || 'playwright');
-// 累積幸福：從範例加入、點一下收藏、每天一次不會重複、一天多次、長按看月曆、補記和撤銷、不能記未來、
-// 模式切換、兩台手機合併不掉次數、備份匯入
+// 我的幸福：預設的 10 個、點一下收藏、每個小幸福一天只記一次（再點打開提問卡）、長按看月曆、補記和撤銷、
+// 不能記未來、首頁的「今天 ♡ N 個小幸福」、舊資料同一天好幾筆只算一次、兩台手機合併
 const URL = process.env.LIFEY_URL || 'http://127.0.0.1:8770/';
 const OUT = process.env.LIFEY_OUT || require('os').tmpdir();
 
@@ -36,10 +36,17 @@ const errors = [];
   s = await st(p);
   assert(s.moments.length === 1 && s.moments[0].text === '晚霞是粉紫色的' && s.moments[0].joy === cat && s.moments[0].date === '2026-10-21' && !(await p.$('#joy-ask')), '寫了就存成今天的一篇日記，卡片收起來');
   await p.waitForTimeout(400);
+  // 每個小幸福一天只記一次：已經亮的再點，重新打開提問卡（不會多記），可以取消今天的收藏
   await p.click(`#joy-row [data-joy="${cat}"]`); await p.waitForTimeout(300);
   s = await st(p);
-  assert(s.joyLog.length === 1, '每天一次：同一天再點不會多記');
-  assert(await p.$eval('#joy-dialog', (d) => d.open) && (await p.textContent('#joy-dialog .joy-total')).includes('累積 1 天'), '再點一次打開詳情：累積 1 天');
+  assert(s.joyLog.length === 1 && (await p.textContent('#joy-ask')).includes('今天已經收藏了 ✓') && await p.isVisible('#joy-ask .link-btn >> text=取消今天的收藏'), '已經亮的再點：不多記，重新打開提問卡，可以取消今天的收藏');
+  await p.click('#joy-ask .joy-ask-x'); await p.waitForTimeout(150);
+  const longPress = async (id) => {
+    const box = await (await p.$(`#joy-row [data-joy="${id}"]`)).boundingBox();
+    await p.mouse.move(box.x + 20, box.y + 20); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(200);
+  };
+  await longPress(cat);
+  assert(await p.$eval('#joy-dialog', (d) => d.open) && (await p.textContent('#joy-dialog .joy-total')).includes('收藏了 1 天'), '長按打開詳情：收藏了 1 天');
   assert(await p.$eval('#joy-dialog .win-title', (e) => e.textContent) === '看見漂亮的風景', '視窗標題是小幸福的名字');
 
   // 月曆：補記 10/19、撤銷今天、未來不能點
@@ -47,7 +54,7 @@ const errors = [];
   await p.click('.joy-day[data-date="2026-10-19"]'); await p.waitForTimeout(200);
   s = await st(p);
   assert(s.joyLog.some((l) => l.date === '2026-10-19') && s.joyLog.length === 2, '點過去的日期可以補記');
-  assert((await p.textContent('#joy-dialog .joy-total')).includes('累積 2 天') && (await p.textContent('#joy-dialog .joy-stats')).includes('2026/10/19'), '統計跟著更新（第一次收藏是 10/19）');
+  assert((await p.textContent('#joy-dialog .joy-total')).includes('收藏了 2 天') && (await p.textContent('#joy-dialog .joy-stats')).includes('2026/10/19'), '統計跟著更新（第一次收藏是 10/19）');
   await p.click('.joy-day[data-date="2026-10-21"]'); await p.waitForTimeout(200);
   s = await st(p);
   const removed = Object.keys(s.deleted).length;
@@ -57,16 +64,16 @@ const errors = [];
   assert(await p.$eval('.joy-cal-head [aria-label="下個月"]', (e) => !e.disabled), '可以再回到這個月');
   await p.screenshot({ path: OUT + '/joys-detail.png' });
 
-  // 自己新增一個「一天可以很多次」的
+  // 自己新增一個：只要名字和圖示，沒有「一天多次」可以選
   await p.click('#joy-dialog .btn >> text=全部小幸福'); await p.waitForTimeout(150);
   await p.click('#joy-dialog .btn >> text=新增小幸福'); await p.waitForTimeout(150);
+  assert(!(await p.$('input[name="joy-mode"]')), '新增時不用選「怎麼記」');
   await p.fill('.joy-title-input', '喝到好喝的奶茶');
   await p.click('.joy-icon-opt[data-icon="coffee"]');
-  await p.check('input[name="joy-mode"][value="many"]');
   await p.click('#joy-dialog .btn >> text=好了'); await p.waitForTimeout(200);
   s = await st(p);
   const tea = s.joys.find((j) => j.title === '喝到好喝的奶茶');
-  assert(tea && tea.mode === 'many' && tea.icon === 'coffee', '自己做一個：名字、圖示、一天多次');
+  assert(tea && tea.icon === 'coffee', '自己做一個：名字、圖示');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   assert(!(await p.$(`#joy-row [data-joy="${tea.id}"]`)), '首頁只放前 10 個，第 11 個在「全部」裡');
   const coffee = s.joys.find((j) => j.id === 'joy-coffee');
@@ -76,37 +83,25 @@ const errors = [];
   assert(!(await st(p)).joyLog.some((l) => l.joyId === coffee.id) && !(await p.$('#joy-ask')), '收藏後按「復原」就取消這次');
   for (let i = 0; i < 3; i++) { await p.click(`#joy-row [data-joy="${coffee.id}"]`); await p.waitForTimeout(420); }
   s = await st(p);
-  assert(s.joyLog.filter((l) => l.joyId === coffee.id).length === 3 && (await p.textContent(`#joy-row [data-joy="${coffee.id}"] .joy-count`)) === '×3', '一天多次：點三下就是 3 次，按鈕顯示 ×3');
-  // 手指抖一下（很快點兩下）只算一次
-  await p.dblclick(`#joy-row [data-joy="${coffee.id}"]`); await p.waitForTimeout(450);
-  s = await st(p);
-  assert(s.joyLog.filter((l) => l.joyId === coffee.id).length === 4, '連點兩下太快只算一次');
+  assert(s.joyLog.filter((l) => l.joyId === coffee.id).length === 1 && !(await p.$('#joy-row .joy-count')) && await p.isVisible(`#joy-row [data-joy="${coffee.id}"] .joy-check`), '「喝到好喝的」點三下也只記一次，按鈕是 ✓，沒有 ×3');
+  assert(await p.textContent('#cy-joy-count') === '1' && (await p.textContent('.cy-joy-n')).includes('今天'), '首頁最上面是「今天 ♡ 1 個小幸福」');
+  await p.click('#joy-ask .joy-ask-x'); await p.waitForTimeout(150);
 
-  // 長按打開詳情，調整次數
-  const box = await (await p.$(`#joy-row [data-joy="${coffee.id}"]`)).boundingBox();
-  await p.mouse.move(box.x + 20, box.y + 20); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(200);
+  // 長按打開詳情，不會多記；月曆點一天就是有／沒有
+  await longPress(coffee.id);
   s = await st(p);
-  assert(await p.$eval('#joy-dialog', (d) => d.open) && s.joyLog.filter((l) => l.joyId === coffee.id).length === 4, '長按打開詳情，不會多記一次');
-  await p.click('.joy-day[data-date="2026-10-21"]'); await p.waitForTimeout(150);
-  assert((await p.textContent('.joy-adjust-n')) === '4 次', '一天多次：點日期出現加減');
-  await p.click('.joy-adjust [aria-label="少一次"]'); await p.waitForTimeout(150);
-  assert((await p.textContent('.joy-adjust-n')) === '3 次' && (await st(p)).joyLog.filter((l) => l.joyId === coffee.id).length === 3, '按 − 少一次');
+  assert(await p.$eval('#joy-dialog', (d) => d.open) && s.joyLog.filter((l) => l.joyId === coffee.id).length === 1, '長按打開詳情，不會多記一次');
+  assert(!(await p.$('.joy-adjust')), '月曆沒有加減次數');
   await p.click('.joy-day[data-date="2026-10-18"]'); await p.waitForTimeout(150);
-  await p.click('.joy-adjust [aria-label="多一次"]'); await p.waitForTimeout(150);
-  assert((await p.textContent('#joy-dialog .joy-total')).includes('累積 4 次'), '補記其他天的次數，累積跟著加');
+  assert((await p.textContent('#joy-dialog .joy-total')).includes('收藏了 2 天') && (await p.textContent('#joy-dialog .joy-stats')).includes('2 天'), '補記其他天，用「天」算');
 
-  // 改成每天一次：有一天記了 3 次，要先確認；按取消不改
-  await p.click('#joy-dialog .btn >> text=編輯'); await p.waitForTimeout(150);
-  await p.check('input[name="joy-mode"][value="once"]');
-  await p.click('#joy-dialog .btn >> text=好了'); await p.waitForTimeout(150);
-  await p.click('#ask-dialog .btn >> text=先不要'); await p.waitForTimeout(150);
-  s = await st(p);
-  assert(s.joys.find((j) => j.id === coffee.id).mode === 'many' && s.joyLog.filter((l) => l.joyId === coffee.id).length === 4, '改成每天一次要先確認，取消就不動資料');
-  await p.click('#joy-dialog .btn >> text=好了'); await p.waitForTimeout(150);
-  await p.click('#ask-dialog .btn >> text=改成每天一次'); await p.waitForTimeout(200);
-  s = await st(p);
-  assert(s.joys.find((j) => j.id === coffee.id).mode === 'once' && s.joyLog.filter((l) => l.joyId === coffee.id).length === 2, '確認後每天只留一次（10/21、10/18 各一）');
-
+  // 舊版「一天多次」留下的同一天好幾筆：只算一次；今天的數字算的是幾個不同的小幸福
+  const old = await p.evaluate(async () => {
+    const { dayCounts, todayJoyCount } = await import('./joys.js');
+    const log = [{ id: 'x1', joyId: 'j', date: '2026-10-20' }, { id: 'x2', joyId: 'j', date: '2026-10-20' }, { id: 'x3', joyId: 'j', date: '2026-10-21' }, { id: 'x4', joyId: 'k', date: '2026-10-21' }, { id: 'x5', joyId: 'k', date: '2026-10-21' }];
+    return [dayCounts({ joyLog: log }, { id: 'j' }).size, [...dayCounts({ joyLog: log }, { id: 'j' }).values()].join(), todayJoyCount({ joyLog: log }, '2026-10-21')].join('|');
+  });
+  assert(old === '2|1,1|2', `舊資料同一天好幾筆只算一次、今天是 2 個小幸福（${old}）`);
   // 排序、收起來
   await p.click('#joy-dialog .btn >> text=全部小幸福'); await p.waitForTimeout(150);
   await p.click(`#joy-dialog [aria-label="喝到好喝的奶茶往前"]`); await p.waitForTimeout(150);
@@ -123,10 +118,10 @@ const errors = [];
   assert(await p.$eval('#joy-dialog', (d) => d.open) && (await p.textContent('#joy-dialog')).includes('收起來的（1）'), '「我的 → 我的幸福」打開全部，看得到收起來的');
   await p.keyboard.press('Escape');
 
-  // 兩台手機同一天各點一次奶茶（改回一天多次的情境），合併後兩次都留下；刪掉的不會復活
+  // 兩台手機同一天各點一次（還沒更新的舊版可能這樣），合併後兩筆都留著（畫面上只算一天）；刪掉的不會復活
   const merged = await p.evaluate(async () => {
     const { mergeStates } = await import('./cloud.js');
-    const joy = { id: 'j1', title: '咖啡', icon: 'coffee', mode: 'many', order: 0, updatedAt: '2026-10-01T00:00:00Z' };
+    const joy = { id: 'j1', title: '咖啡', icon: 'coffee', order: 0, updatedAt: '2026-10-01T00:00:00Z' };
     const a = { moments: [], deleted: { gone: '2026-10-21T09:00:00Z' }, joys: [joy], joyLog: [{ id: 'a1', joyId: 'j1', date: '2026-10-21', updatedAt: '2026-10-21T08:00:00Z' }] };
     const bb = { moments: [], deleted: {}, joys: [joy], joyLog: [{ id: 'b1', joyId: 'j1', date: '2026-10-21', updatedAt: '2026-10-21T08:30:00Z' }, { id: 'gone', joyId: 'j1', date: '2026-10-20', updatedAt: '2026-10-20T08:00:00Z' }] };
     const m = mergeStates(a, bb);
