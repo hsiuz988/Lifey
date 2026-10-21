@@ -97,6 +97,7 @@
 
 - logo 是兩張圖：插圖 `brand/setup_hero.webp`（女孩和貓趴在床上，**不會一直飄**，點了才跳一下說話）＋ `brand/logo_text.webp`（wowo! 字，壓在床緣上）。原圖在 `art/source/brand/setup_hero.png`、`logo_text.png`，換圖後跑 `python3 art/tools/setup_logo.py`（清掉 AI 去背的雜點、裁邊、縮成 2 倍大小）→ 打字機一句話（`typeTagline`：輪流打出三個特點，停在「把一輩子，慢慢記下來」只跑一輪；**點表單或其他東西都不會打斷**，使用者定案）→「建立你的小窩」視窗（名字、生日）→ 視窗底部凹下去的狀態列寫四個特點。
 - 標題列的縮小／放大／關閉**只是裝飾，不能點**（使用者定案，不要再加互動）。
+- **App 圖示**：原圖 `art/source/brand/app_icon.png`（女孩和貓趴在床上的圓角方框），`python3 art/tools/app_icon.py` → `public/icons/`（切掉白底和最外圈深藍線，淡藍邊框填滿；maskable 縮到 80%；favicon 保留外框、透明底）。檔名不變，換圖要把 `sw.js` 的 VERSION +1；已經加到主畫面的 iPhone 要重新加入才會換圖示。舊的 `brand_icons.py` 不再輸出圖示。
 
 ### 輸入框、下拉選單（全站同一套，在 `cy.css`）
 
@@ -122,10 +123,12 @@
 - 畫面上一律叫「**我的幸福**」（使用者定案），程式內部名稱照舊用 joys。
 
 - 首頁房間下面**常駐 2 排 × 5 顆**按鈕（最多 10 個，多的在「全部」）。新使用者一進來就有預設的 10 個（`DEFAULT_JOYS`：喝到好喝的、吃到好吃的、看見漂亮的風景、好好睡了一覺、被稱讚了、收到小驚喜、聽到喜歡的歌、遇到可愛的貓狗、出外旅行、和重要的人在一起），可以刪除或新增；`seedJoys` 只放一次（`state.prefs.joysSeeded`），id 固定 `joy-<圖示>`、`updatedAt` 是 2000 年，兩台手機同步不會變兩份，刪掉也不會復活。
-- **點一下＝收藏**，按鈕下面滑出延伸提問卡（`showAsk`，問題照圖示 `ASK`）：有寫按「記成日記」就存成今天的一篇日記（moment 帶 `joy: joyId`）；「復原」取消這次收藏。長按打開詳情。「我」選單也有入口。
-- 資料：`state.joys`（`{id,title,icon,mode:'once'|'many',order,archivedAt,updatedAt}`）、`state.joyLog`（一次一筆 `{id,joyId,date}`）。次數、天數、本月、今年都從 log 算，不另外存。
+- **每個小幸福一天只記一次**（使用者定案，不要再加「一天多次」）：今天有就點亮 ✓，想留細節就寫成日記，不數次數、沒有 ×N。
+- **點一下＝收藏**，按鈕原地亮起（位置不動），下面滑出延伸提問卡（`showAsk`，問題照圖示 `ASK`）：有寫按「記成日記」就存成今天的一篇日記（moment 帶 `joy: joyId`）；「復原」取消。**今天已經亮的再點**：不多記，重新打開提問卡（標題「今天已經收藏了 ✓」，可以補寫或「取消今天的收藏」）。長按打開詳情。「我」選單也有入口。
+- 首頁最上面是「**今天 ♡ N 個小幸福**」（`todayJoyCount`：今天點亮了幾個不同的），不累加。點了要呼叫 `ctx.onCount` 立刻更新。
+- 資料：`state.joys`（`{id,title,icon,order,archivedAt,updatedAt}`；舊資料可能還有 `mode`，不用理）、`state.joyLog`（`{id,joyId,date}`）。天數、本月、今年都從 log 算；**舊版同一天留下好幾筆不刪，只算一天**（`dayCounts` 每天最多 1），取消那天就全部一起拿掉。
 - 刪除＝墓碑（`state.deleted`）；同步和匯入都用 `mergeJoyData` 逐筆合併，兩台手機同一天各點一次會留兩筆。
-- 規則：可以補記過去、不能記未來；每天一次的同一天再點會打開詳情；一天多次改成每天一次要先確認才合併；連點 350ms 內只算一次。
+- 規則：可以補記過去、不能記未來；月曆點一天就是有／沒有；統計一律用「天」；連點 350ms 內只算一次。
 - 用語：收藏／發生了／小幸福，**不要**打卡／達標／積分／連續天數／排行榜。
 - 圖示：`python3 art/tools/joy_icons.py` 把 `art/source/joys/sheet.png`（6×4 張圖示表）去背切成 `public/joys/<key>.webp`（白底預覽 `preview.png`）。太陽、閃光、耳機在表裡光暈太重（`SKIP`），改用單張白底重畫的 `art/source/joys/<key>.png`（會蓋過表裡的）。24 個都有像素圖了；新增圖示要加進 `joys.js` 的 `JOY_ICONS`（emoji 備用）和 `sw.js`。
 - **生活印記**（Phase 3）：同一個圖示的小幸福收藏滿 `IMPRINT_DAYS`（10）個不同日子 → 跳出「房間多了一件東西」，選「放到房間」或「先收著」；拿到就永久（刪紀錄不收回）。

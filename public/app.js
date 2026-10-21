@@ -10,7 +10,7 @@ import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor } from './room.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
-import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints } from './joys.js';
+import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints, todayJoyCount } from './joys.js';
 import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack, nextTrack as nextTrackOf } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
@@ -433,11 +433,11 @@ function renderCyHome() {
   const { name, birthday } = state.profile;
   const today = todayStr();
   const age = ageAt(birthday, today);
-  // 最上面：○ 歲又 ○ 天（從今年生日算起）、收藏過幾次小幸福
+  // 最上面：○ 歲又 ○ 天（從今年生日算起）、今天收藏了幾個小幸福（不累加，免得變成壓力）
   const days = daysBetween(ageRange(birthday, age)[0], parseDate(today));
   $('#cy-age-n').textContent = String(age);
   $('#cy-age-d').textContent = days ? `又 ${days} 天` : '生日快樂！';
-  $('#cy-joy-count').textContent = String((state.joyLog || []).length);
+  $('#cy-joy-count').textContent = String(todayJoyCount(state, today));
   $('#cy-title').textContent = name;
   const emo = emotionByKey(todayInScene().emo);
   $('#cy-look').replaceChildren(lookHtml(state.profile.look, faceFor(emo && emo.key), 'look look-head', emo && emo.key));
@@ -454,8 +454,20 @@ function renderCyHome() {
   $('#cy-news').replaceChildren(...(recent.length ? recent.map((m) => h('button', { type: 'button', class: 'cy-news-item', onclick: () => openMoment(m.id) },
     h('span', { class: 'cy-news-date' }, m.approx ? '這一年' : md(m.date)),
     h('span', { class: 'cy-tag' }, m.photoIds.length ? '[相簿]' : '[日記]'), h('span', { class: 'cy-news-text' }, m.text || '（照片）'), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')))
-    : [h('button', { type: 'button', class: 'cy-news-item cy-news-empty', onclick: () => openMoment() }, h('span', { class: 'cy-news-text' }, '寫下第一筆，小窩就會熱鬧起來'), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))]));
+    : [newsInvite()]));
   renderCyFamily();
+}
+// 最新動態還是空的：一張邀請卡（像素鉛筆＋兩行字＋果凍按鈕），和下面的紀錄列看得出不一樣、一看就知道能按；整張都可以點
+const PIXEL_PENCIL = '<svg width="28" height="28" viewBox="0 0 14 14" shape-rendering="crispEdges" aria-hidden="true">'
+  + '<path d="M10 1h2v1h1v2h-1v1h-1V4h-1V3H9V2h1z" fill="#f28aa0"/><path d="M9 3h1v1h1v1h-1v1H9v1H8v1H7v1H6v1H5v-1H4V9H3V8h1V7h1V6h1V5h1V4h1V3z" fill="#ffd36b"/>'
+  + '<path d="M3 9h1v1h1v1H2v-1h1z" fill="#f3e2c7"/><path d="M2 11h1v1H1v-1h1z" fill="#3e4c5a"/>'
+  + '<path d="M9 2h1v1H9zM10 3h1v1h-1zM11 4h1v1h-1zM12 3h1v1h-1zM8 3h1v1H8zM11 5h1v1h-1z" fill="#2f5f99"/></svg>';
+function newsInvite() {
+  const ic = h('span', { class: 'cy-invite-ic' }); ic.innerHTML = PIXEL_PENCIL;
+  return h('div', { class: 'cy-invite', role: 'button', tabindex: '0', 'aria-label': '記一筆：寫下今天的第一筆', onclick: () => openMoment(), onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMoment(); } } },
+    ic,
+    h('span', { class: 'cy-invite-text' }, h('b', {}, '寫下今天的第一筆'), h('small', {}, '一句話、一張照片都可以，小窩會跟著熱鬧起來')),
+    h('span', { class: 'btn primary small cy-invite-go', 'aria-hidden': 'true' }, '記一筆'));
 }
 // 家人說：連結的家人最近分享的一句話；還沒連結家人就整塊不出現
 function renderCyFamily() {
@@ -3756,7 +3768,7 @@ async function showVersion() {
 }
 
 async function init() {
-  initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), ask, addDiary: addJoyDiary, h, toast, todayStr, toDateStr, newId, $ });
+  initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), onCount: () => { $('#cy-joy-count').textContent = String(todayJoyCount(state, todayStr())); }, ask, addDiary: addJoyDiary, h, toast, todayStr, toDateStr, newId, $ });
   showVersion();
   applyTheme();
   applyPalette();

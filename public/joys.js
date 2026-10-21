@@ -18,29 +18,30 @@ export function iconEl(key) {
   return img;
 }
 // 預設的 10 個（每個人都會遇到的日常，新使用者一進來就有；可以刪，刪了不會再出現）
+// 每個小幸福一天只記一次（使用者定案）：今天有就點亮，想留細節就寫成日記，不數次數
 // id 固定（joy-<圖示>），兩台手機各自建立時同步會合成同一個；updatedAt 用很早的時間，任何編輯或刪除都比它新
 export const DEFAULT_JOYS = [
-  { title: '喝到好喝的', icon: 'coffee', mode: 'many' },
-  { title: '吃到好吃的', icon: 'meal', mode: 'many' },
-  { title: '看見漂亮的風景', icon: 'sunset', mode: 'once' },
-  { title: '好好睡了一覺', icon: 'moon', mode: 'once' },
-  { title: '被稱讚了', icon: 'star', mode: 'many' },
-  { title: '收到小驚喜', icon: 'gift', mode: 'many' },
-  { title: '聽到喜歡的歌', icon: 'music', mode: 'many' },
-  { title: '遇到可愛的貓狗', icon: 'paw', mode: 'many' },
-  { title: '出外旅行', icon: 'sneaker', mode: 'once' },
-  { title: '和重要的人在一起', icon: 'hearts', mode: 'once' },
+  { title: '喝到好喝的', icon: 'coffee' },
+  { title: '吃到好吃的', icon: 'meal' },
+  { title: '看見漂亮的風景', icon: 'sunset' },
+  { title: '好好睡了一覺', icon: 'moon' },
+  { title: '被稱讚了', icon: 'star' },
+  { title: '收到小驚喜', icon: 'gift' },
+  { title: '聽到喜歡的歌', icon: 'music' },
+  { title: '遇到可愛的貓狗', icon: 'paw' },
+  { title: '出外旅行', icon: 'sneaker' },
+  { title: '和重要的人在一起', icon: 'hearts' },
 ];
 // 新增時的建議（預設以外的）
 const SUGGESTIONS = [
-  { title: '和貓一起睡', icon: 'cat', mode: 'once' },
-  { title: '出門拍照', icon: 'camera', mode: 'once' },
-  { title: '好好泡個澡', icon: 'bath', mode: 'once' },
-  { title: '吃到甜點', icon: 'cake', mode: 'many' },
-  { title: '讀了一本好書', icon: 'book', mode: 'once' },
-  { title: '天氣很好', icon: 'sun', mode: 'once' },
-  { title: '和家人吃飯', icon: 'home', mode: 'once' },
-  { title: '收到一封訊息', icon: 'letter', mode: 'many' },
+  { title: '和貓一起睡', icon: 'cat' },
+  { title: '出門拍照', icon: 'camera' },
+  { title: '好好泡個澡', icon: 'bath' },
+  { title: '吃到甜點', icon: 'cake' },
+  { title: '讀了一本好書', icon: 'book' },
+  { title: '天氣很好', icon: 'sun' },
+  { title: '和家人吃飯', icon: 'home' },
+  { title: '收到一封訊息', icon: 'letter' },
 ];
 export const JOY_PRESETS = [...DEFAULT_JOYS, ...SUGGESTIONS];
 // 收藏之後的延伸提問（照圖示）；有寫就變成一篇日記
@@ -69,7 +70,7 @@ export function seedJoys(state) {
   if ((state.joys || []).length) return true;
   const now = new Date().toISOString();
   state.joys = DEFAULT_JOYS.filter((p) => !(state.deleted || {})[`joy-${p.icon}`]).map((p, i) => ({
-    id: `joy-${p.icon}`, title: p.title, icon: p.icon, mode: p.mode, order: i, createdAt: now, updatedAt: SEED_AT, archivedAt: null,
+    id: `joy-${p.icon}`, title: p.title, icon: p.icon, order: i, createdAt: now, updatedAt: SEED_AT, archivedAt: null,
   }));
   return true;
 }
@@ -80,12 +81,15 @@ const HOME_MAX = 10; // 首頁最多擺幾顆（2 排 × 5），其他在「全�
 export const iconOf = (joy) => iconEl(joy && joy.icon);
 export const activeJoys = (state) => (state.joys || []).filter((j) => !j.archivedAt).sort((a, b) => a.order - b.order);
 const logsOf = (state, joyId) => (state.joyLog || []).filter((l) => l.joyId === joyId);
-// 日期 → 那天記了幾次（每日一次模式最多 1）
+// 日期 → 1（那天有收藏）。舊版「一天多次」留下的同一天好幾筆，不刪，只算一次
 export function dayCounts(state, joy) {
   const m = new Map();
-  for (const l of logsOf(state, joy.id)) m.set(l.date, (m.get(l.date) || 0) + 1);
-  if (joy.mode !== 'many') for (const k of m.keys()) m.set(k, 1);
+  for (const l of logsOf(state, joy.id)) m.set(l.date, 1);
   return m;
+}
+// 今天收藏了幾個小幸福（首頁最上面那個數字）
+export function todayJoyCount(state, today) {
+  return new Set((state.joyLog || []).filter((l) => l.date === today).map((l) => l.joyId)).size;
 }
 export function joyStats(state, joy, today) {
   const days = dayCounts(state, joy);
@@ -93,8 +97,8 @@ export function joyStats(state, joy, today) {
   const sum = (pred) => [...days].filter(([d]) => pred(d)).reduce((n, [, c]) => n + c, 0);
   const month = today.slice(0, 7), year = today.slice(0, 4);
   return {
-    total: sum(() => true), // 總發生次數
-    days: dates.length, // 有效紀錄日數（之後的星罐、生活印記用這個）
+    total: sum(() => true), // 收藏過的天數（一天只算一次，和 days 一樣）
+    days: dates.length, // 生活印記用這個
     month: sum((d) => d.startsWith(month)),
     year: sum((d) => d.startsWith(year)),
     first: dates[0] || null,
@@ -147,10 +151,10 @@ export function checkImprints(state) {
 export const shownImprints = (state) => (state.imprints || []).filter((i) => i.shown).map((i) => i.key);
 
 // ---------- 畫面 ----------
-let ctx; // { getState, save, refresh, ask, addDiary, h, toast, todayStr, toDateStr, newId, $ }
+let ctx; // { getState, save, refresh, onCount, ask, addDiary, h, toast, todayStr, toDateStr, newId, $ }
+const counted = () => { if (ctx.onCount) ctx.onCount(); }; // 首頁最上面「今天 ♡ N 個小幸福」跟著變
 let lastTap = { id: null, t: 0 };
 const isFuture = (date) => date > ctx.todayStr();
-const unit = (joy) => (joy.mode === 'many' ? '次' : '天');
 const since = (last) => {
   if (!last) return '還沒收藏過';
   const n = Math.round((new Date(`${ctx.todayStr()}T00:00`) - new Date(`${last}T00:00`)) / 864e5);
@@ -163,19 +167,19 @@ export function initJoys(c) { ctx = c; }
 function record(joy, date) {
   const s = ctx.getState();
   if (isFuture(date)) return false;
-  if (joy.mode !== 'many' && logsOf(s, joy.id).some((l) => l.date === date)) return false;
+  if (logsOf(s, joy.id).some((l) => l.date === date)) return false; // 一天只記一次
   const now = new Date().toISOString();
   s.joyLog.push({ id: ctx.newId(), joyId: joy.id, date, createdAt: now, updatedAt: now });
   return true;
 }
-// 拿掉那天最後一筆
+// 取消那天的收藏（舊版留下的同一天好幾筆也一起拿掉）
 function unrecord(joy, date) {
   const s = ctx.getState();
-  const mine = logsOf(s, joy.id).filter((l) => l.date === date).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const last = mine[mine.length - 1];
-  if (!last) return false;
-  s.deleted[last.id] = new Date().toISOString();
-  s.joyLog = s.joyLog.filter((l) => l.id !== last.id);
+  const mine = logsOf(s, joy.id).filter((l) => l.date === date);
+  if (!mine.length) return false;
+  const t = new Date().toISOString();
+  for (const l of mine) s.deleted[l.id] = t;
+  s.joyLog = s.joyLog.filter((l) => !mine.includes(l));
   return true;
 }
 
@@ -202,9 +206,9 @@ function joyButton(joy, today) {
   const n = joyStats(ctx.getState(), joy, today).today;
   const btn = h('button', {
     type: 'button', class: `joy-btn${n ? ' on' : ''}`, 'data-joy': joy.id, 'aria-pressed': String(!!n),
-    'aria-label': `${joy.title}${n ? `，今天已收藏${joy.mode === 'many' ? ` ${n} 次` : ''}` : ''}`,
+    'aria-label': `${joy.title}${n ? '，今天已收藏' : ''}`,
   }, h('span', { class: 'joy-ic' }, iconOf(joy)), h('span', { class: 'joy-name' }, joy.title),
-  n && joy.mode === 'many' ? h('span', { class: 'joy-count' }, `×${n}`) : n ? h('span', { class: 'joy-check' }, '✓') : null);
+  n ? h('span', { class: 'joy-check' }, '✓') : null);
   // 長按：打開這一項（看月曆、調整、撤銷）
   let timer = null, long = false;
   btn.addEventListener('pointerdown', () => { long = false; timer = setTimeout(() => { long = true; openJoy(joy.id); }, 480); });
@@ -219,18 +223,20 @@ async function tap(joy) {
   const now = Date.now();
   if (lastTap.id === joy.id && now - lastTap.t < 350) return; // 手指抖一下不算兩次
   lastTap = { id: joy.id, t: now };
-  if (joy.mode !== 'many' && joyStats(ctx.getState(), joy, today).today) { openJoy(joy.id); return; }
+  // 今天已經亮了：不再加一次，重新打開提問卡（可以補寫日記，或取消今天的收藏）
+  if (joyStats(ctx.getState(), joy, today).today) { showAsk(joy, { again: true }); return; }
   record(joy, today);
   afterChange();
   await ctx.save();
   renderJoyRow();
+  counted();
   const el = ctx.$(`#joy-row [data-joy="${joy.id}"]`);
   if (el) { el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 600); }
   showAsk(joy);
 }
 
-// 收藏後在按鈕下面問一句；有寫就存成日記，也可以復原這次收藏
-function showAsk(joy) {
+// 收藏後在按鈕下面問一句；有寫就存成日記，也可以復原這次收藏。again：今天已經收藏過，再點一次打開的
+function showAsk(joy, { again = false } = {}) {
   const { h, $ } = ctx;
   const s = ctx.getState();
   const today = ctx.todayStr();
@@ -249,14 +255,14 @@ function showAsk(joy) {
   input.addEventListener('input', () => { save.disabled = !input.value.trim(); });
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save.click(); } });
   const left = IMPRINTS[joy.icon] && !(s.imprints || []).some((i) => i.key === joy.icon) ? IMPRINT_DAYS - imprintDays(s, joy.icon) : 0;
-  const count = joy.mode === 'many' ? `今天第 ${st.today} 次` : `第 ${st.days} 天`;
+  const count = `第 ${st.days} 天`;
   card.replaceChildren(
     h('div', { class: 'joy-ask-head' }, h('span', { class: 'joy-ask-ic' }, iconOf(joy)),
-      h('span', { class: 'joy-ask-title' }, h('b', {}, `收藏了！${joy.title}`), h('small', {}, left > 0 && left <= 3 ? `${count} · 再 ${left} 天房間會多一件東西 🎁` : count)),
+      h('span', { class: 'joy-ask-title' }, h('b', {}, again ? `今天已經收藏了 ✓ ${joy.title}` : `收藏了！${joy.title}`), h('small', {}, left > 0 && left <= 3 ? `${count} · 再 ${left} 天房間會多一件東西 🎁` : count)),
       h('button', { type: 'button', class: 'icon-btn joy-ask-x', 'aria-label': '關掉', onclick: close }, '×')),
     input,
     h('div', { class: 'joy-ask-actions' },
-      h('button', { type: 'button', class: 'link-btn', onclick: () => { unrecord(joy, today); ctx.save(); renderJoyRow(); close(); ctx.toast('取消這次收藏了'); } }, '復原'),
+      h('button', { type: 'button', class: 'link-btn', onclick: () => { unrecord(joy, today); ctx.save(); renderJoyRow(); counted(); close(); ctx.toast('取消今天的收藏了'); } }, again ? '取消今天的收藏' : '復原'),
       h('span', { class: 'spacer' }), save));
 }
 
@@ -264,7 +270,7 @@ function addJoy(p) {
   const s = ctx.getState();
   const now = new Date().toISOString();
   const order = Math.max(0, ...(s.joys || []).map((j) => j.order + 1));
-  const joy = { id: ctx.newId(), title: p.title, icon: p.icon, mode: p.mode || 'once', order, createdAt: now, updatedAt: now, archivedAt: null };
+  const joy = { id: ctx.newId(), title: p.title, icon: p.icon, order, createdAt: now, updatedAt: now, archivedAt: null };
   s.joys.push(joy);
   ctx.save();
   return joy;
@@ -277,7 +283,7 @@ function show(children) {
   body().replaceChildren(...children);
   if (!dialog().open) dialog().showModal();
 }
-const done = () => { afterChange(); ctx.save(); renderJoyRow(); };
+const done = () => { afterChange(); ctx.save(); renderJoyRow(); counted(); };
 // 記了一筆之後：看看有沒有新的生活印記
 function afterChange() {
   const fresh = checkImprints(ctx.getState());
@@ -297,13 +303,13 @@ export function openJoy(id, month) {
   show([
     h('div', { class: 'sheet-top' }, h('h3', {}, joy.title)),
     h('div', { class: 'joy-hero' }, h('span', { class: 'joy-hero-ic' }, iconOf(joy)),
-      h('div', {}, h('b', { class: 'joy-total' }, `累積 ${st.total} ${unit(joy)}`), h('span', { class: 'hint' }, `最近一次：${since(st.last)}`))),
+      h('div', {}, h('b', { class: 'joy-total' }, `收藏了 ${st.days} 天`), h('span', { class: 'hint' }, `最近一次：${since(st.last)}`))),
     imprintLine(joy, st.days),
     h('div', { class: 'joy-stats' },
-      stat('這個月', `${st.month} ${unit(joy)}`), stat('今年', `${st.year} ${unit(joy)}`),
+      stat('這個月', `${st.month} 天`), stat('今年', `${st.year} 天`),
       stat('第一次收藏', fmt(st.first)), stat('最近一次', fmt(st.last))),
     calendar(joy, m),
-    h('p', { class: 'hint joy-cal-hint' }, joy.mode === 'many' ? '點日期可以調整那天的次數；可以補記以前的日子。' : '點日期可以收藏或取消；可以補記以前的日子。'),
+    h('p', { class: 'hint joy-cal-hint' }, '點日期可以收藏或取消；可以補記以前的日子。'),
     h('div', { class: 'sheet-actions' },
       h('button', { type: 'button', class: 'btn', onclick: () => openJoyList() }, '全部小幸福'),
       h('span', { class: 'spacer' }),
@@ -329,10 +335,9 @@ function calendar(joy, month) {
     const future = date > today;
     cells.push(h('button', {
       type: 'button', class: `joy-day${n ? ' on' : ''}${date === today ? ' today' : ''}`, disabled: future, 'data-date': date,
-      'aria-label': `${mo} 月 ${d} 日${n ? `，收藏了${joy.mode === 'many' ? ` ${n} 次` : ''}` : ''}`,
+      'aria-label': `${mo} 月 ${d} 日${n ? '，收藏了' : ''}`, 'aria-pressed': String(!!n),
       onclick: () => dayTap(joy, date, month),
-    }, h('span', { class: 'joy-day-num' }, String(d)), n ? h('span', { class: 'joy-stamp' }, iconOf(joy)) : null,
-    n > 1 ? h('span', { class: 'joy-day-n' }, `×${n}`) : null));
+    }, h('span', { class: 'joy-day-num' }, String(d)), n ? h('span', { class: 'joy-stamp' }, iconOf(joy)) : null));
   }
   return h('div', { class: 'joy-cal' },
     h('div', { class: 'joy-cal-head' },
@@ -343,22 +348,12 @@ function calendar(joy, month) {
     h('div', { class: 'joy-days' }, ...cells));
 }
 
+// 月曆點一天：那天有就取消、沒有就收藏
 function dayTap(joy, date, month) {
   if (isFuture(date)) return;
   const n = dayCounts(ctx.getState(), joy).get(date) || 0;
-  if (joy.mode !== 'many') {
-    if (n) unrecord(joy, date); else record(joy, date);
-    done(); openJoy(joy.id, month); return;
-  }
-  // 每日多次：那天的加減
-  const { h } = ctx;
-  const panel = h('div', { class: 'joy-adjust' },
-    h('span', {}, `${Number(date.slice(5, 7))}/${Number(date.slice(8))}：`), h('b', { class: 'joy-adjust-n' }, `${n} 次`),
-    h('span', { class: 'spacer' }),
-    h('button', { type: 'button', class: 'btn small', 'aria-label': '少一次', disabled: !n, onclick: () => { unrecord(joy, date); done(); openJoy(joy.id, month); dayTap(joy, date, month); } }, '−'),
-    h('button', { type: 'button', class: 'btn small', 'aria-label': '多一次', onclick: () => { record(joy, date); done(); openJoy(joy.id, month); dayTap(joy, date, month); } }, '＋'));
-  const old = body().querySelector('.joy-adjust');
-  if (old) old.replaceWith(panel); else body().querySelector('.joy-cal').after(panel);
+  if (n) unrecord(joy, date); else record(joy, date);
+  done(); openJoy(joy.id, month);
 }
 
 export function openJoyEdit(id) {
@@ -372,25 +367,15 @@ export function openJoyEdit(id) {
     type: 'button', class: `joy-icon-opt${k === icon ? ' on' : ''}`, role: 'radio', 'aria-checked': String(k === icon), 'data-icon': k,
     onclick: (ev) => { icon = k; icons.querySelectorAll('.joy-icon-opt').forEach((b) => { const on = b.dataset.icon === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }); ev.preventDefault(); },
   }, iconEl(k))));
-  const mode = (v, label, hint) => h('label', { class: 'joy-mode' }, h('input', { type: 'radio', name: 'joy-mode', value: v, checked: (joy ? joy.mode : 'once') === v }), h('span', {}, h('b', {}, label), h('small', { class: 'hint' }, hint)));
   const presets = joy ? null : h('div', { class: 'chips joy-presets' }, ...JOY_PRESETS.filter((p) => !s.joys.some((j) => j.title === p.title)).map((p) => h('button', {
-    type: 'button', class: 'chip', onclick: () => { name.value = p.title; icon = p.icon; icons.querySelector(`[data-icon="${p.icon}"]`).click(); body().querySelector(`input[value="${p.mode}"]`).checked = true; },
+    type: 'button', class: 'chip', onclick: () => { name.value = p.title; icon = p.icon; icons.querySelector(`[data-icon="${p.icon}"]`).click(); },
   }, iconEl(p.icon), ` ${p.title}`)));
   const save = async () => {
     const title = name.value.trim().slice(0, MAX_TITLE);
     if (!title) { ctx.toast('幫這個小幸福取個名字'); name.focus(); return; }
-    const newMode = body().querySelector('input[name="joy-mode"]:checked').value;
     const now = new Date().toISOString();
-    if (!joy) { const j = addJoy({ title, icon, mode: newMode }); renderJoyRow(); openJoy(j.id); return; }
-    if (joy.mode === 'many' && newMode === 'once') {
-      const extra = [...dayCounts(s, { ...joy, mode: 'many' })].filter(([, n]) => n > 1);
-      if (extra.length && !(await ctx.ask({
-        title: '改成每天一次？', body: [`有 ${extra.length} 天記了不只一次。`, '改成「每天一次」後，這些日子每天只保留 1 次，多的會刪掉。'],
-        actions: [{ label: '先不要', value: false }, { label: '改成每天一次', value: true, kind: 'primary' }],
-      }))) return;
-      for (const [date, n] of extra) for (let i = 1; i < n; i++) unrecord(joy, date);
-    }
-    Object.assign(joy, { title, icon, mode: newMode, updatedAt: now });
+    if (!joy) { const j = addJoy({ title, icon }); renderJoyRow(); openJoy(j.id); return; }
+    Object.assign(joy, { title, icon, updatedAt: now });
     done(); openJoy(joy.id);
   };
   show([
@@ -398,9 +383,7 @@ export function openJoyEdit(id) {
     presets && presets.childNodes.length ? h('div', { class: 'field' }, h('span', { class: 'field-label' }, '點一下帶入'), presets) : null,
     h('label', { class: 'field' }, h('span', { class: 'field-label' }, '名字'), name),
     h('div', { class: 'field' }, h('span', { class: 'field-label' }, '圖示'), icons),
-    h('div', { class: 'field' }, h('span', { class: 'field-label' }, '怎麼記'),
-      mode('once', '每天一次', '例如：和貓一起睡、和家人吃飯'),
-      mode('many', '一天可以很多次', '例如：喝咖啡、拍照，點幾下就記幾次')),
+    h('p', { class: 'hint' }, '發生了就在首頁點一下，一天記一次；想留下細節，點亮後寫成日記。'),
     joy ? h('div', { class: 'danger-zone' },
       h('button', { type: 'button', class: 'btn', onclick: () => { joy.archivedAt = joy.archivedAt ? null : now(); joy.updatedAt = now(); done(); openJoyList(); } }, joy.archivedAt ? '放回首頁' : '先收起來（紀錄都會留著）'),
       h('button', { type: 'button', class: 'btn danger', onclick: () => removeJoy(joy) }, '刪除這個小幸福')) : null,
@@ -446,7 +429,7 @@ export function openJoyList() {
     return h('li', { class: 'joy-item' },
       h('button', { type: 'button', class: 'joy-item-main', onclick: () => openJoy(j.id) },
         h('span', { class: 'joy-ic' }, iconOf(j)),
-        h('span', { class: 'joy-item-text' }, h('b', {}, j.title), h('small', { class: 'hint' }, `累積 ${st.total} ${unit(j)}${st.today ? ' · 今天收藏了 ✓' : ''}`))),
+        h('span', { class: 'joy-item-text' }, h('b', {}, j.title), h('small', { class: 'hint' }, `收藏了 ${st.days} 天${st.today ? ' · 今天收藏了 ✓' : ''}`))),
       j.archivedAt ? null : h('span', { class: 'joy-order' },
         h('button', { type: 'button', class: 'icon-btn', 'aria-label': `${j.title}往前`, disabled: i === 0, onclick: () => move(j, -1) }, '↑'),
         h('button', { type: 'button', class: 'icon-btn', 'aria-label': `${j.title}往後`, disabled: i === arr.length - 1, onclick: () => move(j, 1) }, '↓')));
