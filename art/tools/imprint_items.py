@@ -19,7 +19,12 @@ SRC = ROOT / 'art/source/furniture'
 OUT = ROOT / 'public/room/imprints'
 LINE = (62, 23, 11)  # 房間外框的顏色
 # key: 在房間裡的寬度（房間座標）
-WIDTH = {'cat': 130, 'coffee': 70, 'meal': 170, 'gift': 105, 'bear': 95, 'hearts': 85}
+WIDTH = {'cat': 130, 'coffee': 70, 'meal': 170, 'gift': 105, 'bear': 95, 'hearts': 85,
+         'paw': 120, 'moon': 44, 'star': 200, 'sneaker': 62}
+# 掛在牆上的要照牆的斜度斜過去：每往右 1px 往下幾 px（GPT 畫的是正面，右牆約往下 0.49，原圖的線已經斜 0.19）
+SHEAR = {'star': 0.3}
+# 小東西的外框細一點（預設 3px）
+LINE_W = {'star': 2}
 
 
 def reline(im, w=3):
@@ -37,8 +42,13 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for key, w in WIDTH.items():
         im = white_cut(SRC / f'{key}.png')
+        if key in SHEAR:
+            k = SHEAR[key]
+            dy = round(im.width * k)
+            im = im.transform((im.width, im.height + dy), Image.AFFINE, (1, 0, 0, -k, 1, 0), Image.NEAREST)
+            im = im.crop(im.getbbox())
         im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
-        im = reline(im)
+        im = reline(im, LINE_W.get(key, 3))
         im.save(OUT / f'{key}.webp', lossless=True)
         print(f'{key}: w {im.width}, h {im.height}')
 
