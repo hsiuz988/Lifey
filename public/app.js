@@ -409,6 +409,14 @@ function renderCyHome() {
   const recent = state.moments.slice().sort((a, b) => (b.date + (b.createdAt || '')).localeCompare(a.date + (a.createdAt || ''))).slice(0, 3);
   $('#cy-news').replaceChildren(...(recent.length ? recent.map((m) => h('button', { type: 'button', class: 'cy-news-item', onclick: () => openMoment(m.id) },
     h('span', { class: 'cy-tag' }, m.photoIds.length ? '[相簿]' : '[日記]'), h('span', { class: 'cy-news-text' }, m.text || '（照片）'))) : [h('p', { class: 'cy-empty' }, '寫下第一筆，小窩就會熱鬧起來')]));
+  const photos = state.moments.reduce((n, m) => n + m.photoIds.length, 0);
+  const ages = new Set(state.moments.map((m) => ageAt(birthday, m.date))).size;
+  const cell = (label, n, go) => h('button', { type: 'button', class: 'cy-count-cell', onclick: go }, h('span', {}, label), h('b', {}, String(n)));
+  $('#cy-counts').replaceChildren(
+    cell('日記', state.moments.length, () => showTab('memories')),
+    cell('相簿', photos, () => wallPhotos()),
+    cell('信', state.letters.length, () => openLetters()),
+    cell('人生', `${ages}/90`, () => showTab('map')));
   renderCyFamily();
 }
 // 家人說：連結的家人最近分享的一句話；還沒連結家人就整塊不出現
@@ -3244,8 +3252,6 @@ function bind() {
   $('#moment-form').text.addEventListener('input', () => { renderOptBar(); renderTagPicker(); });
   $('#moment-form').feel.addEventListener('input', renderTagPicker);
   // 首頁的入口：點一下就打開「記一筆」；📷 直接選照片
-  $('#quick-open').addEventListener('click', () => openMoment());
-  $('#quick-photo').addEventListener('click', () => { openMoment(); $('#photo-input').click(); });
   $('#joy-all').addEventListener('click', () => openJoyList());
   $('#joy-dialog').addEventListener('close', () => renderJoyRow());
   $('#event-search').addEventListener('input', renderEventPicker);

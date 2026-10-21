@@ -77,7 +77,7 @@
   <main id="app" hidden>
     <!-- 家：上半是房間（遊戲），下半是今天 -->
     <section class="tab-page home-page" data-tab="home">
-      <!-- 迷你小窩：今天／總共、背景音樂、名字 → 房間 → 記一筆 → 今日卡 → 個人小卡、最近更新 → 家人說 -->
+      <!-- 迷你小窩：今天／總共、背景音樂、名字 → 個人小卡（最近更新、數字） → Mini Room → 備份提醒 → 累積幸福 → 今日卡 → 家人說 -->
       <div class="cy-top">
         <span class="cy-count">TODAY <b id="cy-today">0</b> <i>|</i> TOTAL <b id="cy-total">0</b></span>
         <span class="cy-bgm-box">
@@ -86,6 +86,19 @@
         </span>
       </div>
       <div class="cy-head"><h1 id="cy-title"></h1><span id="cy-sub"></span></div>
+      <div class="cy-profile">
+        <button id="cy-card" class="cy-card" type="button" aria-label="換我的樣子">
+          <span id="cy-look" class="cy-look"></span>
+          <span class="cy-today-is">TODAY IS..</span>
+          <span id="cy-mood" class="cy-mood"></span>
+        </button>
+        <div class="cy-side">
+          <button id="cy-line" class="cy-line" type="button"></button>
+          <div class="cy-box-title">Updated news</div>
+          <div id="cy-news" class="cy-news"></div>
+          <div id="cy-counts" class="cy-counts"></div>
+        </div>
+      </div>
       <div class="cy-box-title cy-room-title">Mini Room</div>
       <div class="room-box">
         <div id="scene" class="room"></div>
@@ -99,33 +112,17 @@
         <button id="room-zoom" class="hud-btn room-zoom" type="button" aria-label="全畫面" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="ic-open" d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"></path><path class="ic-close" d="M5 5l14 14M19 5L5 19"></path></svg></button>
       </div>
       <div class="home-sheet">
-        <div id="quick-note" class="quick-note">
-          <button id="quick-open" class="quick-open" type="button"><span>今天過得怎麼樣？一句話就好</span></button>
-          <button id="quick-photo" class="quick-photo" type="button" aria-label="用一張照片記錄">📷</button>
+        <div id="backup-banner" class="banner" hidden>
+          <span id="backup-text"></span>
+          <button id="banner-export" class="btn small">立即備份</button>
         </div>
         <section class="joys" aria-label="累積幸福">
           <div class="cy-box-title"><span>累積幸福</span><button id="joy-all" class="link-btn" type="button">全部 ›</button></div>
           <div id="joy-row" class="joy-row"></div>
         </section>
         <div id="quick-done" class="hint" hidden></div>
-        <div id="backup-banner" class="banner" hidden>
-          <span id="backup-text"></span>
-          <button id="banner-export" class="btn small">立即備份</button>
-        </div>
         <!-- 今日卡：一次只放一張（生日 > 信 > 那年今日 > 本週回憶題） -->
         <section id="today-panel" class="today-cards" hidden></section>
-        <div class="cy-profile">
-          <button id="cy-card" class="cy-card" type="button" aria-label="換我的樣子">
-            <span id="cy-look" class="cy-look"></span>
-            <span class="cy-today-is">TODAY IS..</span>
-            <span id="cy-mood" class="cy-mood"></span>
-          </button>
-          <div class="cy-side">
-            <button id="cy-line" class="cy-line" type="button"></button>
-            <div class="cy-box-title">Updated news</div>
-            <div id="cy-news" class="cy-news"></div>
-          </div>
-        </div>
         <!-- 家人說：只有連結了家人才出現（還沒連結的人在「我的 → 雲端與家人」邀請） -->
         <section id="cy-family-box" class="cy-family" hidden>
           <div class="cy-box-title"><span>家人說</span><button id="cy-family-more" class="link-btn" type="button">全部 ›</button></div>

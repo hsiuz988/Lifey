@@ -20,12 +20,11 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#look-save'); await p.waitForTimeout(800);
   assert(!(await p.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open))), '選好樣子就直接進房間，不再跳歡迎頁');
   assert(await p.isVisible('#scene') && (await p.textContent('#scene')).includes('日記本'), '小人提示去點書桌上的日記本');
-  const box = await p.$eval('#quick-open', (e) => e.getBoundingClientRect().bottom);
-  assert(box <= 844 - 60, `「今天過得怎麼樣」在第一屏、沒被分頁列擋住（底部 ${Math.round(box)}px）`);
+  assert(await p.isVisible('#cy-counts') && (await p.textContent('#cy-counts')).includes('人生'), '首頁上方是個人小卡和日記／相簿／信／人生數字');
   assert(await p.$eval('#cy-family-box', (e) => e.hidden), '還沒連結家人時，首頁不放「家人說」');
   await p.screenshot({ path: OUT + '/onb-2.png' });
-  await p.click('#quick-open');
-  assert(await p.$eval('#moment-dialog', d => d.open), '首頁的一句話入口打開記一筆');
+  await p.click('#add-btn');
+  assert(await p.$eval('#moment-dialog', d => d.open), '「記一筆」打開記一筆');
   await p.fill('#moment-form [name=text]', '開始用 wowo'); await p.click('#moment-save');
   assert(await p.waitForFunction(() => { const d = document.querySelector('#letter-dialog'); return d.open && d.textContent.includes('記下第一筆了'); }, null, { timeout: 5000 }).then(() => true, () => false), '記完第一筆才問要不要備份到雲端');
   await p.click('#letter-dialog button:text-is("之後再說")'); await p.waitForTimeout(200);
