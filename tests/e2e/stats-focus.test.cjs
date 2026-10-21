@@ -33,7 +33,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   // 狀態
   let v = await stats();
   console.log('   今年狀態', v);
-  assert(v['人際關係'] === 49 && v['健康'] === 20 && v['知識'] === 20, '人際：朋友 ☆ 算兩倍（2 點）→ 49；其他 20');
+  assert(v['人際關係'] === 49 && isNaN(v['健康']) && isNaN(v['知識']), '人際：朋友 ☆ 算兩倍（2 點）→ 49；沒有相關紀錄的顯示「–」，不給假的底分');
   assert(v['幸福'] === 94, '幸福：心情 😄 (90) + 旅行 ☆ 加分 (4) → 94');
   assert(await p.textContent('#now-caption') === '31 歲 · 出社會 · 今年記了 1 則', '今年說明文字');
   assert(await p.$eval('#scene', (e) => !!e.querySelector('svg image[href$="room.webp"]') && e.querySelectorAll('#room-me image').length >= 6), '首頁的房間和小人有畫出來');
@@ -45,7 +45,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   await p.click('#moment-save');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
   v = await stats();
-  assert(v['健康'] === 36, '記一筆運動，健康 20 → 36');
+  assert(v['健康'] === 36, '記一筆運動，健康 – → 36');
 
   // 重心
   await tab(p, 'me').then(() => p.click('#focus-chips button:text-is("健康")'));

@@ -88,6 +88,7 @@ async function newPage(b, opts = {}) {
   await p.waitForSelector('#info-dialog[open]', { timeout: 8000 });
   await p.waitForSelector('#info-body .tv-list li');
   assert((await p.textContent('#info-body h3')).includes('1995'), '電視播出生那年（1995）的事');
+  assert(await p.isVisible('#info-body .tv-screen .tv-live') && (await p.textContent('#info-body .tv-headline')).includes('頭條'), '電視打開是新聞報導：LIVE、頭條');
   assert(await p.getAttribute('#scene image[href$="tv_on.webp"]', 'opacity') === '1', '電視亮起來');
   await p.click('#info-dialog [data-close]'); await p.waitForTimeout(100);
   assert(await p.getAttribute('#scene image[href$="tv_on.webp"]', 'opacity') === '0', '關掉就關機');

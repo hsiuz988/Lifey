@@ -82,7 +82,7 @@
         <span class="cy-count">TODAY <b id="cy-today">0</b> <i>|</i> TOTAL <b id="cy-total">0</b></span>
         <span class="cy-bgm-box">
           <button id="cy-bgm" class="cy-bgm" type="button" aria-label="背景音樂" aria-pressed="false"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path class="ic-play" d="M7 4v16l13-8z" fill="currentColor"></path><path class="ic-pause" d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor"></path></svg><span id="cy-bgm-label">BGM</span></button>
-          <button id="cy-bgm-next" class="cy-bgm cy-bgm-next" type="button" aria-label="下一首" hidden><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16l11-8zM16 4h4v16h-4z" fill="currentColor"></path></svg></button>
+          <button id="cy-bgm-next" class="cy-bgm cy-bgm-next" type="button" aria-label="下一首"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16l11-8zM16 4h4v16h-4z" fill="currentColor"></path></svg></button>
         </span>
       </div>
       <div class="cy-head"><h1 id="cy-title"></h1><span id="cy-sub"></span></div>
@@ -211,7 +211,7 @@
             <li><b>知識</b>：標籤「學習」「工作」</li>
             <li><b>人際關係</b>：標籤「家人」「朋友」「愛情」</li>
           </ul>
-          <p>☆ 值得記住的事算兩倍。記得越多越接近 100，但越往上越難漲。點人生地圖的格子，可以看過去每一歲的狀態。</p>
+          <p>還沒有相關紀錄的那一項是 0（顯示「–」），記下第一則就會長到 36。☆ 值得記住的事算兩倍。記得越多越接近 100，但越往上越難漲。點人生地圖的格子，可以看過去每一歲的狀態。</p>
         </details>
       </section>
       <section id="achievements-panel" class="panel" hidden>
@@ -256,54 +256,52 @@
         </div>
         <button id="moment-save" class="btn primary save-pill" type="submit" value="save">記下來</button>
       </div>
-      <!-- 中間：一大塊寫字的地方 -->
+      <!-- 中間：一本攤開的筆記本。上面這一頁寫今天（日期、一句話、照片），下面心情、標籤、更多全部攤開，不用找 -->
       <div class="composer-body">
-        <div class="composer-meta">
-          <button id="date-chip" class="date-chip" type="button" data-sec="date" aria-expanded="false">📅 <span id="date-btn-label">今天</span> ▾</button>
-          <span id="event-badge" class="event-badge" hidden></span>
-          <span id="save-hint" class="hint save-hint"></span>
+        <div class="nb-page">
+          <div class="nb-rings" aria-hidden="true"></div>
+          <div class="composer-meta">
+            <button id="date-chip" class="date-chip nb-stamp" type="button" data-sec="date" aria-expanded="false"><span id="date-btn-label">今天</span> ▾</button>
+            <span id="event-badge" class="event-badge" hidden></span>
+            <span id="save-hint" class="hint save-hint"></span>
+          </div>
+          <div class="opt-sec field nb-date-pop" data-sec="date" hidden>
+            <label>日期
+              <input name="date" type="date" required>
+            </label>
+            <div id="moment-age" class="age-hint"></div>
+            <label class="switch small-switch">
+              <input name="approx" type="checkbox">
+              <span>不確定日期，只記得是這一歲</span>
+            </label>
+          </div>
+          <textarea name="text" class="composer-text" rows="4" maxlength="500" placeholder="今天發生了什麼？" aria-label="發生了什麼？"></textarea>
+          <div id="photo-picker" class="photo-picker"></div>
         </div>
-        <div class="opt-sec field" data-sec="date" hidden>
-          <label>日期
-            <input name="date" type="date" required>
-          </label>
-          <div id="moment-age" class="age-hint"></div>
-          <label class="switch small-switch">
-            <input name="approx" type="checkbox">
-            <span>不確定日期，只記得是這一歲</span>
-          </label>
-        </div>
-        <textarea name="text" class="composer-text" maxlength="500" placeholder="今天發生了什麼？" aria-label="發生了什麼？"></textarea>
-        <div id="photo-picker" class="photo-picker"></div>
-        <div class="field tag-field" id="tag-field">
-          <span class="field-label">標籤 <span class="hint-inline">依你寫的字建議，點一下就加上</span></span>
-          <div id="tag-picker" class="chips tag-row"></div>
-        </div>
-        <div class="field emo-field" id="emo-field">
-          <span class="field-label">現在的心情？（選填）</span>
-          <div id="emo-picker" class="emo-row"></div>
+        <section class="nb-sec emo-field" id="emo-field">
+          <h4 class="nb-label"><b>MOOD</b>現在的心情<span class="hint-inline">選填</span></h4>
+          <div id="emo-picker" class="emo-grid"></div>
           <div id="emo-hint" class="hint"></div>
           <textarea name="feel" rows="2" maxlength="300" placeholder="想多說一點心情嗎？（選填）" aria-label="當下的心情" hidden></textarea>
-        </div>
-        <button id="more-toggle" class="more-toggle" type="button" data-sec="more" aria-expanded="false"><b>更多</b><span id="more-summary">和誰、人生大事…</span><span class="chev">▾</span></button>
-        <div class="opt-sec more-list-rows" data-sec="more" hidden>
-          <button class="more-row" type="button" data-sec="people"><span class="ic">👥</span><span class="k" id="people-label">和誰</span><span class="v" id="people-sum"></span></button>
-          <div class="opt-sec field sub-sec" data-sec="people" hidden><div id="people-picker" class="chips"></div></div>
-          <button class="more-row" type="button" id="event-open"><span class="ic">⭐</span><span class="k">人生大事</span><span class="v" id="event-sum"></span></button>
-          <button class="more-row" type="button" id="star-toggle" aria-pressed="false"><span class="ic">☆</span><span class="k">值得記住</span><span class="v" id="star-sum">關</span></button>
-          <label id="share-row" class="switch small-switch" hidden>
-            <input name="shared" type="checkbox">
-            <span id="share-label">💞 分享給另一半</span>
+        </section>
+        <section class="nb-sec tag-field" id="tag-field">
+          <h4 class="nb-label"><b>TAG</b>標籤<span class="hint-inline">虛線＋小黃點是依你寫的字建議的</span></h4>
+          <div id="tag-picker" class="chips nb-chips"></div>
+        </section>
+        <section class="nb-sec nb-more" id="more-field">
+          <h4 class="nb-label"><b>MORE</b>更多</h4>
+          <div class="nb-who">
+            <span class="nb-k"><span class="ic" aria-hidden="true">👥</span><span id="people-label">和誰</span></span>
+            <div id="people-picker" class="chips nb-chips"></div>
+          </div>
+          <button class="nb-row" type="button" id="event-open"><span class="ic" aria-hidden="true">⭐</span><span class="k">人生大事</span><span class="v" id="event-sum"></span></button>
+          <button class="nb-row" type="button" id="star-toggle" aria-pressed="false"><span class="ic" aria-hidden="true">☆</span><span class="k">值得記住<small>人生地圖上會發亮，狀態算兩倍</small></span><span class="led-switch" id="star-sum">關</span></button>
+          <label id="share-row" class="nb-row" hidden>
+            <span class="ic" aria-hidden="true">💞</span><span class="k" id="share-label">分享給另一半</span>
+            <input name="shared" type="checkbox" class="led-check">
           </label>
-        </div>
+        </section>
         <input name="starred" type="checkbox" hidden>
-      </div>
-      <!-- 下方：貼在鍵盤上面的小工具列 -->
-      <div class="composer-toolbar">
-        <label class="tool" for="photo-input" id="photo-add">📷 <span id="photo-add-label">照片</span></label>
-        <button class="tool" type="button" id="tb-tags">🏷 標籤</button>
-        <button class="tool" type="button" id="tb-mood">😊 心情</button>
-        <button class="tool" type="button" id="tb-more">⋯ 更多</button>
       </div>
       <input id="photo-input" type="file" accept="image/*" multiple hidden>
     </form>

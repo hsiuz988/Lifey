@@ -31,7 +31,19 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   // 記一筆：一句話就能存
   await p.click('#add-btn');
   assert(await p.$$eval('#moment-form .opt-sec', els => els.every(e => e.hidden)), '選填區塊一開始都收起來');
-  assert(await p.textContent('#date-btn-label') === '今天', '日期按鈕顯示今天');
+  assert((await p.textContent('#date-btn-label')).startsWith('今天 · '), `日期戳記顯示今天和星期（${await p.textContent('#date-btn-label')}）`);
+  assert(await p.isVisible('#emo-field') && await p.isVisible('#tag-field') && await p.isVisible('#star-toggle') && await p.isVisible('#event-open'), '心情、標籤、更多全部攤開，不用找');
+  assert(!(await p.$('#more-toggle')) && !(await p.$('.composer-toolbar')), '沒有「更多」開關和重複的工具列');
+  // 標籤：建議的標出來但不搬位置；點了原地亮燈，位置和大小都不變
+  const tagOrder = () => p.$$eval('#tag-picker .chip', (els) => els.map((e) => e.textContent).join(','));
+  const before = await tagOrder();
+  await p.fill('#moment-form [name=text]', '和朋友去跑步');
+  assert(await tagOrder() === before && await p.$eval('#tag-picker .chip:text-is("朋友")', (e) => e.classList.contains('suggest')), '依寫的字建議的標籤標出來，但順序不變');
+  const box = () => p.$eval('#tag-picker .chip:text-is("朋友")', (e) => { const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round).join(','); });
+  const box0 = await box();
+  await p.click('#tag-picker .chip:text-is("朋友")');
+  assert(await p.$eval('#tag-picker .chip:text-is("朋友")', (e) => e.classList.contains('on')) && await box() === box0 && await tagOrder() === before, '點了原地亮燈，位置、大小、順序都不變');
+  await p.click('#tag-picker .chip:text-is("朋友")');
   await p.fill('#moment-form [name=text]', '只寫一句');
   await p.keyboard.press('Escape'); await pick(p, '繼續編輯');
   assert(await p.$eval('#moment-dialog', d => d.open) && await p.inputValue('#moment-form [name=text]') === '只寫一句', '寫了東西按返回鍵，選「繼續編輯」就不關、字還在');
@@ -58,13 +70,12 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#add-btn'); await p.fill('#moment-form [name=text]', '小時候');
   await p.click('#date-chip'); await p.fill('#moment-form [name=date]', '2003-05-01'); await p.check('#moment-form [name=approx]');
   assert((await p.textContent('#date-btn-label')).includes('8 歲時'), '日期按鈕顯示「8 歲時（日期不確定）」');
-  await p.click('#more-toggle'); assert(await p.isVisible('#star-toggle'), '「更多」打開後看得到和誰、標籤、人生大事、值得記住');
   await p.click('#star-toggle'); assert(await p.$eval('#star-toggle', e => e.classList.contains('filled')), '值得記住亮起來');
   await p.click('#moment-save'); await p.waitForTimeout(200);
   s = await st(p); const old = s.moments.find(m => m.text === '小時候');
   assert(old && old.approx && old.starred && old.date === '2003-05-01', '日期、不確定、值得記住都存下來');
   // 人生大事收在「更多」裡
-  await p.click('#add-btn'); await p.click('#more-toggle'); await p.click('#event-open'); await p.fill('#event-search', '搬家'); await p.click('#event-grid .event-btn >> nth=0');
+  await p.click('#add-btn'); await p.click('#event-open'); await p.fill('#event-search', '搬家'); await p.click('#event-grid .event-btn >> nth=0');
   assert(await p.inputValue('#moment-form [name=text]') === '搬家了', '人生大事一點就帶入');
   await p.click('#event-open'); await p.fill('#event-search', '馬拉松');
   assert((await p.$$('#event-grid .event-btn')).length === 1, '人生大事可以搜尋');
