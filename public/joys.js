@@ -1,4 +1,4 @@
-// 累積幸福：重複發生的小幸福（喝到好喝的、看見漂亮的天空…），點一下就收藏，再問一句（有寫就變成日記），App 幫忙數次數、畫月曆
+// 我的幸福：重複發生的小幸福（喝到好喝的、看見漂亮的天空…），點一下就收藏，再問一句（有寫就變成日記），App 幫忙數次數、畫月曆
 // 資料：state.joys（幸福項目）、state.joyLog（每點一次一筆，刪除留墓碑在 state.deleted）
 // 每點一次存一筆，兩台手機同一天各點的次數合併時都會留下；次數、天數都從紀錄即時算，不另存計數
 
@@ -444,7 +444,7 @@ export function openJoyList() {
         h('button', { type: 'button', class: 'icon-btn', 'aria-label': `${j.title}往後`, disabled: i === arr.length - 1, onclick: () => move(j, 1) }, '↓')));
   };
   show([
-    h('div', { class: 'sheet-top' }, h('h3', {}, '累積幸福')),
+    h('div', { class: 'sheet-top' }, h('h3', {}, '我的幸福')),
     h('p', { class: 'hint' }, '常常發生的小幸福，發生了就在首頁點一下。這裡可以排順序、編輯，點進去看月曆。'),
     active.length ? h('ul', { class: 'joy-list' }, ...active.map(row)) : h('p', { class: 'hint' }, '還沒有小幸福，新增一個吧。'),
     archived.length ? h('details', { class: 'joy-archived' }, h('summary', {}, `收起來的（${archived.length}）`), h('ul', { class: 'joy-list' }, ...archived.map(row))) : null,
@@ -504,8 +504,8 @@ function nextImprint() {
     h('p', { class: 'imprint-name' }, h('b', {}, imprintName(rec.key))),
     h('p', { class: 'hint' }, `「${joy ? joy.title : '小幸福'}」收藏滿 ${IMPRINT_DAYS} 天的紀念。`),
     IMPRINTS[rec.key]
-      ? h('p', { class: 'hint' }, `會放在${IMPRINTS[rec.key].where}，之後也可以在「累積幸福 → 生活印記」收起來或放出來。`)
-      : h('p', { class: 'hint' }, '這件家具還在製作中，做好會出現在「累積幸福 → 生活印記」。'),
+      ? h('p', { class: 'hint' }, `會放在${IMPRINTS[rec.key].where}，之後也可以在「我的幸福 → 生活印記」收起來或放出來。`)
+      : h('p', { class: 'hint' }, '這件家具還在製作中，做好會出現在「我的幸福 → 生活印記」。'),
     h('div', { class: 'sheet-actions' },
       h('button', { type: 'button', class: 'btn', onclick: close }, '先收著'),
       h('span', { class: 'spacer' }),

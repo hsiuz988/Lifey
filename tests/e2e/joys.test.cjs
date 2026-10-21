@@ -120,7 +120,7 @@ const errors = [];
   // 「我的」選單也進得去
   await p.click('#tabbar [data-tab-btn="me"]');
   await p.click('.menu-item[data-open="joys"]'); await p.waitForTimeout(150);
-  assert(await p.$eval('#joy-dialog', (d) => d.open) && (await p.textContent('#joy-dialog')).includes('收起來的（1）'), '「我的 → 累積幸福」打開全部，看得到收起來的');
+  assert(await p.$eval('#joy-dialog', (d) => d.open) && (await p.textContent('#joy-dialog')).includes('收起來的（1）'), '「我的 → 我的幸福」打開全部，看得到收起來的');
   await p.keyboard.press('Escape');
 
   // 兩台手機同一天各點一次奶茶（改回一天多次的情境），合併後兩次都留下；刪掉的不會復活

@@ -77,7 +77,7 @@
   <main id="app" hidden>
     <!-- 家：上半是房間（遊戲），下半是今天 -->
     <section class="tab-page home-page" data-tab="home">
-      <!-- 迷你小窩：○ 歲又 ○ 天｜♡ 小幸福、BGM → 個人區（大頭照、名字＋MSN 狀態、個人訊息框）→ 最近三筆 → 房間 → 累積幸福 → 備份提醒 → 今日卡 → 家人說 -->
+      <!-- 迷你小窩：○ 歲又 ○ 天｜♡ 小幸福、BGM → 個人區（大頭照、名字＋MSN 狀態、個人訊息框）→ 最近三筆 → 房間 → 我的幸福 → 備份提醒 → 今日卡 → 家人說 -->
       <div class="cy-top">
         <span class="cy-count">
           <span class="cy-age-days"><b id="cy-age-n">0</b>歲<span id="cy-age-d" class="cy-sub-days"></span></span>
@@ -125,8 +125,8 @@
         <button id="room-zoom" class="hud-btn room-zoom" type="button" aria-label="全畫面" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="ic-open" d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"></path><path class="ic-close" d="M5 5l14 14M19 5L5 19"></path></svg></button>
       </div>
       <div class="home-sheet">
-        <section class="joys" aria-label="累積幸福">
-          <div class="cy-box-title"><span>累積幸福</span><button id="joy-all" class="link-btn" type="button">全部 ›</button></div>
+        <section class="joys" aria-label="我的幸福">
+          <div class="cy-box-title"><span>我的幸福</span><button id="joy-all" class="link-btn" type="button">全部 ›</button></div>
           <div id="joy-row" class="joy-row"></div>
         </section>
         <div id="backup-banner" class="banner" hidden>
@@ -201,7 +201,7 @@
         </div>
       </section>
       <div class="menu me-menu">
-        <button class="menu-item" type="button" data-open="joys"><span>累積幸福</span><span class="menu-sub"></span><span class="chev">›</span></button>
+        <button class="menu-item" type="button" data-open="joys"><span>我的幸福</span><span class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-open="letters"><span>給未來的信</span><span id="me-letters" class="menu-sub"></span><span class="chev">›</span></button>
         <button class="menu-item" type="button" data-open="cloud"><span>雲端與家人</span><span id="me-cloud" class="menu-sub"></span><span class="chev">›</span></button>
       </div>
@@ -471,7 +471,7 @@
   </dialog>
 
   <!-- 心情花園：一個月一片花圃，一天一朵花 -->
-  <!-- 累積幸福：詳情、編輯、全部（內容由 joys.js 換） -->
+  <!-- 我的幸福：詳情、編輯、全部（內容由 joys.js 換） -->
   <dialog id="imprint-dialog" class="sheet imprint-dialog"><div id="imprint-body"></div></dialog>
   <dialog id="joy-dialog" class="sheet joy-dialog">
     <div id="joy-body"></div>
