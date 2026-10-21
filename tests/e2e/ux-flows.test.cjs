@@ -19,13 +19,12 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   // 第一次使用：選自己的樣子（房間裡的小人）
   assert((await p.textContent('#look-title')) === '選你的樣子' && (await p.textContent('#look-save')) === '就是我了', '註冊後接著選樣子');
-  await p.click('#look-options .look-opt[data-style="classic"]');
-  assert(await p.$$eval('#look-preview img', (a) => a.length >= 4), '預覽是疊起來的小人');
-  await p.click('#look-options .look-opt:has-text("帽 T")');
-  assert(await p.$eval('#look-options .look-opt:has-text("帽 T")', e => e.classList.contains('on')), '選了帽 T');
-  assert(await p.$$eval('#look-preview img', (a) => a.some((i) => i.src.includes('cloth_hoodie'))), '預覽換成帽 T');
+  assert(!(await p.$('#look-options .look-opt[data-style]')) && await p.$$eval('#look-preview .look.pixel img', (a) => a.length >= 2), '只有像素女孩，沒有角色可以選');
+  assert(await p.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '短髮,＋製作中,日常毛衣,＋製作中', '髮型、衣服各一排，最後一格是製作中');
+  await p.click('#look-preview .look-me'); await p.waitForTimeout(100);
+  assert(await p.$$eval('#look-preview img', (a) => a.some((i) => i.src.includes('face_excited'))), '點預覽的小人換個表情');
   await p.click('#look-save');
-  assert((await st(p)).profile.look.cloth === 'hoodie', '存下帽 T');
+  assert((await st(p)).profile.look.style === 'pixel', '存下像素女孩');
   await p.waitForTimeout(300);
 
   // 記一筆：一句話就能存

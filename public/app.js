@@ -7,7 +7,7 @@ import {
   normalizeAvatar, randomAvatar, composeAvatar, drawAvatar, avatarSvg, W as AVATAR_W,
 } from './avatar.js';
 import { Scene, propsForTags, festivalOf } from './scene.js';
-import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
+import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor } from './room.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
 import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints } from './joys.js';
@@ -1580,35 +1580,38 @@ function showTab(tab) {
   if (tab === 'home' && scene) scene.update({});
 }
 
-// ---------- 我的樣子（房間裡的小人） ----------
+// ---------- 我的衣櫃（房間裡的小人換裝） ----------
 function openLook({ onboarding = false } = {}) {
   ui.look = { draft: normalizeLook(state.profile.look), onboarding };
-  $('#look-title').textContent = onboarding ? '選你的樣子' : '我的樣子';
-  $('#look-sub').textContent = onboarding ? '這就是住在房間裡的你，之後在「我」或點房間裡的自己都可以換。' : '點房間裡的自己也可以來這裡換裝。';
+  $('#look-title').textContent = onboarding ? '選你的樣子' : '我的衣櫃';
+  $('#look-sub').textContent = onboarding ? '這就是住在房間裡的你，之後在「我」或點房間裡的自己都可以換。' : '';
+  $('#look-sub').hidden = !onboarding;
   $('#look-save').textContent = onboarding ? '就是我了' : '好了';
   renderLook();
   if (!$('#look-dialog').open) $('#look-dialog').showModal();
 }
+// 預覽的小人點一下換個表情（日記的 10 種心情），只是好玩，不會存
+const LOOK_FACES = ['happy', 'excited', 'love', 'calm', 'moved', 'tired', 'sad', 'angry', 'nervous', 'miss'];
 function renderLook() {
   const { draft } = ui.look;
-  $('#look-preview').replaceChildren(lookHtml(draft, 'happy', 'look look-full'));
+  const emo = LOOK_FACES[(ui.look.face || 0) % LOOK_FACES.length];
+  const me = lookHtml(draft, 'happy', 'look look-full', emo);
+  $('#look-preview').replaceChildren(h('button', {
+    type: 'button', class: 'look-me', 'aria-label': '點一下換個表情',
+    onclick: () => { ui.look.face = (ui.look.face || 0) + 1; renderLook(); $('#look-preview .look-me').classList.add('hop'); },
+  }, me), h('span', { class: 'look-tip', 'aria-hidden': 'true' }, '點我換表情'));
   const opts = looksFor(draft.style);
   const pick = (opt) => { ui.look.draft = normalizeLook(opt); renderLook(); };
-  const styleRow = h('div', { class: 'field' }, h('span', { class: 'field-label' }, '角色'),
-    h('div', { class: 'look-row' }, STYLES.map(([v, name]) => h('button', {
-      type: 'button', class: `look-opt${draft.style === v ? ' on' : ''}`, 'aria-pressed': String(draft.style === v), 'data-style': v,
-      onclick: () => pick({ style: v }),
-    }, lookHtml({ style: v }, 'smile', 'look look-body'), h('span', {}, name)))));
-  const row = (label, key) => opts[key].length < 2 ? null : h('div', { class: 'field' }, h('span', { class: 'field-label' }, label),
+  // 髮型、衣服各一排；最後一格是「製作中」，等新的髮型衣服畫好就會多出來
+  const row = (tag, label, key) => h('section', { class: 'look-sec' }, h('p', { class: 'nb-label' }, h('b', {}, tag), label),
     h('div', { class: 'look-row' }, opts[key].map(([v, name]) => {
       const opt = { ...draft, [key]: v };
       return h('button', {
         type: 'button', class: `look-opt${draft[key] === v ? ' on' : ''}`, 'aria-pressed': String(draft[key] === v),
         onclick: () => pick(opt),
       }, lookHtml(opt, 'smile', `look look-${key === 'hair' ? 'head' : 'body'}`), h('span', {}, name));
-    })));
-  $('#look-options').replaceChildren(...[styleRow, row('頭髮', 'hair'), row('衣服', 'cloth'),
-    h('p', { class: 'hint' }, draft.style === 'doll' ? '復古娃娃走路會擺手擺腳！更多表情和衣服陸續加入中。' : '更多髮型和衣服陸續加入中。')].filter(Boolean));
+    }), h('div', { class: 'look-opt soon' }, h('span', { class: 'look-soon-ic', 'aria-hidden': 'true' }, '＋'), h('span', {}, '製作中'))));
+  $('#look-options').replaceChildren(row('HAIR', '髮型', 'hair'), row('CLOTH', '衣服', 'cloth'));
 }
 async function saveLook() {
   state.profile = { ...state.profile, look: { ...ui.look.draft }, updatedAt: new Date().toISOString() };
@@ -2713,6 +2716,7 @@ function openSettings(page = 'cloud') {
   $('#pref-ai-story').checked = !!state.prefs.aiStory;
   $('#pref-music').checked = musicPref();
   renderThemeChips();
+  renderPaletteChips();
   renderSettingsStatus();
   renderStorageStatus();
   settingsGo(page);
@@ -2742,6 +2746,29 @@ function renderThemeChips() {
     type: 'button', class: `chip${pref === v ? ' on' : ''}`, 'aria-pressed': String(pref === v),
     onclick: () => { try { localStorage.setItem('lifey.theme', v); } catch (e) { /* 無痕模式存不了，只套用這次 */ } applyTheme(); renderThemeChips(); },
   }, label)));
+}
+
+// ---------- 配色：花系列＋甜點系列（存在這支手機，cy.css 的 :root[data-palette]） ----------
+const PALETTES = [
+  { group: '花', items: [['hydrangea', '繡球花', '#c9d6e3', '#1fa9b8'], ['periwinkle', '長春花', '#d6ddf4', '#5470dc'], ['sakura', '櫻花', '#f7ede8', '#d4566f']] },
+  { group: '甜點', items: [['berrycocoa', '草莓巧克力', '#f8e6e4', '#9a7366'], ['mango', '芒果布丁', '#fdf3d0', '#e2762e'], ['mintcocoa', '薄荷巧克力', '#e0f3ec', '#8a6656']] },
+];
+function palettePref() {
+  try { return localStorage.getItem('lifey.palette') || 'periwinkle'; } catch (e) { return 'periwinkle'; }
+}
+function applyPalette() {
+  const pal = palettePref();
+  if (pal === 'periwinkle') delete document.documentElement.dataset.palette;
+  else document.documentElement.dataset.palette = pal;
+}
+function renderPaletteChips() {
+  const pref = palettePref();
+  $('#palette-chips').replaceChildren(...PALETTES.map(({ group, items }) => h('div', { class: 'palette-group' },
+    h('span', { class: 'palette-group-name' }, `${group}系列`),
+    h('div', { class: 'palette-row' }, ...items.map(([v, label, a, b]) => h('button', {
+      type: 'button', class: `palette-chip${pref === v ? ' on' : ''}`, 'aria-pressed': String(pref === v), 'data-palette': v,
+      onclick: () => { try { localStorage.setItem('lifey.palette', v); } catch (e) { /* 無痕模式存不了，只套用這次 */ } applyPalette(); renderPaletteChips(); },
+    }, h('i', { class: 'palette-swatch', style: `--a:${a};--b:${b}`, 'aria-hidden': 'true' }), label))))));
 }
 
 // ---------- 背景音樂 ----------
@@ -3375,11 +3402,9 @@ function openFancy(select, btn, { title, cols, short, group, start }) {
   } };
 }
 
-// 註冊頁的小巧思：點 logo 跳一下說句話、名字填進視窗標題、生日算出在地球上幾天（標題列的三顆鈕只是裝飾，不能點）
+// 註冊頁的小巧思：一進來 logo 先說第一句，之後點了才跳一下說下一句（標題列的三顆鈕只是裝飾，不能點）
 const LOGO_SAYS = ['嗨～歡迎光臨！', '要來我家玩嗎？', '我等你好久了 ♥', '先寫名字吧！', '噓，這裡只有你知道'];
-const STAR_SIGNS = [[120, '摩羯座'], [219, '水瓶座'], [320, '雙魚座'], [420, '白羊座'], [521, '金牛座'], [621, '雙子座'], [722, '巨蟹座'], [823, '獅子座'], [923, '處女座'], [1023, '天秤座'], [1122, '天蠍座'], [1222, '射手座'], [1232, '摩羯座']];
 function setupDelight() {
-  const form = $('#setup-form');
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let sayTimer = 0, sayN = 0;
   const say = (text) => {
@@ -3391,28 +3416,19 @@ function setupDelight() {
     sayTimer = setTimeout(() => bubble.classList.remove('on'), 2200);
   };
   $('#setup-logo').addEventListener('click', () => say(LOGO_SAYS[sayN++ % LOGO_SAYS.length]));
+  // 註冊頁一出現就主動說第一句（只說這一次），之後的要點了才說；已經點過就不搶話
+  const greet = () => setTimeout(() => { if (sayN === 0 && !$('#setup').hidden) say(LOGO_SAYS[sayN++]); }, 700);
+  if (!$('#setup').hidden) greet();
+  else {
+    const ob = new MutationObserver(() => { if (!$('#setup').hidden) { ob.disconnect(); greet(); } });
+    ob.observe($('#setup'), { attributes: true, attributeFilter: ['hidden'] });
+  }
   $('#setup-logo').addEventListener('animationend', (e) => { if (e.animationName === 'setup-hop') e.currentTarget.classList.remove('hop'); });
-  form.name.addEventListener('input', () => {
-    const name = form.name.value.trim();
-    $('#setup-win-title').textContent = name ? `建立 ${name} 的小窩` : '建立你的小窩';
-  });
-  const days = $('#setup-days');
-  const showDays = () => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(form.birthday.value);
-    const n = m ? Math.round((new Date(todayStr()) - new Date(form.birthday.value)) / 86400000) : -1;
-    days.hidden = n < 0;
-    if (n < 0) return;
-    const md = Number(m[2]) * 100 + Number(m[3]);
-    const sign = STAR_SIGNS.find(([end]) => md < end)[1];
-    days.replaceChildren(`${sign}的你，已經在地球上 `, h('b', {}, n.toLocaleString()), ' 天了。');
-  };
-  form.addEventListener('change', showDays);
-  form.birthday.addEventListener('input', showDays);
   typeTagline(calm);
 }
 
 // 打字機：logo 下面輪流打出三個特點，最後停在「把一輩子，慢慢記下來」就不動了（只跑一輪）。
-// 一點表單就直接跳到最後一句，注意力回到填資料；減少動態效果的人直接看最後一句。
+// 點表單或其他東西都不影響，照樣打完一輪；減少動態效果的人直接看最後一句。
 const TAGLINES = ['一天一句話，把今天記下來', '一格一年，畫出你的人生地圖', '寫一封信，給未來的自己', '把一輩子，慢慢記下來'];
 function typeTagline(calm) {
   const el = $('#setup-type-text'), box = el.parentElement;
@@ -3420,7 +3436,6 @@ function typeTagline(calm) {
   let timer = 0, done = false;
   const finish = () => { if (done) return; done = true; clearTimeout(timer); el.textContent = last; box.classList.add('done'); };
   if (calm) { finish(); return; }
-  $('#setup-form').addEventListener('focusin', finish);
   const wait = (ms) => new Promise((r) => { timer = setTimeout(r, ms); });
   const run = async () => {
     for (let i = 0; i < TAGLINES.length && !done; i++) {
@@ -3433,8 +3448,9 @@ function typeTagline(calm) {
     }
     finish();
   };
-  // 等註冊頁真的出現才開始（已經註冊過的人看不到這頁，就不跑）
-  const start = () => { if ($('#setup').hidden) return false; el.textContent = ''; run(); return true; };
+  // 等註冊頁真的出現才開始（已經註冊過的人看不到這頁，就不跑）；
+  // 先讓插圖說完第一句，隔一拍才開始打字，兩個動作錯開，眼睛不會一下子被拉來拉去
+  const start = () => { if ($('#setup').hidden) return false; el.textContent = ''; timer = setTimeout(run, 1600); return true; };
   setTimeout(() => {
     if (start()) return;
     const ob = new MutationObserver(() => { if (!$('#setup').hidden) { ob.disconnect(); start(); } });
@@ -3743,6 +3759,7 @@ async function init() {
   initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), ask, addDiary: addJoyDiary, h, toast, todayStr, toDateStr, newId, $ });
   showVersion();
   applyTheme();
+  applyPalette();
   initMusic({ onFailed: musicFailed, onTrackChange: renderMusicBtn });
   renderMusicBtn();
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);

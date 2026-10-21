@@ -34,6 +34,11 @@
 - 整體比例是 **40% 遊戲感、60% 日記工具**。
 - 插畫以外的工具介面都用**乾淨簡約的白色介面**：白底，粉色只當強調色。**不要用「粉色＋墨色」的組合**。
 - 預設淺色主題；設定裡可以切換深色。
+- **配色有六套**（使用者定案），在「我 → 外觀與其他 → 配色」選，存在 localStorage `lifey.palette`（每台裝置不同），`<html data-palette>`；`index.html` head 的 inline script 開機前就套用。
+  - 花系列（基礎色）：繡球花 `hydrangea`（原本的冷灰藍＋邦迪藍）、**長春花 `periwinkle`（預設，不設 data-palette）**、櫻花 `sakura`（奶油＋粉）。
+  - 甜點系列：草莓巧克力 `berrycocoa`（粉＋咖啡）、芒果布丁 `mango`（黃＋橘）、薄荷巧克力 `mintcocoa`（薄荷＋可可）。
+  - 顏色都在 `cy.css` 最上面的變數（`--cy-desk`、`--cy-frame`、`--cy-aqua` 主色、`--cy-blue` 標題字、`--cy-pop` 數字標籤…）；**其他規則不要再直接寫色號**。新增一套：多寫一段 `:root[data-palette="…"]`，再加進 `app.js` 的 `PALETTES` 和 `tests/e2e/palette.test.cjs`。
+  - 房間、電視、記一筆的日期黃章這些插畫色不跟著換。
 - 底部有四個分頁：首頁、回憶、地圖、我。中間的 ＋ 是「記一筆」。
 
 ### 房間裡的熱點 → 功能（`public/room.js` 的 `.hot[data-name]`，處理函式由 `app.js` 傳入）
@@ -77,7 +82,7 @@
 - 被邀請的人（`#invite=`）填完資料就先問 Face ID 建帳號（才能連結）。
 - 其他人**記完第一筆**才問要不要開雲端（`offerCloudAfterFirst`，`state.prefs.cloudOffered` 記住只問一次）。
 - **註冊頁沒有 Face ID**（使用者定案）：換手機的人也先填名字生日進來，再到「我 → 雲端與家人」用 Face ID 登入；手機上還沒寫東西時，登入後直接換成雲端的資料（`afterLogin`）。
-- 註冊頁是老視窗風格，**只有 logo 和表單**（使用者嫌標語、跑馬燈、狀態列太雜，拿掉了）：logo 點了跳一下說句話、名字放進視窗標題、選好生日顯示「○○座的你，已經在地球上 N 天了」、標題列 _ □ × 點了視窗抖一下、logo 說話（`setupDelight`）。
+- 註冊頁是老視窗風格，**只有 logo 和表單**（使用者嫌標語、跑馬燈、狀態列太雜，拿掉了）：logo 一進註冊頁主動說第一句（只說一次），之後點了才跳一下說下一句；打字機等插圖說完第一句約 1 秒後才開始打（錯開，視覺不跳）、視窗標題固定是「建立你的小窩」（不放名字）、選好生日**不**顯示星座和在地球上幾天（使用者拿掉了）、標題列 _ □ × 點了視窗抖一下、logo 說話（`setupDelight`）。
 
 ### 記一筆：電子手帳（使用者定案：介面跟著家具的造型走，但要好用）
 
@@ -90,12 +95,12 @@
 
 ### 註冊頁
 
-- logo 是兩張圖：插圖 `brand/setup_hero.webp`（女孩和貓趴在床上，**不會一直飄**，點了才跳一下說話）＋ `brand/logo_text.webp`（wowo! 字，壓在床緣上）。原圖在 `art/source/brand/setup_hero.png`、`logo_text.png`，換圖後跑 `python3 art/tools/setup_logo.py`（清掉 AI 去背的雜點、裁邊、縮成 2 倍大小）→ 打字機一句話（`typeTagline`：輪流打出三個特點，停在「把一輩子，慢慢記下來」只跑一輪；一點表單就直接停）→「建立你的小窩」視窗（名字、生日、在地球上幾天）→ 視窗底部凹下去的狀態列寫四個特點。
+- logo 是兩張圖：插圖 `brand/setup_hero.webp`（女孩和貓趴在床上，**不會一直飄**，點了才跳一下說話）＋ `brand/logo_text.webp`（wowo! 字，壓在床緣上）。原圖在 `art/source/brand/setup_hero.png`、`logo_text.png`，換圖後跑 `python3 art/tools/setup_logo.py`（清掉 AI 去背的雜點、裁邊、縮成 2 倍大小）→ 打字機一句話（`typeTagline`：輪流打出三個特點，停在「把一輩子，慢慢記下來」只跑一輪；**點表單或其他東西都不會打斷**，使用者定案）→「建立你的小窩」視窗（名字、生日）→ 視窗底部凹下去的狀態列寫四個特點。
 - 標題列的縮小／放大／關閉**只是裝飾，不能點**（使用者定案，不要再加互動）。
 
 ### 輸入框、下拉選單（全站同一套，在 `cy.css`）
 
-- 淺藍灰底、藍灰細框、圓角 4px、內側淡陰影；聚焦是白底＋邦迪藍框＋淡光暈；至少 44px 高、字 16px；下拉選單右邊是像素 ▼。
+- 淡底（`--panel-2`）、細框（`--cy-field-line`）、圓角 4px、內側淡陰影；聚焦是白底＋主色框＋淡光暈（都跟著配色走）；至少 44px 高、字 16px、**字重 500**（不跟著外層 label 變粗）；下拉選單右邊是像素 ▼。
 - 各頁**不要再自己改**框線、底色、圓角（只能改寬度、排版）。例外：記一筆的橫線紙、首頁個人訊息的小欄位。
 - 生日一律用「年／月／日」三個下拉選單（`enhanceBirthday`，輸入框加 `bday-native`），包括人物、寵物；記一筆的日期、回憶的確切日期用原生日曆。
 - **下拉選單不用原生的彈窗**：`fancySelect(select, { title, cols, short, group, start })` 在 `<select>` 前面放一顆長得跟輸入框一樣的按鈕，點了開復古小視窗（年每 10 年一組、一排 5 格，沒選過先停在 30 年前；月 4×3；日一排 7 格）。原本的 `<select>` 藏著存值（`.fselect-native`），程式改了值要呼叫 `select.refreshFancy()`。雲端頁的選單也用它。
@@ -133,7 +138,7 @@
 
 ### 「我」分頁
 
-**「我的」就是設定首頁**，沒有 ⚙ 和第二份選單。依序是：個人卡（點頭像換樣子；「換我的樣子」「編輯名字、生日」兩顆按鈕）、統計、**家人／伴侶與寵物**（「全部 ›」是人物與寵物唯一的入口），以及選單：給未來的信、雲端與家人、天氣、備份與資料、外觀與其他。
+**「我的」就是設定首頁**，沒有 ⚙ 和第二份選單。依序是：個人卡（點頭像打開衣櫃；「我的衣櫃」「編輯名字、生日」兩顆按鈕；換裝視窗標題也是「我的衣櫃」，第一次註冊時是「選你的樣子」）、統計、**家人／伴侶與寵物**（「全部 ›」是人物與寵物唯一的入口），以及選單：給未來的信、雲端與家人、天氣、備份與資料、外觀與其他。
 - 選單用 `data-open` 打開 `#settings-dialog` 的子頁（`openSettings(page)`）；子頁的「返回」、× 都是直接關掉回到「我的」。
 - 選單名稱要和子頁標題一樣。
 - 確認視窗用 `ask()`（不要用 `confirm`／`prompt`）；刪除紀錄、信用 toast 的「復原」。
@@ -213,6 +218,10 @@ tests/             Playwright 端對端測試
 
 ### 人物外觀（look）
 
+> **只剩像素女孩**（使用者定案）：經典 `classic`、復古娃娃 `doll` 已經捨棄，換裝畫面不再有「角色」選項；`normalizeLook` 一律回傳 `style: 'pixel'`，舊資料裡的 classic／doll 也照像素女孩顯示。下面關於經典、娃娃的說明是舊程式的紀錄，那些程式和 `room/char/`、`room/doll/` 的圖之後可以整理掉。新的髮型、衣服由使用者生成後加進 `STYLE_LOOKS.pixel`。
+>
+> 換裝畫面（`renderLook`）：上面點點小舞台＋腳下影子，**點小人換表情**（10 種心情輪流，只是好玩不存）；下面 HAIR 髮型、CLOTH 衣服各一排小格（像素字標題同記一筆），選中的是主色框＋右上小勾，最後一格虛線「製作中」。
+
 - 存在 `state.profile.look = { style, hair, cloth }`，會同步給家人（`sharedView` 有帶 look）。
 - `room.js` 的 `LOOKS` 定義可選項目：
   - 髮型：`ponytail` 或 ''（短髮＝素體本身）；
@@ -249,7 +258,7 @@ tests/             Playwright 端對端測試
 
 ```bash
 npm i -D playwright && npx playwright install chromium   # 第一次
-tests/run.sh                 # 離線測試，13 支約 330 項，應全部通過
+tests/run.sh                 # 離線測試，16 支約 390 項，應全部通過
 tests/run-cloud.sh           # 雲端測試（本機 wrangler D1/R2 + 虛擬 Face ID），3 支
 node tests/e2e/room-weather.test.cjs   # 單跑一支（需要先自己開伺服器，見 run.sh）
 LIFEY_URL=https://develop-app.lifey.workers.dev/ node tests/e2e/ux-flows.test.cjs

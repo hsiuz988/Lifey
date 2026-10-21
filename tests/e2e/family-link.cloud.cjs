@@ -61,7 +61,6 @@ async function addPerson(p, name, relation) {
 async function makeAvatar(p, opts) {
   await tab(p, 'me'); await p.click('#me-card');
   await p.waitForSelector('#look-dialog[open]');
-  await p.click('#look-options .look-opt:has-text("帽 T")');
   await p.click('#look-save'); await closed(p, '#look-dialog');
 }
 const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);

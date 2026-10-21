@@ -9,32 +9,23 @@ const W = 1536, H = 1064;
 export const VIEW = [60, -8, 1416, 1081];
 
 // 可以選的樣子（之後有新素材就加在這裡）
-// 三種角色：像素女孩（logo 的女孩，走路是 4 格動畫）、經典（有表情、衣服）、復古娃娃（手腳分開，走路會擺手擺腳）
-export const STYLES = [['pixel', '像素女孩'], ['classic', '經典'], ['doll', '復古娃娃']];
+// 只剩像素女孩（logo 的女孩，走路是 4 格動畫）；經典、復古娃娃已經不用了（使用者定案），
+// 舊資料裡的 classic／doll 一律當成像素女孩顯示，下面畫經典、娃娃的程式之後再整理掉
+export const STYLES = [['pixel', '像素女孩']];
 const STYLE_LOOKS = {
   pixel: {
-    hair: [['bob', '妹妹頭']],
+    hair: [['bob', '短髮']],
     cloth: [['sweater', '日常毛衣']],
   },
-  classic: {
-    hair: [['ponytail', '高馬尾'], ['', '光頭']],
-    cloth: [['tee', 'T 恤'], ['hoodie', '帽 T'], ['', '運動服']],
-  },
-  doll: {
-    hair: [['long', '長直髮'], ['bob', '鮑伯頭'], ['', '光頭']],
-    cloth: [['tee', 'T 恤'], ['', '運動服']],
-  },
 };
-const STYLE_DEFAULT = { pixel: { hair: 'bob', cloth: 'sweater' }, classic: { hair: 'ponytail', cloth: 'tee' }, doll: { hair: 'long', cloth: 'tee' } };
-export const LOOKS = STYLE_LOOKS.classic;
-export const looksFor = (style) => STYLE_LOOKS[style] || LOOKS;
+const STYLE_DEFAULT = { pixel: { hair: 'bob', cloth: 'sweater' } };
+export const LOOKS = STYLE_LOOKS.pixel;
+export const looksFor = () => STYLE_LOOKS.pixel;
 export const DEFAULT_LOOK = { style: 'pixel', ...STYLE_DEFAULT.pixel };
-// 還沒選過樣子的新使用者是像素女孩；舊資料沒有 style 的維持經典
 export const normalizeLook = (l) => {
-  const style = !l ? 'pixel' : STYLE_LOOKS[l.style] ? l.style : 'classic';
-  const opts = STYLE_LOOKS[style], def = STYLE_DEFAULT[style];
+  const opts = STYLE_LOOKS.pixel, def = STYLE_DEFAULT.pixel;
   return {
-    style,
+    style: 'pixel',
     hair: l && opts.hair.some(([v]) => v === l.hair) ? l.hair : def.hair,
     cloth: l && opts.cloth.some(([v]) => v === l.cloth) ? l.cloth : def.cloth,
   };

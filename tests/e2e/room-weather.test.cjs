@@ -28,25 +28,21 @@ async function newPage(b, opts = {}) {
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   assert(true, '第一次設定完自動打開「選你的樣子」');
-  await p.click('#look-options .look-opt[data-style="classic"]');
-  await p.click('#look-options .look-opt:has-text("光頭")');
-  await p.click('#look-options .look-opt:has-text("帽 T")');
   await p.screenshot({ path: OUT + '/s6-look.png' });
   await p.click('#look-save');
   await p.waitForTimeout(600); // 歡迎頁由 adapt.cjs 自動關掉
   let s = await st(p);
-  assert(s.profile.look.hair === '' && s.profile.look.cloth === 'hoodie', '存下：光頭、帽 T');
-  assert(await p.$eval('#scene', (e) => e.dataset.look) === '/hoodie', '房間裡的小人換成帽 T');
-  assert(await p.$eval('#l-cloth', (e) => e.getAttribute('href').includes('cloth_hoodie')) && await p.$eval('#l-hair-front', (e) => e.style.display === 'none'), '房間小人的圖層正確');
+  assert(s.profile.look.style === 'pixel' && s.profile.look.hair === 'bob' && s.profile.look.cloth === 'sweater', '存下：像素女孩、短髮、日常毛衣');
+  assert(await p.$eval('#scene', (e) => e.dataset.look) === 'bob/sweater', '房間裡的小人是像素女孩');
 
   // 從「我」換樣子，關掉不存
   await tab(p, 'me'); await p.click('#me-card');
   await p.waitForSelector('#look-dialog[open]');
-  await p.click('#look-options .look-opt:has-text("高馬尾")');
+  await p.click('#look-preview .look-me');
   await p.keyboard.press('Escape');
   s = await st(p);
-  assert(s.profile.look.hair === '', '沒按「好了」就不會存');
-  assert(await p.$eval('#me-look', (e) => e.querySelectorAll('img').length >= 3), '「我」的個人卡是自己的小人');
+  assert(s.profile.look.hair === 'bob', '沒按「好了」就不會存');
+  assert(await p.$eval('#me-look', (e) => e.querySelectorAll('img').length >= 2 && !!e.querySelector('.look.pixel')), '「我」的個人卡是自己的小人');
 
   // ===== 房間 =====
   await tab(p, 'home');
@@ -81,7 +77,7 @@ async function newPage(b, opts = {}) {
   await p.fill('#moment-form [name=text]', '今天被插隊，好生氣'); await p.click('#moment-save');
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
   await p.waitForTimeout(300);
-  assert(await p.$eval('#scene', (e) => e.dataset.face) === 'angry' && await p.$eval('#l-face', (e) => e.getAttribute('href').includes('face_angry')), '寫了生氣的事，小人換成生氣的臉');
+  assert(await p.$eval('#scene', (e) => e.dataset.pixface) === 'angry', '寫了生氣的事，小人換成生氣的臉');
   assert(await p.$eval('#scene-bubble', (e) => e.classList.contains('show')), '記完小人會說話');
   assert(['哼哼哼 (╬ Ò﹏Ó)', '吸氣…吐氣…'].includes(await p.textContent('#scene-bubble')), `生氣時小人用自己的口吻說生氣的台詞（${await p.textContent('#scene-bubble')}）`);
   // 電視：出生那年的世界
@@ -163,46 +159,17 @@ async function newPage(b, opts = {}) {
   await n.screenshot({ path: OUT + '/s6-night-dark.png' });
   await n.close();
 
-  // ===== 復古娃娃：選角色、走路會擺手擺腳 =====
-  const d = await newPage(b);
-  await d.goto(URL);
-  await d.fill('#setup-form [name=name]', 'D'); await d.fill('#setup-form [name=birthday]', '1992-05-05'); await d.click('#setup-form button[type=submit]');
-  await d.waitForFunction(() => document.querySelector('#look-dialog').open);
-  await d.click('#look-options .look-opt[data-style="doll"]');
-  assert(await d.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '像素女孩,經典,復古娃娃,長直髮,鮑伯頭,光頭,T 恤,運動服', '復古娃娃：髮型有長直髮、鮑伯頭、光頭，衣服有 T 恤、運動服');
-  assert(await d.$eval('#look-preview .look', (e) => e.classList.contains('doll') && e.querySelectorAll('img').length === 3 && !!e.querySelector('img[src$="front/body_tee.webp"]')), '換裝畫面是正面、穿 T 恤的復古娃娃');
-  await d.screenshot({ path: OUT + '/s6-doll-look.png' });
-  await d.click('#look-save');
-  await d.waitForTimeout(600);
-  s = await st(d);
-  assert(s.profile.look.style === 'doll' && s.profile.look.hair === 'long' && s.profile.look.cloth === 'tee', '存下：復古娃娃、長直髮、T 恤');
-  assert(await d.$eval('.doll-arm_n image', (e) => e.getAttribute('href').endsWith('arm_n_tee.webp')), '房間裡娃娃的手穿著 T 恤的袖子');
-  assert(await d.$eval('#scene', (e) => e.dataset.style) === 'doll', '房間裡是復古娃娃');
-  assert(await d.$eval('#scene', (e) => e.dataset.pose) === 'front' && await d.$eval('.front-body', (e) => e.getAttribute('href').endsWith('front/body_tee.webp')), '站著的時候是正面');
-  const db = await d.$eval('#scene svg', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
-  await d.mouse.click(db.x + db.w * 0.3, db.y + db.h * 0.8);
-  await d.waitForTimeout(400);
-  assert(await d.$eval('#scene', (e) => e.dataset.pose) === 'side', '走路時轉成側面');
-  const swing = await d.$eval('.doll-leg_n', (e) => e.getAttribute('transform'));
-  assert(/rotate\(-?\d/.test(swing) && !/rotate\(-?0\.00 /.test(swing), '走路時腳會前後跨步');
-  await d.screenshot({ path: OUT + '/s6-doll-walk.png' });
-  await d.waitForFunction(() => ['leg_n', 'arm_n'].every((j) => /rotate\(-?0\.00 /.test(document.querySelector('.doll-' + j).getAttribute('transform'))), null, { timeout: 8000 });
-  assert(await d.$eval('#scene', (e) => e.dataset.pose) === 'front', '停下來手腳回到站姿、轉回正面');
-  await tab(d, 'me');
-  assert(await d.$eval('#me-look .look', (e) => e.classList.contains('doll')), '「我」的個人卡也是復古娃娃');
-  await d.close();
-
   // ===== 像素女孩：新使用者預設；站著正面、走路側面 4 格輪流 =====
   const x = await newPage(b);
   await x.goto(URL);
   await x.fill('#setup-form [name=name]', 'X'); await x.fill('#setup-form [name=birthday]', '1996-06-06'); await x.click('#setup-form button[type=submit]');
   await x.waitForFunction(() => document.querySelector('#look-dialog').open);
-  assert(await x.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '像素女孩,經典,復古娃娃', '像素女孩是預設（目前只有一款髮型和衣服，所以不顯示選項）');
-  assert(await x.$eval('#look-preview .look', (e) => e.classList.contains('pixel') && e.querySelectorAll('img').length === 2 && !!e.querySelector('img[src$="pixel/head_bob_front.webp?v=2"]')), '換裝畫面是正面、妹妹頭的像素女孩');
+  assert(await x.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '短髮,＋製作中,日常毛衣,＋製作中', '像素女孩是預設（髮型、衣服各一款，後面是製作中）');
+  assert(await x.$eval('#look-preview .look', (e) => e.classList.contains('pixel') && !!e.querySelector('img[src$="pixel/head_bob_front.webp?v=2"]') && !!e.querySelector('img[src*="face_happy"]')), '換裝畫面是正面、短髮、開心的像素女孩');
   await x.click('#look-save');
   await x.waitForTimeout(600);
   s = await st(x);
-  assert(s.profile.look.style === 'pixel' && s.profile.look.hair === 'bob' && s.profile.look.cloth === 'sweater', '存下：像素女孩、妹妹頭、日常毛衣');
+  assert(s.profile.look.style === 'pixel' && s.profile.look.hair === 'bob' && s.profile.look.cloth === 'sweater', '存下：像素女孩、短髮、日常毛衣');
   assert(await x.$eval('#scene', (e) => e.dataset.style === 'pixel' && e.dataset.pose === 'front') && await x.$eval('.pix-body.on', (e) => e.getAttribute('href').endsWith('pixel/body_sweater_front.webp?v=2')), '房間裡站著是正面的像素女孩');
   const xb = await x.$eval('#scene svg', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
   await x.mouse.click(xb.x + xb.w * 0.3, xb.y + xb.h * 0.8);
