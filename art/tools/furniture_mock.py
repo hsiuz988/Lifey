@@ -19,7 +19,7 @@ import sys
 RELINE='--raw' not in sys.argv
 room=Image.open('public/room/pixel_room/room.webp').convert('RGBA')
 # key: (中心x, 底部y, 寬)
-PLACE={'hearts':(275,650,85),'gift':(245,705,105),'cat':(520,520,130),'coffee':(705,330,70),'meal':(975,705,170),'bear':(330,720,95),'camera':(790,960,90)}
+PLACE={'hearts':(275,650,85),'gift':(245,705,105),'cat':(520,520,130),'coffee':(705,330,70),'meal':(975,705,170),'bear':(330,720,95),'sunset':(790,930,150)}
 for k,(cx,by,w) in PLACE.items():
     im=white_cut(f'art/source/furniture/{k}.png')
     im=im.resize((w,round(im.height*w/im.width)),Image.LANCZOS)
