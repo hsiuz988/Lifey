@@ -375,6 +375,16 @@ function renderHeader() {
   $('#age-sub').textContent = `${fmtDate(parseDate(birthday))} · ${age} 歲 · 距離 ${age + 1} 歲還有 ${total - passed} 天`;
 }
 
+// 累積幸福收藏後回答的那一句，存成今天的一篇日記（記得是哪個小幸福）
+async function addJoyDiary({ text, joyId }) {
+  const now = new Date().toISOString();
+  state.moments.push({ id: newId(), date: todayStr(), approx: false, text, mood: null, tags: [], photoIds: [], people: [], event: null, starred: false, joy: joyId, createdAt: now, updatedAt: now });
+  if (!(await saveState())) return;
+  toast('寫進日記了 ✏️');
+  render();
+  if (scene) scene.celebrate({ emo: 'happy' });
+}
+
 // MSN 狀態：名字旁邊的小燈，家人來串門子時也看得到
 const STATUSES = [
   { key: 'online', label: '在線上', color: '#3cc46a' },
@@ -3538,7 +3548,7 @@ async function showVersion() {
 }
 
 async function init() {
-  initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), ask, h, toast, todayStr, toDateStr, newId, $ });
+  initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), ask, addDiary: addJoyDiary, h, toast, todayStr, toDateStr, newId, $ });
   showVersion();
   applyTheme();
   initMusic({ onFailed: musicFailed, onTrackChange: renderMusicBtn });

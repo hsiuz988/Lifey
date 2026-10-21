@@ -20,23 +20,27 @@ const errors = [];
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   await p.click('#look-save'); await p.waitForTimeout(600);
 
-  // 空的時候是範例
-  assert(await p.isVisible('#joy-row .joy-chip >> text=和貓一起睡'), '一開始首頁列出小幸福範例');
-  await p.click('#joy-row .joy-chip >> text=和貓一起睡'); await p.waitForTimeout(150);
+  // 一開始就有預設的 10 個小幸福，排成 2 排 × 5
   let s = await st(p);
-  assert(s.joys.length === 1 && s.joys[0].title === '和貓一起睡' && s.joys[0].mode === 'once', '點範例就加入（每天一次）');
-  const cat = s.joys[0].id;
+  assert(s.joys.length === 10 && (await p.$$('#joy-row .joy-btn[data-joy]')).length === 10 && s.prefs.joysSeeded, '新使用者一進來就有 10 個常駐的小幸福');
+  const cat = 'joy-sunset';
+  assert(s.joys.find((j) => j.id === cat).title === '看見漂亮的天空', '預設的 id 固定（兩台手機同步不會變兩份）');
   await p.screenshot({ path: OUT + '/joys-home.png' });
 
-  // 點一下收藏；同一天再點不會多算，而是打開詳情
+  // 點一下就收藏，下面問一句；有寫就變成日記
   await p.click(`#joy-row [data-joy="${cat}"]`); await p.waitForTimeout(450);
   assert(await p.$eval(`#joy-row [data-joy="${cat}"]`, (e) => e.classList.contains('on')), '點一下就收藏，按鈕變成已收藏');
+  assert(await p.isVisible('#joy-ask') && (await p.textContent('#joy-ask')).includes('收藏了！看見漂亮的天空') && (await p.getAttribute('.joy-ask-input', 'placeholder')).includes('天空'), '收藏後延伸提問');
+  assert(await p.$eval('#joy-ask .btn.primary', (b) => b.disabled), '還沒寫字時「記成日記」按不下去');
+  await p.fill('.joy-ask-input', '晚霞是粉紫色的'); await p.click('#joy-ask .btn >> text=記成日記'); await p.waitForTimeout(400);
+  s = await st(p);
+  assert(s.moments.length === 1 && s.moments[0].text === '晚霞是粉紫色的' && s.moments[0].joy === cat && s.moments[0].date === '2026-10-21' && !(await p.$('#joy-ask')), '寫了就存成今天的一篇日記，卡片收起來');
   await p.waitForTimeout(400);
   await p.click(`#joy-row [data-joy="${cat}"]`); await p.waitForTimeout(300);
   s = await st(p);
   assert(s.joyLog.length === 1, '每天一次：同一天再點不會多記');
   assert(await p.$eval('#joy-dialog', (d) => d.open) && (await p.textContent('#joy-dialog .joy-total')).includes('累積 1 天'), '再點一次打開詳情：累積 1 天');
-  assert(await p.$eval('#joy-dialog .win-title', (e) => e.textContent) === '和貓一起睡', '視窗標題是小幸福的名字');
+  assert(await p.$eval('#joy-dialog .win-title', (e) => e.textContent) === '看見漂亮的天空', '視窗標題是小幸福的名字');
 
   // 月曆：補記 10/19、撤銷今天、未來不能點
   assert(await p.$eval('.joy-day[data-date="2026-10-22"]', (e) => e.disabled), '未來的日期不能點');
@@ -64,23 +68,29 @@ const errors = [];
   const tea = s.joys.find((j) => j.title === '喝到好喝的奶茶');
   assert(tea && tea.mode === 'many' && tea.icon === 'coffee', '自己做一個：名字、圖示、一天多次');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
-  for (let i = 0; i < 3; i++) { await p.click(`#joy-row [data-joy="${tea.id}"]`); await p.waitForTimeout(420); }
+  assert(!(await p.$(`#joy-row [data-joy="${tea.id}"]`)), '首頁只放前 10 個，第 11 個在「全部」裡');
+  const coffee = s.joys.find((j) => j.id === 'joy-coffee');
+  // 點錯了可以復原
+  await p.click(`#joy-row [data-joy="${coffee.id}"]`); await p.waitForTimeout(420);
+  await p.click('#joy-ask .link-btn >> text=復原'); await p.waitForTimeout(300);
+  assert(!(await st(p)).joyLog.some((l) => l.joyId === coffee.id) && !(await p.$('#joy-ask')), '收藏後按「復原」就取消這次');
+  for (let i = 0; i < 3; i++) { await p.click(`#joy-row [data-joy="${coffee.id}"]`); await p.waitForTimeout(420); }
   s = await st(p);
-  assert(s.joyLog.filter((l) => l.joyId === tea.id).length === 3 && (await p.textContent(`#joy-row [data-joy="${tea.id}"] .joy-count`)) === '×3', '一天多次：點三下就是 3 次，按鈕顯示 ×3');
+  assert(s.joyLog.filter((l) => l.joyId === coffee.id).length === 3 && (await p.textContent(`#joy-row [data-joy="${coffee.id}"] .joy-count`)) === '×3', '一天多次：點三下就是 3 次，按鈕顯示 ×3');
   // 手指抖一下（很快點兩下）只算一次
-  await p.dblclick(`#joy-row [data-joy="${tea.id}"]`); await p.waitForTimeout(450);
+  await p.dblclick(`#joy-row [data-joy="${coffee.id}"]`); await p.waitForTimeout(450);
   s = await st(p);
-  assert(s.joyLog.filter((l) => l.joyId === tea.id).length === 4, '連點兩下太快只算一次');
+  assert(s.joyLog.filter((l) => l.joyId === coffee.id).length === 4, '連點兩下太快只算一次');
 
   // 長按打開詳情，調整次數
-  const box = await (await p.$(`#joy-row [data-joy="${tea.id}"]`)).boundingBox();
+  const box = await (await p.$(`#joy-row [data-joy="${coffee.id}"]`)).boundingBox();
   await p.mouse.move(box.x + 20, box.y + 20); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(200);
   s = await st(p);
-  assert(await p.$eval('#joy-dialog', (d) => d.open) && s.joyLog.filter((l) => l.joyId === tea.id).length === 4, '長按打開詳情，不會多記一次');
+  assert(await p.$eval('#joy-dialog', (d) => d.open) && s.joyLog.filter((l) => l.joyId === coffee.id).length === 4, '長按打開詳情，不會多記一次');
   await p.click('.joy-day[data-date="2026-10-21"]'); await p.waitForTimeout(150);
   assert((await p.textContent('.joy-adjust-n')) === '4 次', '一天多次：點日期出現加減');
   await p.click('.joy-adjust [aria-label="少一次"]'); await p.waitForTimeout(150);
-  assert((await p.textContent('.joy-adjust-n')) === '3 次' && (await st(p)).joyLog.filter((l) => l.joyId === tea.id).length === 3, '按 − 少一次');
+  assert((await p.textContent('.joy-adjust-n')) === '3 次' && (await st(p)).joyLog.filter((l) => l.joyId === coffee.id).length === 3, '按 − 少一次');
   await p.click('.joy-day[data-date="2026-10-18"]'); await p.waitForTimeout(150);
   await p.click('.joy-adjust [aria-label="多一次"]'); await p.waitForTimeout(150);
   assert((await p.textContent('#joy-dialog .joy-total')).includes('累積 4 次'), '補記其他天的次數，累積跟著加');
@@ -91,17 +101,17 @@ const errors = [];
   await p.click('#joy-dialog .btn >> text=好了'); await p.waitForTimeout(150);
   await p.click('#ask-dialog .btn >> text=先不要'); await p.waitForTimeout(150);
   s = await st(p);
-  assert(s.joys.find((j) => j.id === tea.id).mode === 'many' && s.joyLog.filter((l) => l.joyId === tea.id).length === 4, '改成每天一次要先確認，取消就不動資料');
+  assert(s.joys.find((j) => j.id === coffee.id).mode === 'many' && s.joyLog.filter((l) => l.joyId === coffee.id).length === 4, '改成每天一次要先確認，取消就不動資料');
   await p.click('#joy-dialog .btn >> text=好了'); await p.waitForTimeout(150);
   await p.click('#ask-dialog .btn >> text=改成每天一次'); await p.waitForTimeout(200);
   s = await st(p);
-  assert(s.joys.find((j) => j.id === tea.id).mode === 'once' && s.joyLog.filter((l) => l.joyId === tea.id).length === 2, '確認後每天只留一次（10/21、10/18 各一）');
+  assert(s.joys.find((j) => j.id === coffee.id).mode === 'once' && s.joyLog.filter((l) => l.joyId === coffee.id).length === 2, '確認後每天只留一次（10/21、10/18 各一）');
 
   // 排序、收起來
   await p.click('#joy-dialog .btn >> text=全部小幸福'); await p.waitForTimeout(150);
   await p.click(`#joy-dialog [aria-label="喝到好喝的奶茶往前"]`); await p.waitForTimeout(150);
-  assert(await p.$eval('#joy-row .joy-btn', (e) => e.textContent.includes('奶茶')), '排序：往前後首頁第一顆換成奶茶');
-  await p.click('#joy-dialog .joy-item-main >> text=和貓一起睡'); await p.click('#joy-dialog .btn >> text=編輯'); await p.waitForTimeout(150);
+  assert(!!(await p.$(`#joy-row [data-joy="${tea.id}"]`)) && !(await p.$('#joy-row [data-joy="joy-hearts"]')), '排序：奶茶往前排進前 10，換它上首頁');
+  await p.click('#joy-dialog .joy-item-main >> text=看見漂亮的天空'); await p.click('#joy-dialog .btn >> text=編輯'); await p.waitForTimeout(150);
   await p.click('#joy-dialog .btn >> text=先收起來'); await p.waitForTimeout(200);
   assert(!(await p.$(`#joy-row [data-joy="${cat}"]`)) && (await st(p)).joyLog.some((l) => l.joyId === cat), '收起來：首頁不顯示，紀錄還在');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);

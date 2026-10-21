@@ -1,4 +1,4 @@
-// 累積幸福：重複發生的小幸福（和貓一起睡、全家吃飯…），點一下就收藏，App 幫忙數次數、畫月曆
+// 累積幸福：重複發生的小幸福（喝到好喝的、看見漂亮的天空…），點一下就收藏，再問一句（有寫就變成日記），App 幫忙數次數、畫月曆
 // 資料：state.joys（幸福項目）、state.joyLog（每點一次一筆，刪除留墓碑在 state.deleted）
 // 每點一次存一筆，兩台手機同一天各點的次數合併時都會留下；次數、天數都從紀錄即時算，不另存計數
 
@@ -17,19 +17,56 @@ export function iconEl(key) {
   img.src = `joys/${key}.webp`; img.alt = ''; img.className = 'joy-pix'; img.draggable = false;
   return img;
 }
-export const JOY_PRESETS = [
-  { title: '和貓一起睡', icon: 'cat', mode: 'once' },
-  { title: '喝到好咖啡', icon: 'coffee', mode: 'many' },
-  { title: '和家人吃飯', icon: 'meal', mode: 'once' },
-  { title: '出門拍照', icon: 'camera', mode: 'once' },
-  { title: '收到小驚喜', icon: 'gift', mode: 'many' },
+// 預設的 10 個（每個人都會遇到的日常，新使用者一進來就有；可以刪，刪了不會再出現）
+// id 固定（joy-<圖示>），兩台手機各自建立時同步會合成同一個；updatedAt 用很早的時間，任何編輯或刪除都比它新
+export const DEFAULT_JOYS = [
+  { title: '喝到好喝的', icon: 'coffee', mode: 'many' },
+  { title: '吃到好吃的', icon: 'meal', mode: 'many' },
   { title: '看見漂亮的天空', icon: 'sunset', mode: 'once' },
-  { title: '好好休息', icon: 'bear', mode: 'once' },
-  { title: '和喜歡的人見面', icon: 'hearts', mode: 'once' },
+  { title: '好好睡了一覺', icon: 'moon', mode: 'once' },
+  { title: '被稱讚了', icon: 'star', mode: 'many' },
+  { title: '收到小驚喜', icon: 'gift', mode: 'many' },
+  { title: '聽到喜歡的歌', icon: 'music', mode: 'many' },
+  { title: '遇到可愛的貓狗', icon: 'paw', mode: 'many' },
+  { title: '出門走走', icon: 'sneaker', mode: 'once' },
+  { title: '和重要的人在一起', icon: 'hearts', mode: 'once' },
 ];
+// 新增時的建議（預設以外的）
+const SUGGESTIONS = [
+  { title: '和貓一起睡', icon: 'cat', mode: 'once' },
+  { title: '出門拍照', icon: 'camera', mode: 'once' },
+  { title: '好好泡個澡', icon: 'bath', mode: 'once' },
+  { title: '吃到甜點', icon: 'cake', mode: 'many' },
+  { title: '讀了一本好書', icon: 'book', mode: 'once' },
+  { title: '天氣很好', icon: 'sun', mode: 'once' },
+  { title: '和家人吃飯', icon: 'home', mode: 'once' },
+  { title: '收到一封訊息', icon: 'letter', mode: 'many' },
+];
+export const JOY_PRESETS = [...DEFAULT_JOYS, ...SUGGESTIONS];
+// 收藏之後的延伸提問（照圖示）；有寫就變成一篇日記
+const ASK = {
+  coffee: '喝了什麼？好喝在哪裡？', meal: '吃了什麼好吃的？', sunset: '天空是什麼顏色的？', moon: '睡得怎麼樣？做了什麼夢嗎？',
+  star: '被誰稱讚了？說了什麼？', gift: '是什麼樣的驚喜？', music: '是哪一首歌？', paw: '遇到什麼樣的小傢伙？',
+  sneaker: '去了哪裡走走？', hearts: '和誰在一起？做了什麼？', cat: '貓咪今天睡在哪裡？', camera: '拍到了什麼？',
+  bath: '泡澡的時候在想什麼？', cake: '吃了什麼甜點？', book: '讀了哪本書？', sun: '天氣好的時候做了什麼？',
+  home: '吃了什麼？聊了什麼？', letter: '是誰傳來的？',
+};
+const askOf = (joy) => ASK[joy.icon] || '想多記一點嗎？';
+const SEED_AT = '2000-01-01T00:00:00.000Z';
+// 還沒有任何小幸福的人放進預設的 10 個（只做一次）；回傳有沒有改動
+export function seedJoys(state) {
+  state.prefs = state.prefs || {};
+  if (state.prefs.joysSeeded) return false;
+  state.prefs.joysSeeded = true;
+  if ((state.joys || []).length) return true;
+  const now = new Date().toISOString();
+  state.joys = DEFAULT_JOYS.filter((p) => !(state.deleted || {})[`joy-${p.icon}`]).map((p, i) => ({
+    id: `joy-${p.icon}`, title: p.title, icon: p.icon, mode: p.mode, order: i, createdAt: now, updatedAt: SEED_AT, archivedAt: null,
+  }));
+  return true;
+}
 export const MAX_TITLE = 20;
-const HOME_MAX = 8; // 首頁最多擺幾顆，其他在「全部」
-const CHEERS = ['又收藏了一個小幸福 ♡', '這個瞬間，收好囉！', '今天又多了一點點美好。', '小窩記住這件事了。', '一顆小星星，悄悄亮起來。'];
+const HOME_MAX = 10; // 首頁最多擺幾顆（2 排 × 5），其他在「全部」
 
 // ---------- 計算（純函式，測試和合併也用） ----------
 export const iconOf = (joy) => iconEl(joy && joy.icon);
@@ -102,7 +139,7 @@ export function checkImprints(state) {
 export const shownImprints = (state) => (state.imprints || []).filter((i) => i.shown).map((i) => i.key);
 
 // ---------- 畫面 ----------
-let ctx; // { getState, save, refresh, ask, h, toast, todayStr, toDateStr, newId, $ }
+let ctx; // { getState, save, refresh, ask, addDiary, h, toast, todayStr, toDateStr, newId, $ }
 let lastTap = { id: null, t: 0 };
 const isFuture = (date) => date > ctx.todayStr();
 const unit = (joy) => (joy.mode === 'many' ? '次' : '天');
@@ -140,19 +177,16 @@ export function renderJoyRow() {
   const s = ctx.getState();
   const row = $('#joy-row');
   if (!row) return;
+  if (seedJoys(s)) ctx.save();
   const today = ctx.todayStr();
   const list = activeJoys(s);
   if (!list.length) {
-    const used = new Set((s.joys || []).map((j) => j.title));
-    row.replaceChildren(h('p', { class: 'joy-empty' }, '把常常發生的小幸福做成按鈕，發生了就點一下：'),
-      ...JOY_PRESETS.filter((p) => !used.has(p.title)).slice(0, 6).map((p) => h('button', {
-        type: 'button', class: 'joy-chip', onclick: () => { addJoy(p); renderJoyRow(); ctx.toast(`加入了「${p.title}」，發生的時候點一下就好`); },
-      }, '＋ ', iconEl(p.icon), ` ${p.title}`)),
-      h('button', { type: 'button', class: 'joy-chip', onclick: () => openJoyEdit(null) }, '＋ 自己做一個'));
+    row.replaceChildren(h('p', { class: 'joy-empty' }, '把常常發生的小幸福做成按鈕，發生了就點一下。'),
+      h('button', { type: 'button', class: 'joy-chip', onclick: () => openJoyEdit(null) }, '＋ 新增小幸福'));
     return;
   }
   row.replaceChildren(...list.slice(0, HOME_MAX).map((j) => joyButton(j, today)),
-    h('button', { type: 'button', class: 'joy-btn joy-more', 'aria-label': '新增小幸福', onclick: () => openJoyEdit(null) }, h('span', { class: 'joy-ic' }, '＋'), h('span', { class: 'joy-name' }, '新增')));
+    ...(list.length < HOME_MAX ? [h('button', { type: 'button', class: 'joy-btn joy-more', 'aria-label': '新增小幸福', onclick: () => openJoyEdit(null) }, h('span', { class: 'joy-ic' }, '＋'), h('span', { class: 'joy-name' }, '新增'))] : []));
 }
 
 function joyButton(joy, today) {
@@ -184,7 +218,38 @@ async function tap(joy) {
   renderJoyRow();
   const el = ctx.$(`#joy-row [data-joy="${joy.id}"]`);
   if (el) { el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 600); }
-  ctx.toast(CHEERS[Math.floor(Math.random() * CHEERS.length)], 1800);
+  showAsk(joy);
+}
+
+// 收藏後在按鈕下面問一句；有寫就存成日記，也可以復原這次收藏
+function showAsk(joy) {
+  const { h, $ } = ctx;
+  const s = ctx.getState();
+  const today = ctx.todayStr();
+  const st = joyStats(s, joy, today);
+  let card = $('#joy-ask');
+  if (!card) { card = h('div', { id: 'joy-ask', class: 'joy-ask', role: 'region', 'aria-label': '收藏了' }); $('#joy-row').after(card); }
+  const close = () => card.remove();
+  const input = h('input', { class: 'joy-ask-input', maxlength: '200', placeholder: askOf(joy), 'aria-label': askOf(joy), enterkeyhint: 'done' });
+  const save = h('button', { type: 'button', class: 'btn small primary', disabled: true, onclick: async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    save.disabled = true;
+    await ctx.addDiary({ text, joyId: joy.id, title: joy.title });
+    close();
+  } }, '記成日記');
+  input.addEventListener('input', () => { save.disabled = !input.value.trim(); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save.click(); } });
+  const left = IMPRINTS[joy.icon] && !(s.imprints || []).some((i) => i.key === joy.icon) ? IMPRINT_DAYS - imprintDays(s, joy.icon) : 0;
+  const count = joy.mode === 'many' ? `今天第 ${st.today} 次` : `第 ${st.days} 天`;
+  card.replaceChildren(
+    h('div', { class: 'joy-ask-head' }, h('span', { class: 'joy-ask-ic' }, iconOf(joy)),
+      h('span', { class: 'joy-ask-title' }, h('b', {}, `收藏了！${joy.title}`), h('small', {}, left > 0 && left <= 3 ? `${count} · 再 ${left} 天房間會多一件東西 🎁` : count)),
+      h('button', { type: 'button', class: 'icon-btn joy-ask-x', 'aria-label': '關掉', onclick: close }, '×')),
+    input,
+    h('div', { class: 'joy-ask-actions' },
+      h('button', { type: 'button', class: 'link-btn', onclick: () => { unrecord(joy, today); ctx.save(); renderJoyRow(); close(); ctx.toast('取消這次收藏了'); } }, '復原'),
+      h('span', { class: 'spacer' }), save));
 }
 
 function addJoy(p) {

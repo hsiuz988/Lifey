@@ -20,39 +20,39 @@ const errors = [];
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   await p.click('#look-save'); await p.waitForTimeout(600);
 
-  await p.click('#joy-row .joy-chip >> text=和貓一起睡'); await p.waitForTimeout(150);
-  const cat = (await st(p)).joys[0].id;
+  const cat = 'joy-hearts';
   await p.click(`#joy-row [data-joy="${cat}"]`); await p.waitForTimeout(450);
+  await p.click('#joy-ask .joy-ask-x'); await p.waitForTimeout(100);
   await p.click(`#joy-row [data-joy="${cat}"]`); await p.waitForTimeout(300);
-  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('再收藏 9 天') && (await p.textContent('#joy-dialog .joy-imprint')).includes('小貓抱枕'), '詳情告訴你還差幾天、會拿到什麼');
+  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('再收藏 9 天') && (await p.textContent('#joy-dialog .joy-imprint')).includes('愛心氣球'), '詳情告訴你還差幾天、會拿到什麼');
 
   // 補記 10/12～10/19：還差一天，不會跳
   for (let d = 12; d <= 19; d++) { await p.click(`.joy-day[data-date="2026-10-${d}"]`); await p.waitForTimeout(80); }
   await p.waitForTimeout(500);
   assert(!(await p.$eval('#imprint-dialog', (e) => e.open)) && !((await st(p)).imprints || []).length, '收藏 9 天還不會拿到');
   await p.click('.joy-day[data-date="2026-10-20"]'); await p.waitForTimeout(700);
-  assert(await p.$eval('#imprint-dialog', (e) => e.open) && (await p.textContent('#imprint-dialog')).includes('小貓抱枕'), '第 10 天跳出「房間多了一件東西」');
+  assert(await p.$eval('#imprint-dialog', (e) => e.open) && (await p.textContent('#imprint-dialog')).includes('愛心氣球'), '第 10 天跳出「房間多了一件東西」');
   let s = await st(p);
-  assert(s.imprints.length === 1 && s.imprints[0].key === 'cat' && s.imprints[0].at === '2026-10-21' && !s.imprints[0].shown, '記下拿到的日期（照日期排的第 10 天），先不放出來');
+  assert(s.imprints.length === 1 && s.imprints[0].key === 'hearts' && s.imprints[0].at === '2026-10-21' && !s.imprints[0].shown, '記下拿到的日期（照日期排的第 10 天），先不放出來');
   await p.screenshot({ path: OUT + '/imprint-got.png' });
   await p.click('#imprint-dialog .btn >> text=放到房間'); await p.waitForTimeout(300);
   s = await st(p);
-  assert(s.imprints[0].shown && await p.$('#scene image[data-imprint="cat"]'), '放到房間：小窩裡出現小貓抱枕');
-  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('紀念'), '詳情改成「房間裡的小貓抱枕就是它的紀念」');
+  assert(s.imprints[0].shown && await p.$('#scene image[data-imprint="hearts"]'), '放到房間：小窩裡出現愛心氣球');
+  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('紀念'), '詳情改成「房間裡的愛心氣球就是它的紀念」');
 
   // 撤銷一天也不會收回
   await p.click('.joy-day[data-date="2026-10-20"]'); await p.waitForTimeout(300);
   s = await st(p);
-  assert(s.imprints.length === 1 && s.imprints[0].shown && await p.$('#scene image[data-imprint="cat"]'), '拿到就永遠是你的：刪掉紀錄也不收回');
+  assert(s.imprints.length === 1 && s.imprints[0].shown && await p.$('#scene image[data-imprint="hearts"]'), '拿到就永遠是你的：刪掉紀錄也不收回');
 
   // 收藏冊：收起來、再放出來
   await p.click('#joy-dialog .btn >> text=全部小幸福'); await p.waitForTimeout(150);
-  assert((await p.textContent('.imprint-book h4')).includes('1 / 24') && await p.$('.imprint-cell.got[data-imprint="cat"]'), '收藏冊：24 格，拿到的會亮');
+  assert((await p.textContent('.imprint-book h4')).includes('1 / 24') && await p.$('.imprint-cell.got[data-imprint="hearts"]'), '收藏冊：24 格，拿到的會亮');
   assert((await p.textContent('.imprint-cell[data-imprint="coffee"]')).includes('還沒有'), '還沒有的顯示灰色');
-  await p.click('.imprint-cell[data-imprint="cat"] .btn >> text=收起來'); await p.waitForTimeout(200);
-  assert(!(await p.$('#scene image[data-imprint="cat"]')) && !(await st(p)).imprints[0].shown, '收起來：房間裡不見，紀錄還在');
-  await p.click('.imprint-cell[data-imprint="cat"] .btn >> text=放到房間'); await p.waitForTimeout(200);
-  assert(!!(await p.$('#scene image[data-imprint="cat"]')), '再放出來');
+  await p.click('.imprint-cell[data-imprint="hearts"] .btn >> text=收起來'); await p.waitForTimeout(200);
+  assert(!(await p.$('#scene image[data-imprint="hearts"]')) && !(await st(p)).imprints[0].shown, '收起來：房間裡不見，紀錄還在');
+  await p.click('.imprint-cell[data-imprint="hearts"] .btn >> text=放到房間'); await p.waitForTimeout(200);
+  assert(!!(await p.$('#scene image[data-imprint="hearts"]')), '再放出來');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   await p.screenshot({ path: OUT + '/imprint-room.png' });
 
