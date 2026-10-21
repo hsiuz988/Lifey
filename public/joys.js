@@ -28,7 +28,7 @@ export const DEFAULT_JOYS = [
   { title: '收到小驚喜', icon: 'gift', mode: 'many' },
   { title: '聽到喜歡的歌', icon: 'music', mode: 'many' },
   { title: '遇到可愛的貓狗', icon: 'paw', mode: 'many' },
-  { title: '出門走走', icon: 'sneaker', mode: 'once' },
+  { title: '出外旅行', icon: 'sneaker', mode: 'once' },
   { title: '和重要的人在一起', icon: 'hearts', mode: 'once' },
 ];
 // 新增時的建議（預設以外的）
@@ -47,19 +47,22 @@ export const JOY_PRESETS = [...DEFAULT_JOYS, ...SUGGESTIONS];
 const ASK = {
   coffee: '喝了什麼？好喝在哪裡？', meal: '吃了什麼好吃的？', sunset: '看到了什麼樣的風景？', moon: '睡得怎麼樣？做了什麼夢嗎？',
   star: '被誰稱讚了？說了什麼？', gift: '是什麼樣的驚喜？', music: '是哪一首歌？', paw: '遇到什麼樣的小傢伙？',
-  sneaker: '去了哪裡走走？', hearts: '和誰在一起？做了什麼？', cat: '貓咪今天睡在哪裡？', camera: '拍到了什麼？',
+  sneaker: '去了哪裡？看到了什麼？', hearts: '和誰在一起？做了什麼？', cat: '貓咪今天睡在哪裡？', camera: '拍到了什麼？',
   bath: '泡澡的時候在想什麼？', cake: '吃了什麼甜點？', book: '讀了哪本書？', sun: '天氣好的時候做了什麼？',
   home: '吃了什麼？聊了什麼？', letter: '是誰傳來的？',
 };
 const askOf = (joy) => ASK[joy.icon] || '想多記一點嗎？';
 const SEED_AT = '2000-01-01T00:00:00.000Z';
+// 預設名稱改過的：舊名 → 新名
+const RENAMED = { 'joy-sunset': { 看見漂亮的天空: '看見漂亮的風景' }, 'joy-sneaker': { 出門走走: '出外旅行' } };
 // 還沒有任何小幸福的人放進預設的 10 個（只做一次）；回傳有沒有改動
 export function seedJoys(state) {
   state.prefs = state.prefs || {};
   // 預設名稱改過的，沒被使用者動過就跟著換（updatedAt 還是預設的時間）
   let renamed = false;
   for (const j of state.joys || []) {
-    if (j.id === 'joy-sunset' && j.updatedAt === SEED_AT && j.title === '看見漂亮的天空') { j.title = '看見漂亮的風景'; renamed = true; }
+    const to = j.updatedAt === SEED_AT && RENAMED[j.id] && RENAMED[j.id][j.title];
+    if (to) { j.title = to; renamed = true; }
   }
   if (state.prefs.joysSeeded) return renamed;
   state.prefs.joysSeeded = true;
