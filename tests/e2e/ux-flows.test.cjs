@@ -28,6 +28,12 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert((await st(p)).profile.look.cloth === 'hoodie', '存下帽 T');
   await p.waitForTimeout(300);
 
+  // 最新動態還是空的：一張邀請卡，點了打開記一筆
+  assert(await p.isVisible('#cy-news .cy-invite') && (await p.textContent('#cy-news .cy-invite')).includes('寫下今天的第一筆'), '沒有日記時，最新動態是一張「記一筆」邀請卡');
+  await p.click('#cy-news .cy-invite'); await p.waitForTimeout(200);
+  assert(await p.$eval('#moment-dialog', (d) => d.open), '點邀請卡打開記一筆');
+  await p.click('#moment-dialog [data-close]'); await p.waitForTimeout(150);
+
   // 記一筆：一句話就能存
   await p.click('#add-btn');
   assert(await p.$$eval('#moment-form .opt-sec', els => els.every(e => e.hidden)), '選填區塊一開始都收起來');
