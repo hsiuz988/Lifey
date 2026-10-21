@@ -1,11 +1,11 @@
 // 版本號：主.次.修（見 CLAUDE.md「版本號」）。改了任何檔案就把最後一位 +1，舊快取才會被清掉
-const VERSION = '0.0.55';
+const VERSION = '0.0.56';
 const CACHE = `lifelog-${VERSION}`;
 const ASSETS = [
   './',
   './privacy',
   './style.css',
-  './cy.css', './moods.js', './joys.js',
+  './cy.css', './moods.js', './joys.js', './joys-config.js',
   './app.js',
   './ptr.js',
   './db.js',
@@ -51,6 +51,12 @@ const ASSETS = [
   './joys/paw.webp',
   './joys/bath.webp',
   './joys/sun.webp',
+  './room/imprints/cat.webp',
+  './room/imprints/coffee.webp',
+  './room/imprints/meal.webp',
+  './room/imprints/gift.webp',
+  './room/imprints/bear.webp',
+  './room/imprints/hearts.webp',
   './joys/sparkle.webp',
   './joys/music.webp',
   './room/tv_on.webp',
@@ -90,7 +96,7 @@ const ASSETS = [
   './icons/icon-maskable-512.png',
   './icons/favicon-32.png',
   './logo.webp',
-  './room/pixel_room/room.webp?v=2',
+  './room/pixel_room/room.webp?v=3',
   './room/pixel_room/tv_on.webp',
   './room/pixel/body_sweater_back.webp?v=2',
   './room/pixel/body_sweater_front.webp?v=2',

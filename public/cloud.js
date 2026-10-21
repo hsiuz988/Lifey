@@ -156,8 +156,8 @@ export function mergeStates(local, remote) {
   const prefs = { ...(remote.prefs || {}), ...(local.prefs || {}) };
   const lastExportAt = [local.lastExportAt, remote.lastExportAt].filter(Boolean).sort().pop() || null;
   // 累積幸福：項目和每一次的紀錄都逐筆合併，兩台手機同一天各點的次數都會留下
-  const { joys, joyLog } = mergeJoyData(local, remote, deleted);
-  return { ...local, profile, moments, years, people, letters, joys, joyLog, prefs, deleted, achievements, lastExportAt };
+  const { joys, joyLog, imprints } = mergeJoyData(local, remote, deleted);
+  return { ...local, profile, moments, years, people, letters, joys, joyLog, imprints, prefs, deleted, achievements, lastExportAt };
 }
 
 // 只送需要同步的欄位（回憶模式進度是各裝置自己的）

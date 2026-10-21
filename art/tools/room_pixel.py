@@ -3,8 +3,8 @@
 - full.webp：擺好家具的完整房間（目前直接當房間背景）
 - small.webp：小物件（檯燈開／關、電視開機…），切出來疊在房間上
 GPT 的房間地板前角被畫布切掉一塊，這裡補成完整的菱形，畫布往下加高到 1064。
-層架：shelf_empty.png 是 GPT 改過「層架清空」的整張房間，只切層架那一塊貼回來（預設空層架，
-  拍照的小幸福累積到了才擺相機）；牆色用接縫附近的平均差校正。
+層架：shelf_empty.png 是 GPT 改過「層架清空」的整張房間，EMPTY_SHELF = True 時只切層架那一塊貼回來；
+  目前不用（房間維持原樣，獲得新家具時直接疊上去蓋住舊的），需要空層架的獎勵再打開。
 用法：python3 art/tools/room_pixel.py
 """
 from PIL import Image
@@ -42,11 +42,12 @@ def main():
     a = np.zeros((H, W, 4), np.uint8); a[:full.shape[0]] = full
     a[..., 3] = np.where(a[..., 3] >= 128, 255, 0)
     a = fix_corner(a)
-    a = empty_shelf(a)
+    if EMPTY_SHELF: a = empty_shelf(a)
     Image.fromarray(a).save(f'{OUT}/room.webp', quality=95, method=6)
     tv_on()
     print('room', a.shape)
 
+EMPTY_SHELF = False
 # 書桌上方 L 形層架上原本的東西（植物、書、相框、貓）的範圍，避開書桌上的盆栽和檯燈
 SHELF_POLY = [(662, 96), (915, 96), (915, 232), (850, 232), (812, 226), (735, 226), (732, 248), (700, 248), (700, 226), (662, 226)]
 def empty_shelf(a):

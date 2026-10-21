@@ -64,7 +64,13 @@
 - 規則：可以補記過去、不能記未來；每天一次的同一天再點會打開詳情；一天多次改成每天一次要先確認才合併；連點 350ms 內只算一次。
 - 用語：收藏／發生了／小幸福，**不要**打卡／達標／積分／連續天數／排行榜。
 - 圖示：`python3 art/tools/joy_icons.py` 把 `art/source/joys/sheet.png`（6×4 張圖示表）去背切成 `public/joys/<key>.webp`（白底預覽 `preview.png`）。太陽、閃光、耳機在表裡光暈太重（`SKIP`），改用單張白底重畫的 `art/source/joys/<key>.png`（會蓋過表裡的）。24 個都有像素圖了；新增圖示要加進 `joys.js` 的 `JOY_ICONS`（emoji 備用）和 `sw.js`。
-- 之後：Phase 2 幸福星罐、Phase 3 生活印記（門檻放 `joys-config.js`，印記永久、預設收起來）、Phase 4 年度回顧卡、日記時間軸上的小印章。
+- **生活印記**（Phase 3）：同一個圖示的小幸福收藏滿 `IMPRINT_DAYS`（10）個不同日子 → 跳出「房間多了一件東西」，選「放到房間」或「先收著」；拿到就永久（刪紀錄不收回）。
+  - 資料 `state.imprints`：`{id:key, key, joyId, at, shown, updatedAt}`；同步用 `mergeImprints`：日期留最早、`shown` 照最新。
+  - 設定 `public/joys-config.js` 的 `IMPRINTS`：每件家具在房間的位置（底部中間 x,y）、大小、疊放順序 z、放在地板上的擋路半徑 r；改數字不用動程式。
+  - 圖：`python3 art/tools/imprint_items.py` 把 `art/source/furniture/<key>.png`（GPT 白底單張）去背、縮到房間大小、外框重畫成房間的粗細顏色 → `public/room/imprints/<key>.webp`；新增要加進 `WIDTH`、`IMPRINTS`、`sw.js`。
+  - 房間不清空：新家具直接疊上去蓋住舊的（使用者定案）。目前有圖的：cat 小貓抱枕、coffee 拿鐵、meal 小矮桌（電視前地毯上）、gift 禮物、bear 熊熊、hearts 愛心氣球；其他 18 個拿到會顯示「家具製作中」。
+  - 收藏冊在「累積幸福 → 全部」最下面，24 格。
+- 之後：Phase 2 幸福星罐、Phase 4 年度回顧卡、日記時間軸上的小印章；新房間草稿在 `art/source/room2/room_*.webp`（之後做換房間時用）。
 
 ### 「我」分頁
 

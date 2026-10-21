@@ -10,7 +10,7 @@ import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor, STYLES } from './room.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
-import { initJoys, renderJoyRow, openJoyList, mergeJoyData } from './joys.js';
+import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints } from './joys.js';
 import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
@@ -79,7 +79,7 @@ const cloud = { me: null, status: 'off', message: '', lastSync: null, timer: nul
 let scene = null;
 
 function emptyState() {
-  return { version: DATA_VERSION, profile: null, moments: [], years: {}, deleted: {}, people: [], letters: [], joys: [], joyLog: [], prefs: {}, lastExportAt: null, achievements: {} };
+  return { version: DATA_VERSION, profile: null, moments: [], years: {}, deleted: {}, people: [], letters: [], joys: [], joyLog: [], imprints: [], prefs: {}, lastExportAt: null, achievements: {} };
 }
 
 // 升級舊版資料並補齊欄位
@@ -103,6 +103,7 @@ function normalize(data) {
   out.letters = Array.isArray(data.letters) ? data.letters : [];
   out.joys = Array.isArray(data.joys) ? data.joys : [];
   out.joyLog = Array.isArray(data.joyLog) ? data.joyLog : [];
+  out.imprints = Array.isArray(data.imprints) ? data.imprints : [];
   out.prefs = data.prefs && typeof data.prefs === 'object' ? data.prefs : {};
   delete out.photos;
   return out;
@@ -425,7 +426,7 @@ function renderNow() {
     scene.update({
       stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday,
       props: propsForTags(new Set(list.flatMap((m) => m.tags))), weather: ui.weather, messages: sceneMessages, pets: scenePets(), look: state.profile.look,
-      garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0, ...todayInScene(),
+      garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0, imprints: shownImprints(state), ...todayInScene(),
     });
   }
   const w = ui.weather;
@@ -3361,7 +3362,7 @@ async function showVersion() {
 }
 
 async function init() {
-  initJoys({ getState: () => state, save: () => saveState(), h, toast, todayStr, toDateStr, newId, $ });
+  initJoys({ getState: () => state, save: () => saveState(), refresh: () => render(), h, toast, todayStr, toDateStr, newId, $ });
   showVersion();
   applyTheme();
   initMusic({ onFailed: musicFailed });
