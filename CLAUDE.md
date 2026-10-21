@@ -92,6 +92,7 @@
 
 - logo 是兩張圖：插圖 `brand/setup_hero.webp`（女孩和貓趴在床上，**不會一直飄**，點了才跳一下說話）＋ `brand/logo_text.webp`（wowo! 字，壓在床緣上）。原圖在 `art/source/brand/setup_hero.png`、`logo_text.png`，換圖後跑 `python3 art/tools/setup_logo.py`（清掉 AI 去背的雜點、裁邊、縮成 2 倍大小）→ 打字機一句話（`typeTagline`：輪流打出三個特點，停在「把一輩子，慢慢記下來」只跑一輪；一點表單就直接停）→「建立你的小窩」視窗（名字、生日、在地球上幾天）→ 視窗底部凹下去的狀態列寫四個特點。
 - 標題列的縮小／放大／關閉**只是裝飾，不能點**（使用者定案，不要再加互動）。
+- **App 圖示**：原圖 `art/source/brand/app_icon.png`（女孩和貓趴在床上的圓角方框），`python3 art/tools/app_icon.py` → `public/icons/`（切掉白底和最外圈深藍線，淡藍邊框填滿；maskable 縮到 80%；favicon 保留外框、透明底）。檔名不變，換圖要把 `sw.js` 的 VERSION +1；已經加到主畫面的 iPhone 要重新加入才會換圖示。舊的 `brand_icons.py` 不再輸出圖示。
 
 ### 輸入框、下拉選單（全站同一套，在 `cy.css`）
 
