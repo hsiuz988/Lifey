@@ -7,7 +7,7 @@ python3 art/tools/joy_icons.py
 去背：背景是糊糊的漸層，圖示有深色外框。比「模糊後的自己」暗很多的像素就是外框，
 外框圍起來的地方填滿就是圖示；被圖示圍住的背景（腳踏車三角形）用「顏色接近附近背景、又很平滑」挖掉。
 雨滴、愛心這種分開的小東西用重心決定屬於哪一格。
-SKIP 是光暈太重、等重畫的（app 裡先用 emoji）。
+SKIP 是光暈太重、等重畫的（app 裡先用 emoji）；單張重畫的放 art/source/joys/<key>.png（白底），會蓋過表裡的。
 """
 from pathlib import Path
 
@@ -96,6 +96,16 @@ def square(img, size=SIZE, pad=4):
     return out
 
 
+def white_cut(path):
+    """單張白底的圖：從邊緣連過來的白色都是背景（光芒之間的縫也會連到）"""
+    rgb = np.asarray(Image.open(path).convert('RGB'))
+    lab, _ = ndimage.label(rgb.min(-1) > 232)
+    edge = set(np.unique(np.r_[lab[0], lab[-1], lab[:, 0], lab[:, -1]])) - {0}
+    m = ndimage.binary_opening(~np.isin(lab, list(edge)), iterations=1)
+    img = Image.fromarray(np.dstack([rgb, (m * 255).astype(np.uint8)]), 'RGBA')
+    return img.crop(img.getbbox())
+
+
 def main():
     sheet = Image.open(SRC).convert('RGB')
     px = np.asarray(sheet, dtype=float)
@@ -111,11 +121,15 @@ def main():
     preview = Image.new('RGBA', (6 * (SIZE + 16), 4 * (SIZE + 16)), (255, 255, 255, 255))
     rgb = np.asarray(sheet)
     for idx, key in enumerate(KEYS):
-        if key in SKIP:
+        single = SRC.parent / f'{key}.png'
+        if single.exists():
+            icon = square(white_cut(single))
+        elif key in SKIP:
             continue
-        m = np.isin(lab, groups.get(idx, []))
-        img = Image.fromarray(np.dstack([rgb, (m * 255).astype(np.uint8)]), 'RGBA')
-        icon = square(img.crop(img.getbbox()))
+        else:
+            m = np.isin(lab, groups.get(idx, []))
+            img = Image.fromarray(np.dstack([rgb, (m * 255).astype(np.uint8)]), 'RGBA')
+            icon = square(img.crop(img.getbbox()))
         icon.save(OUT / f'{key}.webp', lossless=True)
         r, c = divmod(idx, 6)
         preview.alpha_composite(icon, (c * (SIZE + 16) + 8, r * (SIZE + 16) + 8))

@@ -9,7 +9,7 @@ export const JOY_ICONS = {
   bike: '🚲', icecream: '🍦', hearts: '💕', home: '🏠', paw: '🐾', bath: '🛁', sparkle: '✨', sun: '☀️',
 };
 const JOY_PIX = new Set(['cat', 'coffee', 'meal', 'camera', 'gift', 'sunset', 'bear', 'letter', 'book', 'sneaker', 'plant',
-  'cake', 'star', 'umbrella', 'moon', 'bike', 'icecream', 'hearts', 'home', 'paw', 'bath']);
+  'cake', 'star', 'umbrella', 'moon', 'bike', 'icecream', 'hearts', 'home', 'paw', 'bath', 'sun']);
 export function iconEl(key) {
   if (!JOY_PIX.has(key)) return JOY_ICONS[key] || '✨';
   const img = new Image();
