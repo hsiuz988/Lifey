@@ -514,9 +514,9 @@ export class Room {
     const on = this.on;
     const HOTS = [
       { name: 'diary', label: '書桌上的日記本：記一筆', r: [725, 300, 120, 75], go: [.3, .3, -1], act: () => on.diary && on.diary(), spark: [790, 325] },
-      { name: 'letter', label: '信：寫給未來的自己', r: [815, 345, 90, 55], go: [.33, .28, -1], act: () => on.letter && on.letter(), spark: [870, 360] },
+      { name: 'letter', label: '書桌抽屜：寫給未來的自己', r: [826, 405, 66, 105], go: [.33, .28, -1], act: () => on.letter && on.letter(), spark: [860, 445] },
       { name: 'calendar', label: '牆上的月曆：心情月曆', r: [1110, 275, 90, 165], go: [.68, .26, 1], act: () => on.calendar && on.calendar(), spark: [1180, 295] },
-      { name: 'tv', label: '電視：那一年的世界', r: [1040, 400, 140, 130], go: [.62, .27, 1], act: () => { this.tvOn.setAttribute('opacity', 1); on.tv && on.tv(() => this.tvOn.setAttribute('opacity', 0)); }, spark: [1120, 420] },
+      { name: 'tv', label: '電視：那一年的世界', r: [1035, 405, 140, 140], go: [.62, .27, 1], act: () => { this.tvOn.setAttribute('opacity', 1); on.tv && on.tv(() => this.tvOn.setAttribute('opacity', 0)); }, spark: [1105, 430] },
       { name: 'lamp', label: '檯燈', r: [828, 238, 85, 120], go: [.33, .28, -1], act: () => { this.lampOn = !this.lampOn; this.showLamp(); this.say(this.lampOn ? '開燈 💡' : '關燈'); } },
       { name: 'bed', label: '床', r: [255, 390, 445, 300], go: [.31, .55, -1], act: () => this.sleep() },
       { name: 'clock', label: '時鐘', r: [1215, 315, 90, 100], act: () => this.say(`現在 ${clock()} ⏰`) },
