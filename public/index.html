@@ -35,26 +35,28 @@
   <!-- 第一次開啟：介紹＋姓名與生日 -->
   <section id="setup" class="setup cy-setup" hidden>
     <div class="cy-setup-head">
-      <h1 class="brand"><img src="logo.webp" class="cy-logo" width="240" height="235" alt="wowo!"></h1>
-      <p class="setup-lede">一個屬於你的迷你小窩，把一輩子慢慢記下來</p>
+      <!-- 點 logo：跳一下、冒一句話 -->
+      <h1 class="brand"><button id="setup-logo" class="setup-logo" type="button" aria-label="wowo!"><img src="logo.webp" class="cy-logo" width="240" height="235" alt="wowo!"></button><span id="setup-logo-say" class="setup-say" aria-live="polite"></span></h1>
+      <p class="setup-lede"><span id="setup-type">一個屬於你的迷你小窩，把一輩子慢慢記下來</span><i class="setup-caret" aria-hidden="true"></i></p>
     </div>
     <!-- 換手機的老用戶：放在最上面，不用捲過整張表單 -->
     <div class="setup-login">
       <span class="muted">已經有帳號了？</span>
-      <button id="setup-login" class="btn" type="button">用 Face ID 登入</button>
+      <button id="setup-login" class="link-btn" type="button">用 Face ID 登入 ›</button>
     </div>
-    <div class="cy-window">
-      <div class="cy-window-bar"><svg width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M5 1h2v1h1v1h1v1h1v1h1v1H1V5h1V4h1V3h1V2h1zM2 7h8v4H2z" fill="#fff"></path></svg>建立我的小窩</div>
-      <div class="setup-hero">
-        <img src="room/room.webp" alt="一間可愛的小房間" class="setup-room">
+    <div class="cy-window setup-win">
+      <!-- 老視窗的標題列：右邊三顆鈕只是裝飾，點了視窗抖一下 -->
+      <div class="cy-window-bar"><svg width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M5 1h2v1h1v1h1v1h1v1h1v1H1V5h1V4h1V3h1V2h1zM2 7h8v4H2z" fill="#fff"></path></svg><span id="setup-win-title">建立我的小窩</span>
+        <span class="win-btns" aria-hidden="true"><i data-win="min">_</i><i data-win="max">□</i><i data-win="close">×</i></span>
+      </div>
+      <!-- 跑馬燈：產品介紹，一行就好，把位置留給表單 -->
+      <div class="setup-marquee" aria-label="wowo 可以做什麼">
+        <div class="marquee-track">
+          <span>★ 每天一句話，記下今天</span><span>★ 一生 90 格的人生地圖</span><span>★ 寫信給未來的自己</span><span>★ 家人和另一半可以來串門子</span>
+          <span aria-hidden="true">★ 每天一句話，記下今天</span><span aria-hidden="true">★ 一生 90 格的人生地圖</span><span aria-hidden="true">★ 寫信給未來的自己</span><span aria-hidden="true">★ 家人和另一半可以來串門子</span>
+        </div>
       </div>
       <div class="setup-body">
-        <ul class="intro-list">
-          <li>每天一句話，記下今天</li>
-          <li>一生 90 格的人生地圖</li>
-          <li>寫信給未來的自己</li>
-          <li>家人和另一半可以來串門子</li>
-        </ul>
         <p id="setup-invite" class="invite-note"></p>
         <form id="setup-form" class="setup-form">
           <label>名字
@@ -63,11 +65,13 @@
           <label>生日
             <input name="birthday" type="date" required class="bday-native">
           </label>
-          <p class="hint">用來畫出你的人生地圖，資料只存在你的手機裡。</p>
-          <button class="btn primary big" type="submit">開始佈置我的小窩</button>
+          <p id="setup-days" class="setup-days">用來畫出你的人生地圖，資料只存在你的手機裡。</p>
+          <button class="btn primary big setup-go" type="submit">開始佈置我的小窩 ▶</button>
           <p class="hint">繼續即表示同意<a href="privacy.html">隱私權政策與使用條款</a>。</p>
         </form>
       </div>
+      <!-- 狀態列：像老視窗最下面那一條 -->
+      <div class="setup-status" aria-hidden="true"><span id="setup-status">準備好了，等你入住 ♥</span><span class="setup-grip"></span></div>
     </div>
   </section>
 

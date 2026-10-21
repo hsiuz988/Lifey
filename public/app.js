@@ -3245,9 +3245,63 @@ function enhanceBirthday(input) {
   fromInput();
 }
 
+// 註冊頁的小巧思：標語一個字一個字打出來、點 logo 跳一下、名字填進視窗標題、生日算出在地球上幾天、標題列的鈕點了視窗抖一下
+const LOGO_SAYS = ['嗨～歡迎光臨！', '要來我家玩嗎？', '我等你好久了 ♥', '先寫名字吧！', '噓，這裡只有你知道'];
+const STAR_SIGNS = [[120, '摩羯座'], [219, '水瓶座'], [320, '雙魚座'], [420, '白羊座'], [521, '金牛座'], [621, '雙子座'], [722, '巨蟹座'], [823, '獅子座'], [923, '處女座'], [1023, '天秤座'], [1122, '天蠍座'], [1222, '射手座'], [1232, '摩羯座']];
+function setupDelight() {
+  const form = $('#setup-form');
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const type = $('#setup-type');
+  const full = type.textContent;
+  if (!calm) {
+    type.textContent = '';
+    let i = 0;
+    const tick = () => { type.textContent = full.slice(0, ++i); if (i < full.length) setTimeout(tick, 70); };
+    setTimeout(tick, 400);
+  }
+  const status = (text) => { $('#setup-status').textContent = text; };
+  let sayTimer = 0, sayN = 0;
+  $('#setup-logo').addEventListener('click', () => {
+    const logo = $('#setup-logo'), say = $('#setup-logo-say');
+    logo.classList.remove('hop'); void logo.offsetWidth; logo.classList.add('hop');
+    say.textContent = LOGO_SAYS[sayN++ % LOGO_SAYS.length];
+    say.classList.add('on');
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(() => say.classList.remove('on'), 1800);
+  });
+  $('#setup-logo').addEventListener('animationend', (e) => { if (e.animationName === 'setup-hop') e.currentTarget.classList.remove('hop'); });
+  const win = $('.setup-win');
+  const WIN_SAYS = { min: '縮小了就找不到我了啦～', max: '已經是最大的小窩了！', close: '先別走嘛，填完名字就好 ♥' };
+  win.querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => {
+    win.classList.remove('shake'); void win.offsetWidth; win.classList.add('shake');
+    status(WIN_SAYS[b.dataset.win]);
+  }));
+  win.addEventListener('animationend', (e) => { if (e.animationName === 'setup-shake') win.classList.remove('shake'); });
+  form.name.addEventListener('input', () => {
+    const name = form.name.value.trim();
+    $('#setup-win-title').textContent = name ? `建立 ${name} 的小窩` : '建立我的小窩';
+    status(name ? `嗨，${name}！房間已經幫你打掃好了` : '準備好了，等你入住 ♥');
+  });
+  const days = $('#setup-days');
+  const hint = days.textContent;
+  const showDays = () => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(form.birthday.value);
+    const n = m ? Math.round((new Date(todayStr()) - new Date(form.birthday.value)) / 86400000) : -1;
+    days.classList.toggle('lit', n >= 0);
+    if (n < 0) { days.textContent = hint; return; }
+    const md = Number(m[2]) * 100 + Number(m[3]);
+    const sign = STAR_SIGNS.find(([end]) => md < end)[1];
+    days.replaceChildren(`${sign}的你，已經在地球上 `, h('b', {}, n.toLocaleString()), ' 天了。', h('br'), h('small', {}, hint));
+    status(`第 ${(n + 1).toLocaleString()} 天，是搬進小窩的好日子`);
+  };
+  form.addEventListener('change', showDays);
+  form.birthday.addEventListener('input', showDays);
+}
+
 // ---------- 綁定事件 ----------
 function bind() {
   document.querySelectorAll('input.bday-native').forEach(enhanceBirthday);
+  setupDelight();
   $('#setup-form').birthday.max = todayStr();
   $('#setup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
