@@ -145,7 +145,8 @@ main#app {
 .cy-msg { padding: 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 700; font-style: italic; color: var(--cy-blue); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; min-height: 22px; }
 .cy-msg.empty { font-weight: 400; color: #8a96a3; }
 .cy-msg.empty::before { content: "<"; } .cy-msg.empty::after { content: ">"; }
-.cy-msg-input { height: 26px; padding: 0 4px; border: 1px solid #8fa3b8; border-radius: 3px; font: inherit; font-size: 14px; font-style: italic; color: var(--cy-blue); background: #fff; }
+/* 個人訊息：在卡片裡直接改字的小欄位，比一般欄位矮，但框線、聚焦和全站一樣 */
+input.cy-msg-input.cy-msg-input { min-height: 0; height: 30px; padding: 0 6px; font-size: 14px; font-style: italic; color: var(--cy-blue); background-color: #ffffff; }
 .cy-msg-pen { position: absolute; right: 10px; top: 50%; margin-top: -7px; color: #8fa3b8; pointer-events: none; }
 .cy-gem { width: 11px; height: 13px; background: var(--c); clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%); flex-shrink: 0; }
 
@@ -217,7 +218,6 @@ html.room-full, html.room-full body { overflow: hidden; }
 dialog.ask-dialog { max-width: 420px; }
 #ask-body { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
 #ask-body p { margin: 0; line-height: 1.6; }
-#ask-body input { font-size: 16px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
 .ask-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .ask-actions .btn { width: 100%; min-height: 46px; justify-content: center; text-align: center; }
 
@@ -255,9 +255,31 @@ dialog.composer-page { border: 2px solid #5f7690; }
 .save-pill { border-radius: 4px !important; }
 
 /* 輸入框：淺藍灰底、細框 */
-:where(input[type="text"], input[type="search"], input[type="date"], input:not([type]), textarea, select) {
-  background: #f3f6f9; border: 1px solid #8fa3b8; border-radius: 4px;
+/* ================= 輸入框、下拉選單：全站同一套 =================
+   淺藍灰底、藍灰細框、圓角 4px、內側一點陰影（凹下去的老式輸入框）；
+   聚焦：白底、邦迪藍框＋一圈淡光暈。高度至少 44px、字 16px（iPhone 才不會自動放大）。
+   用 :is() 讓權重和 style.css 的舊規則一樣，排在後面所以會贏；各頁不要再自己改框線、底色、圓角。 */
+:is(input:is([type="text"], [type="search"], [type="date"], [type="email"], [type="number"], [type="tel"], [type="url"], :not([type])), textarea, select) {
+  box-sizing: border-box; min-height: 44px; padding: 10px 12px;
+  font: inherit; font-size: 16px; line-height: 1.4; color: var(--text);
+  background-color: #f3f6f9; border: 1px solid #8fa3b8; border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(43, 47, 51, .08);
+  transition: border-color .12s, background-color .12s, box-shadow .12s;
 }
+:is(input:is([type="text"], [type="search"], [type="date"], [type="email"], [type="number"], [type="tel"], [type="url"], :not([type])), textarea, select):focus {
+  outline: none; background-color: #ffffff; border-color: var(--cy-aqua); box-shadow: 0 0 0 3px rgba(31, 169, 184, .22);
+}
+:is(input, textarea)::placeholder { color: #8a96a3; opacity: 1; }
+:is(input, textarea, select):disabled { opacity: .55; cursor: default; }
+input[readonly] { background-color: #eaeff4; color: var(--muted); }
+textarea { min-height: 88px; resize: vertical; }
+/* 下拉選單：同一個外框，右邊一顆像素 ▼ */
+select {
+  -webkit-appearance: none; appearance: none; padding-right: 34px; cursor: pointer; text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h10v2H8v2H6v2H4V4H2V2H0z' fill='%232f5f99'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 10px 6px;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: var(--cy-aqua); }
 
 /* 像素表情 */
 .mood-face-wrap { display: inline-flex; vertical-align: -3px; }
@@ -289,7 +311,6 @@ dialog.composer-page { border: 2px solid #5f7690; }
 .setup-say.on { opacity: 1; transform: none; }
 .cy-window { border: 2px solid var(--cy-frame); border-radius: 10px; overflow: hidden; background: #ffffff; }
 .setup-win { box-shadow: 4px 4px 0 rgba(47, 95, 153, .18); animation: setup-open .35s cubic-bezier(.2, 1.4, .4, 1) both; }
-.setup-win.shake { animation: setup-shake .4s steps(6) 1; }
 .cy-window-bar {
   display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 6px 0 10px;
   background: linear-gradient(#93a9c2, #7189a4); color: #ffffff; font-size: 13px; font-weight: 700;
@@ -298,15 +319,12 @@ dialog.composer-page { border: 2px solid #5f7690; }
 .win-btns { display: flex; gap: 3px; }
 .win-btns i {
   display: grid; place-items: center; width: 20px; height: 18px; font: 700 11px/1 var(--mono); font-style: normal; color: #4a5f77;
-  background: linear-gradient(#ffffff, #dfe7ef); border: 1px solid #5d7590; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(#ffffff, #dfe7ef); border: 1px solid #5d7590; border-radius: 3px; pointer-events: none; /* 只是裝飾 */
 }
-.win-btns i:active { background: #cfd9e4; transform: translateY(1px); }
 .cy-setup .setup-body { margin: 0; padding: 16px 16px 12px; border-radius: 0; background: #ffffff; }
 .cy-setup .invite-note:empty { display: none; }
 .cy-setup .setup-form { margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 14px; }
 .cy-setup .setup-form label { font-size: 13px; font-weight: 700; color: #3e4c5a; }
-.cy-setup .setup-form input[name=name] { border: 1px solid #8fa3b8; border-radius: 4px; background: #f3f6f9; }
-.cy-setup .setup-form input[name=name]:focus { background: #fff; border-color: var(--cy-pop); outline: 2px solid rgba(31, 169, 184, .25); }
 .cy-setup .setup-form .hint { margin: -6px 0 0; font-size: 12px; text-align: center; }
 /* 生日選好之後：「你已經在地球上 9,135 天了」 */
 .setup-days { margin: -4px 0 0; line-height: 1.5; padding: 8px 10px; border: 1px dashed #9fd6dc; border-radius: 4px; background: #f1fafb; color: #24515a; font-size: 13px; }
@@ -317,11 +335,9 @@ dialog.composer-page { border: 2px solid #5f7690; }
 @keyframes setup-float { 50% { transform: translateY(-4px); } }
 @keyframes setup-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-14px) rotate(-3deg); } 70% { transform: translateY(-4px) rotate(2deg); } }
 @keyframes setup-open { from { opacity: 0; transform: scale(.94) translateY(8px); } }
-@keyframes setup-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
 @media (prefers-reduced-motion: reduce) {
   .setup-logo .cy-logo, .setup-win { animation: none; }
 }
-.bday select { background: #f3f6f9; border: 1px solid #8fa3b8; border-radius: 4px; }
 dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10px; }
 
 /* 「我的」：▶ 選單、方塊狀態條 */
@@ -636,6 +652,23 @@ dialog.composer-page {
 .joy-ask-title b { font-size: 14px; color: var(--cy-pop); }
 .joy-ask-title small { font-size: 12px; color: var(--muted); }
 .joy-ask-x { width: 32px; height: 32px; font-size: 20px; color: var(--muted); }
-.joy-ask-input { height: 40px; padding: 0 10px; border: 1px solid #8fa3b8; border-radius: 6px; background: #fff; font: inherit; font-size: 15px; color: var(--text); }
+.joy-ask-input { width: 100%; }
 .joy-ask-actions { display: flex; align-items: center; gap: 8px; }
 .joy-ask-actions .link-btn { font-size: 13px; color: var(--muted); padding: 8px 0; }
+
+/* 註冊頁：logo 下面的打字機一句話（游標是一格方塊，打完閃三下就收起來） */
+.setup-type { min-height: 1.6em; margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: #3e4c5a; letter-spacing: .04em; }
+.setup-caret {
+  display: inline-block; width: .55em; height: 1.05em; margin-left: 2px; vertical-align: -.15em;
+  background: var(--cy-aqua); animation: setup-caret 1s steps(1) infinite;
+}
+.setup-type.done .setup-caret { animation: setup-caret 1s steps(1) 3 forwards; }
+@keyframes setup-caret { 50% { opacity: 0; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .setup-caret { display: none; } }
+/* 視窗底部的狀態列：一格一格凹下去的小框 */
+.win-status { display: flex; gap: 3px; padding: 3px; background: #e6ecf2; border-top: 1px solid #b9c7d6; }
+.win-status span {
+  flex: 1 1 auto; min-width: 0; padding: 3px 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center;
+  font-size: 11px; color: #5e6b78; background: #f3f6f9;
+  border: 1px solid; border-color: #9aaabb #ffffff #ffffff #9aaabb; /* 左上深、右下亮：凹下去 */
+}

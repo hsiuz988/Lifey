@@ -14,7 +14,14 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.route('**/api/signup*', (r) => r.fulfill({ json: { open: true, empty: false, invite: false, inviter: null } }));
   await p.goto(URL);
   assert(await p.isVisible('#setup-form [name=name]') && await p.isHidden('#setup-days'), '第一次打開：註冊頁只有名字和生日');
+  await p.waitForTimeout(1200);
+  const typing = await p.textContent('#setup-type-text');
+  assert(typing.length > 0 && typing !== '把一輩子，慢慢記下來', `logo 下面用打字機打出特點（${typing}）`);
+  assert((await p.textContent('.win-status')).includes('90 格人生地圖'), '視窗底部的狀態列寫著特點');
+  assert(await p.$$eval('.setup-win .win-btns i', (els) => els.every((e) => getComputedStyle(e).pointerEvents === 'none')), '標題列的縮小／放大／關閉只是裝飾，不能點');
   await p.screenshot({ path: OUT + '/onb-1.png' });
+  await p.click('#setup-form [name=name]'); await p.waitForTimeout(150);
+  assert(await p.textContent('#setup-type-text') === '把一輩子，慢慢記下來', '一點表單，打字機就直接停在最後一句');
   await p.fill('#setup-form [name=name]', '秀'); await p.fill('#setup-form [name=birthday]', '1998-03-01');
   assert(/雙魚座的你，已經在地球上 [\d,]+ 天了/.test(await p.textContent('#setup-days')) && await p.isVisible('#setup-days'), '選好生日：顯示星座和在地球上幾天');
   assert((await p.textContent('.setup-win .cy-window-bar')).includes('建立 秀 的小窩'), '名字放進視窗標題');

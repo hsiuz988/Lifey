@@ -1981,8 +1981,8 @@ function renderPersonDialog() {
   const isPet = d.kind === 'pet';
   const name = h('input', { value: d.name, maxlength: '20', placeholder: isPet ? '沒填就顯示毛色，例如「橘白貓」' : '沒填就顯示關係，例如「媽媽」', 'aria-label': '名字' });
   name.addEventListener('input', () => { d.name = name.value; });
-  const birthday = h('input', { type: 'date', value: d.birthday || '', max: todayStr(), 'aria-label': '生日' });
-  birthday.addEventListener('input', () => { d.birthday = birthday.value; });
+  // 生日和自己的一樣用「年／月／日」三個下拉選單（enhanceBirthday 在放進畫面後才接上）
+  const birthday = h('input', { type: 'date', class: 'bday-native', value: d.birthday || '', max: todayStr(), 'aria-label': '生日' });
   const kindChips = id ? null : h('div', { class: 'chips' }, [['person', '👤 人物'], ['pet', '🐾 寵物']].map(([k, label]) => h('button', {
     type: 'button', class: `chip${d.kind === k ? ' on' : ''}`, onclick: () => { d.kind = k; renderPersonDialog(); },
   }, label)));
@@ -2020,7 +2020,8 @@ function renderPersonDialog() {
   fields.push(h('label', { class: 'switch small-switch' }, avoid, h('span', {}, '回顧時避開（「那年今日」、人生重播、小人的話都不會提到）')));
   const save = h('button', { type: 'button', class: 'btn primary' }, '儲存');
   save.addEventListener('click', () => savePerson());
-  body.replaceChildren(
+  // 沒有的區塊（新增時的刪除鈕、編輯時的人物／寵物切換）要濾掉，replaceChildren 遇到 null 會印出「null」
+  body.replaceChildren(...[
     h('div', { class: 'sheet-top' }, h('h3', {}, id ? `編輯 ${personName(personById(id))}` : isPet ? '新增寵物' : '新增人物')),
     kindChips,
     ...(isPet ? fields : []),
@@ -2031,7 +2032,10 @@ function renderPersonDialog() {
     h('div', { class: 'sheet-actions' },
       h('button', { type: 'button', class: 'btn', onclick: () => (id ? openPerson(id) : $('#person-dialog').close()) }, '取消'),
       h('span', { class: 'spacer' }),
-      save));
+      save),
+  ].filter(Boolean));
+  enhanceBirthday(birthday);
+  birthday.nextElementSibling.addEventListener('change', () => { d.birthday = birthday.value; }); // 選完年／月／日才有完整的日期
 }
 
 async function savePerson() {
@@ -3262,7 +3266,7 @@ function enhanceBirthday(input) {
   fromInput();
 }
 
-// 註冊頁的小巧思：點 logo 跳一下說句話、名字填進視窗標題、生日算出在地球上幾天、標題列的鈕點了視窗抖一下（logo 說話）
+// 註冊頁的小巧思：點 logo 跳一下說句話、名字填進視窗標題、生日算出在地球上幾天（標題列的三顆鈕只是裝飾，不能點）
 const LOGO_SAYS = ['嗨～歡迎光臨！', '要來我家玩嗎？', '我等你好久了 ♥', '先寫名字吧！', '噓，這裡只有你知道'];
 const STAR_SIGNS = [[120, '摩羯座'], [219, '水瓶座'], [320, '雙魚座'], [420, '白羊座'], [521, '金牛座'], [621, '雙子座'], [722, '巨蟹座'], [823, '獅子座'], [923, '處女座'], [1023, '天秤座'], [1122, '天蠍座'], [1222, '射手座'], [1232, '摩羯座']];
 function setupDelight() {
@@ -3279,13 +3283,6 @@ function setupDelight() {
   };
   $('#setup-logo').addEventListener('click', () => say(LOGO_SAYS[sayN++ % LOGO_SAYS.length]));
   $('#setup-logo').addEventListener('animationend', (e) => { if (e.animationName === 'setup-hop') e.currentTarget.classList.remove('hop'); });
-  const win = $('.setup-win');
-  const WIN_SAYS = { min: '縮小了就找不到我了啦～', max: '已經是最大的小窩了！', close: '先別走嘛，填完名字就好 ♥' };
-  win.querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => {
-    win.classList.remove('shake'); void win.offsetWidth; win.classList.add('shake');
-    say(WIN_SAYS[b.dataset.win]);
-  }));
-  win.addEventListener('animationend', (e) => { if (e.animationName === 'setup-shake') win.classList.remove('shake'); });
   form.name.addEventListener('input', () => {
     const name = form.name.value.trim();
     $('#setup-win-title').textContent = name ? `建立 ${name} 的小窩` : '建立我的小窩';
@@ -3302,6 +3299,38 @@ function setupDelight() {
   };
   form.addEventListener('change', showDays);
   form.birthday.addEventListener('input', showDays);
+  typeTagline(calm);
+}
+
+// 打字機：logo 下面輪流打出三個特點，最後停在「把一輩子，慢慢記下來」就不動了（只跑一輪）。
+// 一點表單就直接跳到最後一句，注意力回到填資料；減少動態效果的人直接看最後一句。
+const TAGLINES = ['一天一句話，把今天記下來', '一格一年，畫出你的人生地圖', '寫一封信，給未來的自己', '把一輩子，慢慢記下來'];
+function typeTagline(calm) {
+  const el = $('#setup-type-text'), box = el.parentElement;
+  const last = TAGLINES[TAGLINES.length - 1];
+  let timer = 0, done = false;
+  const finish = () => { if (done) return; done = true; clearTimeout(timer); el.textContent = last; box.classList.add('done'); };
+  if (calm) { finish(); return; }
+  $('#setup-form').addEventListener('focusin', finish);
+  const wait = (ms) => new Promise((r) => { timer = setTimeout(r, ms); });
+  const run = async () => {
+    for (let i = 0; i < TAGLINES.length && !done; i++) {
+      const line = TAGLINES[i];
+      for (let n = 1; n <= line.length && !done; n++) { el.textContent = line.slice(0, n); await wait(95); }
+      if (i === TAGLINES.length - 1) break;
+      await wait(1500);
+      for (let n = line.length - 1; n >= 0 && !done; n--) { el.textContent = line.slice(0, n); await wait(30); }
+      await wait(250);
+    }
+    finish();
+  };
+  // 等註冊頁真的出現才開始（已經註冊過的人看不到這頁，就不跑）
+  const start = () => { if ($('#setup').hidden) return false; el.textContent = ''; run(); return true; };
+  setTimeout(() => {
+    if (start()) return;
+    const ob = new MutationObserver(() => { if (!$('#setup').hidden) { ob.disconnect(); start(); } });
+    ob.observe($('#setup'), { attributes: true, attributeFilter: ['hidden'] });
+  }, 300);
 }
 
 // ---------- 綁定事件 ----------

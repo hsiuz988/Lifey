@@ -37,9 +37,11 @@
     <div class="cy-setup-head">
       <!-- 點 logo：跳一下、冒一句話；標題列的鈕點了也是 logo 說話 -->
       <h1 class="brand"><button id="setup-logo" class="setup-logo" type="button" aria-label="wowo!"><img src="logo.webp" class="cy-logo" width="240" height="235" alt="wowo!"></button><span id="setup-logo-say" class="setup-say" aria-live="polite"></span></h1>
+      <!-- 打字機：輪流打出三個特點，最後停在這一句（螢幕閱讀器直接念最後一句） -->
+      <p class="setup-type" aria-label="把一輩子，慢慢記下來"><span id="setup-type-text" aria-hidden="true">把一輩子，慢慢記下來</span><i class="setup-caret" aria-hidden="true"></i></p>
     </div>
     <div class="cy-window setup-win">
-      <!-- 老視窗的標題列：右邊三顆鈕只是裝飾，點了視窗抖一下 -->
+      <!-- 老視窗的標題列：右邊三顆鈕只是裝飾，不能點 -->
       <div class="cy-window-bar"><svg width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M5 1h2v1h1v1h1v1h1v1h1v1H1V5h1V4h1V3h1V2h1zM2 7h8v4H2z" fill="#fff"></path></svg><span id="setup-win-title">建立我的小窩</span>
         <span class="win-btns" aria-hidden="true"><i data-win="min">_</i><i data-win="max">□</i><i data-win="close">×</i></span>
       </div>
@@ -56,6 +58,10 @@
           <button class="btn primary big setup-go" type="submit">開始佈置我的小窩 ▶</button>
           <p class="hint">繼續即表示同意<a href="privacy.html">隱私權政策與使用條款</a>。</p>
         </form>
+      </div>
+      <!-- 老視窗最下面那條凹下去的狀態列：放四個特點，不會動、字很小 -->
+      <div class="win-status" aria-label="wowo 可以做什麼">
+        <span>✎ 每天一句話</span><span>▦ 90 格人生地圖</span><span>✉ 給未來的信</span><span>♥ 家人串門子</span>
       </div>
     </div>
   </section>

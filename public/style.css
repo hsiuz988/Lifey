@@ -147,10 +147,7 @@ main { max-width: 640px; margin: 0 auto; padding: 0 16px 120px; }
 
 /* ---------- 篩選 ---------- */
 .filters { margin: 12px 0 4px; }
-.filters input[type="search"] {
-  width: 100%; padding: 8px 12px; margin-bottom: 8px;
-  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
-}
+.filters input[type="search"] { width: 100%; margin-bottom: 8px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
   padding: 5px 13px; font-size: 14px; cursor: pointer;
@@ -264,10 +261,7 @@ dialog.sheet { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; 
 
 /* 生日：年／月／日三個下拉選單（iPhone 上是滾輪），原本的日期欄藏在後面 */
 .bday { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; position: relative; }
-.bday select {
-  background: var(--panel-2); border: 1px solid transparent; border-radius: 12px;
-  padding: 10px 8px; color: var(--text); font-size: 16px; min-height: 44px; width: 100%;
-}
+.bday select { width: 100%; padding-left: 10px; } /* 外框、底色、箭頭跟著全站的欄位（cy.css） */
 .bday-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 dialog h3 { margin: 0; font-size: 20px; }
 dialog h4 { margin: 0; }
@@ -730,10 +724,7 @@ dialog.replay-dialog[open] { display: flex; }
 .setup .hint a, .settings-page .hint a { color: var(--muted); }
 .welcome-events { margin: 0; padding-left: 4px; list-style: none; display: flex; flex-direction: column; gap: 4px; }
 /* ---------- 連結的家人 ---------- */
-select {
-  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text);
-  padding: 8px 10px; font-size: 15px; min-height: 40px; max-width: 100%;
-}
+select { max-width: 100%; }
 .member-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); }
 .member-name { font-weight: 600; }
 .member-bind { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; }

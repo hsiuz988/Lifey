@@ -98,7 +98,10 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(!(await p.$('#open-settings')) && (await p.$$('.me-menu [data-open=people]')).length === 0, '「我的」沒有重複的設定選單');
   const menu = await p.$$eval('.me-menu', (els) => els.map((e) => e.textContent).join(''));
   assert(menu.includes('雲端與家人') && menu.includes('外觀與其他'), '選單名稱和設定頁一致');
-  await p.click('.me-family [data-open=people]'); await p.click('#add-person-btn'); await p.click('#person-body button:text-is("媽媽")'); await p.click('#person-body button:text-is("儲存")');
+  await p.click('.me-family [data-open=people]'); await p.click('#add-person-btn');
+  assert((await p.$$('#person-body .bday select')).length === 3 && !(await p.textContent('#person-body')).includes('null'), '人物的生日也是年／月／日下拉選單，畫面沒有多出「null」');
+  await p.selectOption('#person-body .bday select >> nth=0', '1965'); await p.selectOption('#person-body .bday select >> nth=1', '8'); await p.selectOption('#person-body .bday select >> nth=2', '8');
+  await p.click('#person-body button:text-is("媽媽")'); await p.click('#person-body button:text-is("儲存")');
   await p.waitForSelector('#person-body h3:text-is("媽媽")'); assert(true, '人物沒填名字，用關係「媽媽」顯示');
   await p.click('#person-body button:text-is("關閉")');
   await p.click('#add-pet-btn'); await p.click('#person-body button:has-text("貓")'); await p.click('#person-body .coat-btn:has-text("橘白貓")'); await p.click('#person-body button:text-is("儲存")');
@@ -106,6 +109,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#person-body button:text-is("關閉")');
   assert((await p.textContent('#people-section')).includes('橘白貓') && (await p.textContent('#me-family')).includes('橘白貓'), '人物清單和「我的」的家人面板都更新');
   s = await st(p); assert(s.people.every(x => x.name === ''), '名字存成空的（之後對方加入可以帶入）');
+  assert(s.people.some(x => x.relation === '媽媽' && x.birthday === '1965-08-08'), '人物的生日選完年月日就存起來');
   // 個人資料
   await p.click('#settings-dialog .win-x'); await p.waitForTimeout(150);
   assert(!(await p.$eval('#settings-dialog', d => d.open)), '關掉設定頁就回到「我的」');
