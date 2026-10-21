@@ -16,7 +16,7 @@ const errors = [];
   let answer = true; p.on('dialog', (d) => (answer ? d.accept() : d.dismiss()));
   await p.clock.install({ time: new Date('2026-10-21T10:00:00') });
   await p.goto(URL);
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   await p.click('#look-save'); await p.waitForTimeout(600);
 

@@ -18,11 +18,20 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.fill('#setup-form [name=name]', 'Hsiu');
   await p.selectOption(sel(0), '1998');
   await p.selectOption(sel(1), '2');
-  const days = await p.$$eval(`#setup-form .bday select:nth-child(3) option`, (o) => o.length - 1);
+  const days = await p.$$eval(`#setup-form .bday select:nth-of-type(3) option`, (o) => o.length - 1);
   assert(days === 28, `1998 年 2 月只有 28 天（${days}）`);
+  // 自己畫的選單：點了打開格子小視窗，選了寫回原本的 select，Esc 只關選單
+  await p.click('#setup-form .bday .fselect-btn >> nth=2');
+  assert(await p.isVisible('.fselect-pop') && (await p.$$('.fselect-pop .fselect-opt')).length === 28, '日期選單是自己畫的小視窗，2 月 28 格');
+  await p.click('.fselect-pop .fselect-opt:text-is("14")');
+  assert(!(await p.isVisible('.fselect-pop')) && await p.textContent('#setup-form .bday .fselect-btn >> nth=2') === '14 日' && await p.inputValue('#setup-form [name=birthday]') === '1998-02-14', '選了就關掉，按鈕顯示 14 日，生日存成 1998-02-14');
+  await p.click('#setup-form .bday .fselect-btn >> nth=0');
+  assert((await p.textContent('.fselect-pop')).includes('1990 年代') && await p.$eval('.fselect-pop .fselect-opt.on', (e) => e.textContent) === '1998', '年份每 10 年一組，目前選的亮起來');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+  assert(!(await p.isVisible('.fselect-pop')) && await p.isVisible('#setup-form'), 'Esc 只關選單');
   await p.selectOption(sel(2), '14');
   assert((await p.inputValue('#setup-form [name=birthday]')) === '1998-02-14', '選完年月日就填好生日');
-  await p.click('#setup-form button');
+  await p.click('#setup-form button[type=submit]');
   await p.waitForSelector('#look-dialog[open]');
   assert((await st(p)).profile.birthday === '1998-02-14', '生日存起來');
 

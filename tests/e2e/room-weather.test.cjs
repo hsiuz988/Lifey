@@ -25,7 +25,7 @@ async function newPage(b, opts = {}) {
   // ===== 新使用者：設定完選樣子 =====
   const p = await newPage(b, { geolocation: { latitude: 25.03312, longitude: 121.56541 }, permissions: ['geolocation'] });
   await p.goto(URL);
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   assert(true, '第一次設定完自動打開「選你的樣子」');
   await p.click('#look-options .look-opt[data-style="classic"]');
@@ -133,7 +133,7 @@ async function newPage(b, opts = {}) {
   // 沒給定位權限
   const q = await newPage(b);
   await q.goto(URL);
-  await q.fill('#setup-form [name=name]', 'X'); await q.fill('#setup-form [name=birthday]', '1990-01-01'); await q.click('#setup-form button');
+  await q.fill('#setup-form [name=name]', 'X'); await q.fill('#setup-form [name=birthday]', '1990-01-01'); await q.click('#setup-form button[type=submit]');
   await q.waitForFunction(() => document.querySelector('#look-dialog').open); await q.keyboard.press('Escape');
   await tab(q, 'me').then(() => q.click('.me-menu [data-open=weather]'));
   await q.click('#weather-toggle');
@@ -151,7 +151,7 @@ async function newPage(b, opts = {}) {
   const n = await newPage(b);
   await n.clock.setSystemTime(new Date(2026, 9, 18, 20, 0));
   await n.goto(URL);
-  await n.fill('#setup-form [name=name]', 'N'); await n.fill('#setup-form [name=birthday]', '1995-03-02'); await n.click('#setup-form button');
+  await n.fill('#setup-form [name=name]', 'N'); await n.fill('#setup-form [name=birthday]', '1995-03-02'); await n.click('#setup-form button[type=submit]');
   await n.waitForFunction(() => document.querySelector('#look-dialog').open); await n.keyboard.press('Escape');
   await n.waitForTimeout(300);
   const nightRoom = () => n.$eval('#scene svg image[href*="room_night"]', (e) => e.getAttribute('opacity'));
@@ -166,7 +166,7 @@ async function newPage(b, opts = {}) {
   // ===== 復古娃娃：選角色、走路會擺手擺腳 =====
   const d = await newPage(b);
   await d.goto(URL);
-  await d.fill('#setup-form [name=name]', 'D'); await d.fill('#setup-form [name=birthday]', '1992-05-05'); await d.click('#setup-form button');
+  await d.fill('#setup-form [name=name]', 'D'); await d.fill('#setup-form [name=birthday]', '1992-05-05'); await d.click('#setup-form button[type=submit]');
   await d.waitForFunction(() => document.querySelector('#look-dialog').open);
   await d.click('#look-options .look-opt[data-style="doll"]');
   assert(await d.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '像素女孩,經典,復古娃娃,長直髮,鮑伯頭,光頭,T 恤,運動服', '復古娃娃：髮型有長直髮、鮑伯頭、光頭，衣服有 T 恤、運動服');
@@ -195,7 +195,7 @@ async function newPage(b, opts = {}) {
   // ===== 像素女孩：新使用者預設；站著正面、走路側面 4 格輪流 =====
   const x = await newPage(b);
   await x.goto(URL);
-  await x.fill('#setup-form [name=name]', 'X'); await x.fill('#setup-form [name=birthday]', '1996-06-06'); await x.click('#setup-form button');
+  await x.fill('#setup-form [name=name]', 'X'); await x.fill('#setup-form [name=birthday]', '1996-06-06'); await x.click('#setup-form button[type=submit]');
   await x.waitForFunction(() => document.querySelector('#look-dialog').open);
   assert(await x.$$eval('#look-options .look-opt', (els) => els.map((e) => e.textContent).join()) === '像素女孩,經典,復古娃娃', '像素女孩是預設（目前只有一款髮型和衣服，所以不顯示選項）');
   assert(await x.$eval('#look-preview .look', (e) => e.classList.contains('pixel') && e.querySelectorAll('img').length === 2 && !!e.querySelector('img[src$="pixel/head_bob_front.webp?v=2"]')), '換裝畫面是正面、妹妹頭的像素女孩');
@@ -227,7 +227,7 @@ async function newPage(b, opts = {}) {
   // ===== 減少動態效果 =====
   const m = await newPage(b, { reducedMotion: 'reduce' });
   await m.goto(URL);
-  await m.fill('#setup-form [name=name]', 'M'); await m.fill('#setup-form [name=birthday]', '1990-01-01'); await m.click('#setup-form button');
+  await m.fill('#setup-form [name=name]', 'M'); await m.fill('#setup-form [name=birthday]', '1990-01-01'); await m.click('#setup-form button[type=submit]');
   await m.waitForFunction(() => document.querySelector('#look-dialog').open); await m.keyboard.press('Escape');
   assert(await m.$eval('#scene', (e) => !!e.querySelector('image[href*="room.webp"]') && e.querySelectorAll('#room-me image').length >= 6), '減少動態效果：房間照樣畫出來');
 

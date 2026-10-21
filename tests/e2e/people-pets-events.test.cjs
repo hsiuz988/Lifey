@@ -20,7 +20,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.exposeFunction('logToast', t => toasts.push(t));
   await p.addInitScript(() => { new MutationObserver(() => { const t = document.querySelector('#toast'); if (t && !t.hidden) window.logToast(t.textContent); }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true }); });
   await p.goto(URL);
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open); await p.keyboard.press('Escape');
   const closed = (sel) => p.waitForFunction((s) => !document.querySelector(s).open, sel);
   const save = async () => { await p.click('#moment-save'); await closed('#moment-dialog'); await p.waitForTimeout(150); };
@@ -135,7 +135,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.waitForFunction(() => document.querySelector('#export-btn').textContent.startsWith('儲存備份檔'));
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#export-btn')]); await dl.saveAs(S + '/people.zip');
   await p.click('#reset-btn'); await p.waitForFunction(() => document.querySelector('#ask-dialog').open); await p.fill('#ask-body input', '清除'); await pick(p, '全部清除'); await p.waitForSelector('#setup:not([hidden])');
-  await p.fill('#setup-form [name=name]', 'X'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', 'X'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open); await p.keyboard.press('Escape');
   await tab(p, 'me').then(() => p.click('.me-menu [data-open=backup]')); await p.setInputFiles('#import-file', S + '/people.zip'); await closed('#settings-dialog');
   s = await st(p);

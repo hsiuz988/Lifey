@@ -15,7 +15,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   const native = []; p.on('dialog', d => { native.push(d.message()); d.dismiss(); });
   await p.goto(URL);
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   // 第一次使用：選自己的樣子（房間裡的小人）
   assert((await p.textContent('#look-title')) === '選你的樣子' && (await p.textContent('#look-save')) === '就是我了', '註冊後接著選樣子');

@@ -259,22 +259,29 @@ dialog.composer-page { border: 2px solid #5f7690; }
    淺藍灰底、藍灰細框、圓角 4px、內側一點陰影（凹下去的老式輸入框）；
    聚焦：白底、邦迪藍框＋一圈淡光暈。高度至少 44px、字 16px（iPhone 才不會自動放大）。
    用 :is() 讓權重和 style.css 的舊規則一樣，排在後面所以會贏；各頁不要再自己改框線、底色、圓角。 */
-:is(input:is([type="text"], [type="search"], [type="date"], [type="email"], [type="number"], [type="tel"], [type="url"], :not([type])), textarea, select) {
+:is(input:is([type="text"], [type="search"], [type="date"], [type="email"], [type="number"], [type="tel"], [type="url"], :not([type])), textarea, select, button.fselect-btn) {
   box-sizing: border-box; min-height: 44px; padding: 10px 12px;
   font: inherit; font-size: 16px; line-height: 1.4; color: var(--text);
   background-color: #f3f6f9; border: 1px solid #8fa3b8; border-radius: 4px;
   box-shadow: inset 0 1px 2px rgba(43, 47, 51, .08);
   transition: border-color .12s, background-color .12s, box-shadow .12s;
 }
-:is(input:is([type="text"], [type="search"], [type="date"], [type="email"], [type="number"], [type="tel"], [type="url"], :not([type])), textarea, select):focus {
+:is(input:is([type="text"], [type="search"], [type="date"], [type="email"], [type="number"], [type="tel"], [type="url"], :not([type])), textarea, select, button.fselect-btn):focus {
   outline: none; background-color: #ffffff; border-color: var(--cy-aqua); box-shadow: 0 0 0 3px rgba(31, 169, 184, .22);
 }
 :is(input, textarea)::placeholder { color: #8a96a3; opacity: 1; }
 :is(input, textarea, select):disabled { opacity: .55; cursor: default; }
 input[readonly] { background-color: #eaeff4; color: var(--muted); }
 textarea { min-height: 88px; resize: vertical; }
+/* 自己畫的下拉選單的按鈕：外觀和輸入框一模一樣 */
+button.fselect-btn {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+button.fselect-btn.placeholder { color: var(--muted); }
+button.fselect-btn[aria-expanded="true"] { background-color: #ffffff; border-color: var(--cy-aqua); box-shadow: 0 0 0 3px rgba(31, 169, 184, .22); }
 /* 下拉選單：同一個外框，右邊一顆像素 ▼ */
-select {
+select, button.fselect-btn {
   -webkit-appearance: none; appearance: none; padding-right: 34px; cursor: pointer; text-overflow: ellipsis;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h10v2H8v2H6v2H4V4H2V2H0z' fill='%232f5f99'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 12px center; background-size: 10px 6px;
@@ -300,7 +307,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--cy-aqua); }
 .setup-logo { padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .setup-logo { display: flex; flex-direction: column; align-items: center; width: 100%; }
 /* 插圖慢慢飄、點了跳一下；wowo! 字壓在床緣上，不動 */
-.setup-hero-img { display: block; width: min(340px, 100%); height: auto; animation: setup-float 3.2s ease-in-out infinite; filter: drop-shadow(0 5px 0 rgba(47, 95, 153, .1)); }
+.setup-hero-img { display: block; width: min(340px, 100%); height: auto; filter: drop-shadow(0 5px 0 rgba(47, 95, 153, .1)); } /* 不飄，點了才跳一下 */
 .setup-logo.hop .setup-hero-img { animation: setup-hop .5s steps(5) 1; }
 .setup-logo-text { position: relative; display: block; width: min(210px, 62%); height: auto; margin-top: -26px; filter: drop-shadow(0 3px 0 rgba(47, 95, 153, .18)); }
 .setup-say {
@@ -334,7 +341,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--cy-aqua); }
 .cy-setup .btn.big { height: 50px; padding: 0; font-size: 16px; border-radius: 4px; letter-spacing: .04em; }
 .setup-go { box-shadow: 0 4px 0 var(--cy-pop-edge); transition: transform .06s, box-shadow .06s; }
 .setup-go:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--cy-pop-edge); }
-@keyframes setup-float { 50% { transform: translateY(-4px); } }
 @keyframes setup-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-14px) rotate(-3deg); } 70% { transform: translateY(-4px) rotate(2deg); } }
 @keyframes setup-open { from { opacity: 0; transform: scale(.94) translateY(8px); } }
 @media (prefers-reduced-motion: reduce) {
@@ -676,3 +682,34 @@ dialog.composer-page {
 }
 /* 窄螢幕（iPhone SE）：狀態列排成兩排，字才不會被截掉 */
 @media (max-width: 380px) { .win-status { display: grid; grid-template-columns: 1fr 1fr; } }
+
+/* ================= 自己畫的下拉選單：彈出的小視窗 =================
+   藍色標題列＋×、白底、硬陰影；選項是一格一格的按鈕，選中的是邦迪藍底白字。
+   原本的 <select> 藏在後面存值（.fselect-native），不要拿掉。 */
+select.fselect-native.fselect-native { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0; border: 0; opacity: 0; pointer-events: none; }
+.fselect-pop {
+  position: fixed; z-index: 40; display: flex; flex-direction: column; overflow: hidden;
+  background: #ffffff; border: 2px solid var(--cy-frame); border-radius: 6px; box-shadow: 3px 3px 0 rgba(43, 47, 51, .18);
+  animation: fselect-in .12s ease-out;
+}
+.fselect-bar {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 2px 0 10px;
+  background: linear-gradient(#93a9c2, #7189a4); color: #ffffff; font-size: 13px; font-weight: 700;
+}
+.fselect-x { width: 40px; height: 34px; border: 0; background: none; color: #ffffff; font-size: 20px; line-height: 1; cursor: pointer; }
+.fselect-list { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 4px; padding: 8px; overflow-y: auto; overscroll-behavior: contain; }
+.fselect-group {
+  grid-column: 1 / -1; margin: 8px 0 2px; padding-bottom: 2px; border-bottom: 1px dashed var(--line);
+  font: 12px/1.6 "DotGothic16", var(--mono); letter-spacing: .08em; color: var(--cy-pop);
+}
+.fselect-group:first-child { margin-top: 0; }
+.fselect-opt {
+  min-width: 0; min-height: 40px; padding: 0 4px; border: 1px solid #d3dce6; border-radius: 4px;
+  background: linear-gradient(#ffffff, #f3f6f9); font: inherit; font-size: 15px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.fselect-list.one .fselect-opt { text-align: left; padding: 0 12px; min-height: 44px; }
+.fselect-opt:hover, .fselect-opt:focus-visible { outline: none; border-color: var(--cy-aqua); background: #e3f6f8; color: var(--cy-pop); }
+.fselect-opt.on { border-color: var(--cy-pop-edge); background: var(--cy-aqua); color: #ffffff; font-weight: 700; }
+@keyframes fselect-in { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .fselect-pop { animation: none; } }

@@ -30,7 +30,7 @@ async function signupSheet(p, signup = false) {
   return true;
 }
 async function setup(p, name, bday, { keepEditor = false, signup = false } = {}) {
-  await p.fill('#setup-form [name=name]', name); await p.fill('#setup-form [name=birthday]', bday); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', name); await p.fill('#setup-form [name=birthday]', bday); await p.click('#setup-form button[type=submit]');
   await p.waitForTimeout(300);
   p.sheetShown = await signupSheet(p, signup);
   if (signup) return;

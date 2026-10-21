@@ -24,7 +24,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   const p = await ctx.newPage(); await require('./adapt.cjs')(p);
   p.on('pageerror', (e) => errors.push(e.message)); p.on('dialog', (d) => d.accept());
   await p.goto(URL);
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   await p.click('#look-save');
   await p.waitForTimeout(600);

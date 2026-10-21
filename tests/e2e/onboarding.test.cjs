@@ -25,7 +25,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.fill('#setup-form [name=name]', '秀'); await p.fill('#setup-form [name=birthday]', '1998-03-01');
   assert(/雙魚座的你，已經在地球上 [\d,]+ 天了/.test(await p.textContent('#setup-days')) && await p.isVisible('#setup-days'), '選好生日：顯示星座和在地球上幾天');
   assert((await p.textContent('.setup-win .cy-window-bar')).includes('建立 秀 的小窩'), '名字放進視窗標題');
-  await p.click('#setup-form button');
+  await p.click('#setup-form button[type=submit]');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   await p.click('#look-save'); await p.waitForTimeout(800);
   assert(!(await p.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open))), '選好樣子就直接進房間，不再跳歡迎頁');

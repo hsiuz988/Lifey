@@ -3031,6 +3031,7 @@ async function renderCloudSection() {
     return h('div', { class: 'row' }, select, invite);
   })());
   root.replaceChildren(...items);
+  root.querySelectorAll('select').forEach((sel) => fancySelect(sel)); // 和生日一樣用自己畫的選單
 }
 
 async function makeInvite(personId) {
@@ -3240,11 +3241,13 @@ function enhanceBirthday(input) {
   const year = h('select', { 'aria-label': '出生年' }, opt('', '年'), ...Array.from({ length: thisYear - 1919 }, (_, i) => opt(String(thisYear - i), `${thisYear - i} 年`)));
   const month = h('select', { 'aria-label': '出生月' }, opt('', '月'), ...Array.from({ length: 12 }, (_, i) => opt(String(i + 1), `${i + 1} 月`)));
   const day = h('select', { 'aria-label': '出生日' }, opt('', '日'));
+  const refreshAll = () => [year, month, day].forEach((s) => s.refreshFancy && s.refreshFancy());
   const fillDays = () => {
     const n = year.value && month.value ? new Date(Number(year.value), Number(month.value), 0).getDate() : 31;
     const keep = day.value;
     day.replaceChildren(opt('', '日'), ...Array.from({ length: n }, (_, i) => opt(String(i + 1), `${i + 1} 日`)));
     day.value = Number(keep) <= n ? keep : '';
+    refreshAll();
   };
   const toInput = () => {
     fillDays();
@@ -3256,6 +3259,7 @@ function enhanceBirthday(input) {
     month.value = m ? String(Number(m[2])) : '';
     fillDays();
     day.value = m ? String(Number(m[3])) : '';
+    refreshAll();
   };
   [year, month, day].forEach((s) => s.addEventListener('change', toInput));
   input.addEventListener('input', fromInput);
@@ -3263,7 +3267,112 @@ function enhanceBirthday(input) {
   input.syncPicker = fromInput;
   fillDays();
   input.after(h('div', { class: 'bday' }, year, month, day));
+  // 選項排成格子：年每 10 年一組（沒選過先捲到大約 30 年前）、月 4×3、日一排 7 格
+  fancySelect(year, { title: '出生年', cols: 5, short: (t) => t.replace(' 年', ''), group: (v) => `${Math.floor(v / 10) * 10} 年代`, start: () => thisYear - 30 });
+  fancySelect(month, { title: '出生月', cols: 4 });
+  fancySelect(day, { title: '出生日', cols: 7, short: (t) => t.replace(' 日', '') });
   fromInput();
+}
+
+// ---------- 自己畫的下拉選單（取代瀏覽器原生的選單彈窗） ----------
+// 原本的 <select> 留著存值（表單、同步、測試照用），只是藏起來；前面放一顆長得跟輸入框一樣的按鈕，
+// 點了打開一個復古小視窗，選項可以排成格子。鍵盤：方向鍵移動、Enter 選、Esc 關。
+let fsOpen = null; // 目前打開的那一個：{ select, btn, pop, off }
+function fancySelect(select, { title = select.getAttribute('aria-label') || '請選擇', cols = 1, short = (t) => t, group = null, start = null } = {}) {
+  if (select.refreshFancy) return;
+  const btn = h('button', { type: 'button', class: 'fselect-btn', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-label': select.getAttribute('aria-label') || title });
+  select.classList.add('fselect-native');
+  select.tabIndex = -1;
+  select.setAttribute('aria-hidden', 'true');
+  select.before(btn);
+  const refresh = () => {
+    const o = select.selectedOptions[0];
+    btn.textContent = o ? o.textContent : '';
+    btn.classList.toggle('placeholder', !select.value);
+  };
+  select.refreshFancy = refresh;
+  select.addEventListener('change', refresh);
+  const open = () => openFancy(select, btn, { title, cols, short, group, start });
+  btn.addEventListener('click', () => (fsOpen && fsOpen.select === select ? closeFancy() : open()));
+  btn.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); open(); } });
+  refresh();
+}
+
+function closeFancy(refocus = false) {
+  if (!fsOpen) return;
+  const { pop, btn, off } = fsOpen;
+  fsOpen = null;
+  off();
+  pop.remove();
+  btn.setAttribute('aria-expanded', 'false');
+  if (refocus) btn.focus();
+}
+
+function openFancy(select, btn, { title, cols, short, group, start }) {
+  closeFancy();
+  const choose = (v) => {
+    select.value = v;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    closeFancy(true);
+  };
+  const list = h('div', { class: `fselect-list${cols === 1 ? ' one' : ''}`, role: 'listbox', 'aria-label': title, style: `--cols:${cols}` });
+  const cells = [];
+  let lastGroup = null;
+  for (const o of [...select.options].filter((x) => x.value !== '')) {
+    const g = group ? group(Number(o.value)) : null;
+    if (g && g !== lastGroup) { list.append(h('div', { class: 'fselect-group', role: 'presentation' }, g)); lastGroup = g; }
+    const on = o.value === select.value;
+    const cell = h('button', {
+      type: 'button', role: 'option', class: `fselect-opt${on ? ' on' : ''}`, 'aria-selected': String(on), tabindex: '-1', 'data-v': o.value,
+      onclick: () => choose(o.value),
+    }, short(o.textContent));
+    cells.push(cell);
+    list.append(cell);
+  }
+  const pop = h('div', { class: 'fselect-pop' },
+    h('div', { class: 'fselect-bar' }, h('span', {}, title), h('button', { type: 'button', class: 'fselect-x', 'aria-label': '關閉', onclick: () => closeFancy(true) }, '×')),
+    list);
+  const host = btn.closest('dialog') || document.body; // 在抽屜裡要放進抽屜，才不會被蓋住、點得到
+  host.append(pop);
+
+  // 位置：貼在按鈕下面；下面空間不夠就改放上面；不超出畫面
+  const r = btn.getBoundingClientRect();
+  const vw = document.documentElement.clientWidth;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const width = Math.min(vw - 16, Math.max(r.width, cols > 1 ? 300 : 220));
+  const left = Math.max(8, Math.min(r.left, vw - width - 8));
+  const below = vh - r.bottom - 12, above = r.top - 12;
+  const downward = below >= 240 || below >= above;
+  const maxH = Math.min(360, downward ? below : above);
+  pop.style.cssText = `left:${left}px;width:${width}px;max-height:${maxH}px;${downward ? `top:${r.bottom + 4}px` : `bottom:${vh - r.top + 4}px`}`;
+
+  // 一打開就停在目前選的（沒選過就停在建議的起點，例如 30 年前）
+  const cur = cells.find((c) => c.dataset.v === select.value) || (start && cells.find((c) => c.dataset.v === String(start()))) || cells[0];
+  if (cur) { list.scrollTop = cur.offsetTop - list.clientHeight / 2 + cur.offsetHeight / 2; cur.focus({ preventScroll: true }); }
+
+  list.addEventListener('keydown', (e) => {
+    const i = cells.indexOf(document.activeElement);
+    const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols, Home: -Infinity, End: Infinity }[e.key];
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFancy(true); return; } // 不要連抽屜一起關掉
+    if (e.key === 'Tab') { closeFancy(); return; }
+    if (step == null || i < 0) return;
+    e.preventDefault();
+    const next = cells[Math.max(0, Math.min(cells.length - 1, i + step))];
+    next.focus({ preventScroll: true });
+    next.scrollIntoView({ block: 'nearest' });
+  });
+  const outside = (e) => { if (!pop.contains(e.target) && e.target !== btn) closeFancy(); };
+  const onClose = () => closeFancy();
+  document.addEventListener('pointerdown', outside, true);
+  window.addEventListener('resize', onClose);
+  const dlg = btn.closest('dialog');
+  if (dlg) dlg.addEventListener('close', onClose, { once: true });
+  btn.setAttribute('aria-expanded', 'true');
+  fsOpen = { select, btn, pop, off: () => {
+    document.removeEventListener('pointerdown', outside, true);
+    window.removeEventListener('resize', onClose);
+    if (dlg) dlg.removeEventListener('close', onClose);
+  } };
 }
 
 // 註冊頁的小巧思：點 logo 跳一下說句話、名字填進視窗標題、生日算出在地球上幾天（標題列的三顆鈕只是裝飾，不能點）
@@ -3285,7 +3394,7 @@ function setupDelight() {
   $('#setup-logo').addEventListener('animationend', (e) => { if (e.animationName === 'setup-hop') e.currentTarget.classList.remove('hop'); });
   form.name.addEventListener('input', () => {
     const name = form.name.value.trim();
-    $('#setup-win-title').textContent = name ? `建立 ${name} 的小窩` : '建立我的小窩';
+    $('#setup-win-title').textContent = name ? `建立 ${name} 的小窩` : '建立你的小窩';
   });
   const days = $('#setup-days');
   const showDays = () => {

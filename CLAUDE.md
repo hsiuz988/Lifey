@@ -90,7 +90,7 @@
 
 ### 註冊頁
 
-- logo 是兩張圖：插圖 `brand/setup_hero.webp`（女孩和貓趴在床上，會飄、點了跳一下說話）＋ `brand/logo_text.webp`（wowo! 字，壓在床緣上）。原圖在 `art/source/brand/setup_hero.png`、`logo_text.png`，換圖後跑 `python3 art/tools/setup_logo.py`（清掉 AI 去背的雜點、裁邊、縮成 2 倍大小）→ 打字機一句話（`typeTagline`：輪流打出三個特點，停在「把一輩子，慢慢記下來」只跑一輪；一點表單就直接停）→「建立我的小窩」視窗（名字、生日、在地球上幾天）→ 視窗底部凹下去的狀態列寫四個特點。
+- logo 是兩張圖：插圖 `brand/setup_hero.webp`（女孩和貓趴在床上，**不會一直飄**，點了才跳一下說話）＋ `brand/logo_text.webp`（wowo! 字，壓在床緣上）。原圖在 `art/source/brand/setup_hero.png`、`logo_text.png`，換圖後跑 `python3 art/tools/setup_logo.py`（清掉 AI 去背的雜點、裁邊、縮成 2 倍大小）→ 打字機一句話（`typeTagline`：輪流打出三個特點，停在「把一輩子，慢慢記下來」只跑一輪；一點表單就直接停）→「建立你的小窩」視窗（名字、生日、在地球上幾天）→ 視窗底部凹下去的狀態列寫四個特點。
 - 標題列的縮小／放大／關閉**只是裝飾，不能點**（使用者定案，不要再加互動）。
 
 ### 輸入框、下拉選單（全站同一套，在 `cy.css`）
@@ -98,6 +98,8 @@
 - 淺藍灰底、藍灰細框、圓角 4px、內側淡陰影；聚焦是白底＋邦迪藍框＋淡光暈；至少 44px 高、字 16px；下拉選單右邊是像素 ▼。
 - 各頁**不要再自己改**框線、底色、圓角（只能改寬度、排版）。例外：記一筆的橫線紙、首頁個人訊息的小欄位。
 - 生日一律用「年／月／日」三個下拉選單（`enhanceBirthday`，輸入框加 `bday-native`），包括人物、寵物；記一筆的日期、回憶的確切日期用原生日曆。
+- **下拉選單不用原生的彈窗**：`fancySelect(select, { title, cols, short, group, start })` 在 `<select>` 前面放一顆長得跟輸入框一樣的按鈕，點了開復古小視窗（年每 10 年一組、一排 5 格，沒選過先停在 30 年前；月 4×3；日一排 7 格）。原本的 `<select>` 藏著存值（`.fselect-native`），程式改了值要呼叫 `select.refreshFancy()`。雲端頁的選單也用它。
+- 測試要點「送出」請寫 `#setup-form button[type=submit]`（表單裡第一顆按鈕現在是年份選單）；找下拉選單用 `select:nth-of-type()`，不要用 `nth-child`。
 - `replaceChildren` 不能傳 `null`（會印出「null」字樣），可能沒有的區塊要先 `.filter(Boolean)`。
 
 ### 今年的狀態

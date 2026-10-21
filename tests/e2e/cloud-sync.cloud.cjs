@@ -41,7 +41,7 @@ async function signupSheet(p, signup = false) {
   return true;
 }
 async function setup(p, name, birthday) {
-  await p.fill('#setup-form [name=name]', name); await p.fill('#setup-form [name=birthday]', birthday); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', name); await p.fill('#setup-form [name=birthday]', birthday); await p.click('#setup-form button[type=submit]');
   await p.waitForTimeout(300);
   p.sheetShown = await signupSheet(p, false);
   await p.waitForTimeout(200);

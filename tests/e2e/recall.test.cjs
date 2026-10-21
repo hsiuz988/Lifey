@@ -15,7 +15,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   const errors = [];
   p.on('pageerror', e => errors.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto(URL);
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button'); await p.waitForTimeout(200); await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1995-03-02'); await p.click('#setup-form button[type=submit]'); await p.waitForTimeout(200); await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
   const st = () => p.evaluate(() => new Promise(r => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('meta').objectStore('meta').get('state'); t.onsuccess = () => r(t.result); }; }));
   const age = () => p.textContent('#recall-age');
   const next = async () => { const a = await age(); await p.click('#recall-next'); await p.waitForFunction((a) => document.querySelector('#recall-age').textContent !== a || !document.querySelector('#recall-dialog').open, a); };

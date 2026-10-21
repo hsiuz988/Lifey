@@ -51,7 +51,7 @@ let b;
 
   await p.goto(URL);
   assert(!(await p.textContent('#setup')).includes('Face ID'), '註冊頁沒有 Face ID');
-  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1998-03-02'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1998-03-02'); await p.click('#setup-form button[type=submit]');
   await p.waitForTimeout(300);
   await p.waitForFunction(() => document.querySelector('#letter-dialog').open, null, { timeout: 4000 }).catch(() => {});
   await p.click('#letter-dialog button:text-is("之後再說")').catch(() => {});
