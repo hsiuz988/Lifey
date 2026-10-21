@@ -83,6 +83,7 @@ async function newPage(b, opts = {}) {
   await p.waitForTimeout(300);
   assert(await p.$eval('#scene', (e) => e.dataset.face) === 'angry' && await p.$eval('#l-face', (e) => e.getAttribute('href').includes('face_angry')), '寫了生氣的事，小人換成生氣的臉');
   assert(await p.$eval('#scene-bubble', (e) => e.classList.contains('show')), '記完小人會說話');
+  assert(['哼哼哼 (╬ Ò﹏Ó)', '吸氣…吐氣…'].includes(await p.textContent('#scene-bubble')), `生氣時小人用自己的口吻說生氣的台詞（${await p.textContent('#scene-bubble')}）`);
   // 電視：出生那年的世界
   await p.click('#scene .hot[data-name="tv"]');
   await p.waitForSelector('#info-dialog[open]', { timeout: 8000 });

@@ -159,6 +159,21 @@ function findPath(start, goal) {
 const star = (cx, cy, r) => `M${cx},${cy - r} Q${cx},${cy} ${cx + r},${cy} Q${cx},${cy} ${cx},${cy + r} Q${cx},${cy} ${cx - r},${cy} Q${cx},${cy} ${cx},${cy - r} Z`;
 const clock = () => new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+// 記一筆之後小人說的話：用玩家自己的口吻（使用者定案的台詞）
+export const MOOD_LINES = {
+  happy: ['耶！今天超讚 (๑˃ᴗ˂)ﻭ', '嘿嘿，今天過得不錯！', '這一刻要好好收藏！'],
+  excited: ['耶！好興奮呀！', '想跟全世界說！', '今天是我的主場 (ﾉ>ω<)ﾉ'],
+  calm: ['平平淡淡也很好 ( ˘͈ ᵕ ˘͈♡)', '沒什麼特別的，但我喜歡！', '慢慢來～慢慢來～'],
+  moved: ['感動的時刻，可以記很久！', '心裡暖暖的 ( ´•̥̥̥ω•̥̥̥` )', '被溫柔對待了'],
+  love: ['心跳偷偷加速 …♡', '一直想到那個人 (⁄ ⁄•⁄ω⁄•⁄ ⁄)', '今天有粉紅泡泡 …♡'],
+  tired: ['電量剩 1%', '想直接躺平 (¦3[▓▓]', '好想睡 (´-ωก`)'],
+  sad: ['今天有點難過', '想一個人靜靜 (っ◞‸◟c)', '沒關係，會好起來的！'],
+  angry: ['哼哼哼 (╬ Ò﹏Ó)', '吸氣…吐氣…'],
+  nervous: ['等等！我還沒準備好！(⊙_⊙;)', '腦袋空白...', '拜託，要順利啊～～～'],
+  miss: ['好想你！', '不知道你現在在做什麼呢', '如果能見一面就好了'],
+};
+const QUIET_MOODS = new Set(['tired', 'sad', 'angry', 'nervous', 'miss']);
+
 export class Room {
   // box：放房間的元素（裡面會建 svg 和泡泡）；on：點了東西要做的事 { diary, calendar, tv, letter, shelf, door, plant, photos }
   constructor(box, on = {}) {
@@ -475,13 +490,15 @@ export class Room {
   jump() {
     if (this.pose.animate) this.pose.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-26px)' }, { transform: 'translateY(0)' }], { duration: 420, easing: 'ease-out' });
   }
-  // 記下一筆時：跳一下、冒星星、換成那則的心情
+  // 記下一筆時：換成那則的心情，小人用「我」的口吻說出心情（台詞見 MOOD_LINES）；低落的心情不跳、不冒星星
   celebrate({ emo = null, sad = false, text = null } = {}) {
     if (this.me.asleep) this.wake(true);
     const face = sad ? 'smile' : faceFor(emo || 'happy');
     this.feel(face, 3000, emo || (sad ? null : 'happy'));
-    if (face !== 'angry' && !sad) { this.jump(); this.sparkle(...toXY(this.me.u, this.me.v).map((n, i) => n - (i ? 180 : 0)), 8); }
-    this.say(text || (sad ? '已經好好記下來了' : face === 'angry' ? '記下來了，氣消一點了嗎？' : '記下來了！✨'));
+    const low = sad || QUIET_MOODS.has(emo);
+    if (!low) { this.jump(); this.sparkle(...toXY(this.me.u, this.me.v).map((n, i) => n - (i ? 180 : 0)), 8); }
+    const lines = MOOD_LINES[emo];
+    this.say(text || (sad ? '已經好好記下來了' : lines ? lines[Math.floor(Math.random() * lines.length)] : '記下來了！✨'), 3200);
   }
 
   // ---- 睡覺 ----

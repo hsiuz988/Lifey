@@ -40,7 +40,17 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   assert(s.moments.length === 1 && s.moments[0].text === '只寫一句', '一句話直接存');
   assert(await p.textContent('#toast') === '記下來了', `提示文字正確，沒有多出 null（${await p.textContent('#toast')}）`);
   await p.waitForTimeout(150);
-  assert(await p.textContent('#cy-today') === '1' && await p.textContent('#cy-total') === '1', '迷你小窩：TODAY／TOTAL 算到這一筆');
+  assert(/^\d+$/.test(await p.textContent('#cy-age-n')) && (await p.textContent('.cy-age-days')).includes('歲'), '迷你小窩：最上面是「○ 歲又 ○ 天」');
+  assert(await p.textContent('#cy-joy-count') === '0' && (await p.textContent('.cy-joy-n')).includes('個小幸福'), '迷你小窩：收藏了幾個小幸福');
+  // MSN 狀態：點了選，名字旁邊跟著換、存進個人資料
+  assert(await p.textContent('#cy-status-label') === '在線上', '狀態預設是「在線上」');
+  await p.click('#cy-status'); await p.waitForTimeout(100);
+  await p.click('.cy-status-opt >> text=正在耍廢'); await p.waitForTimeout(200);
+  assert(await p.textContent('#cy-status-label') === '正在耍廢' && (await st(p)).profile.status === 'lazy' && await p.$eval('#cy-status-menu', (e) => e.hidden), '選了狀態：名字旁邊換掉、選單收起、存起來');
+  // 個人訊息：沒寫時是 MSN 的提示，點了直接打字
+  assert(await p.$eval('#cy-msg', (e) => e.classList.contains('empty')), '個人訊息還沒寫時顯示提示');
+  await p.click('.cy-msg-box'); await p.fill('#cy-msg-input', '期末考加油！'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
+  assert(await p.textContent('#cy-msg') === '期末考加油！' && (await st(p)).profile.msg === '期末考加油！', '寫好個人訊息按 Enter 就存起來');
   assert((await p.textContent('#cy-news')).includes('只寫一句'), '迷你小窩：最近更新出現這一筆');
   assert(await p.$eval('#cy-family-box', e => e.hidden), '迷你小窩：還沒連結家人時不放「家人說」');
   // 只放一張照片也能存；什麼都沒有時不會存

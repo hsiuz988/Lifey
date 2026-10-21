@@ -20,7 +20,7 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   await p.click('#look-save'); await p.waitForTimeout(800);
   assert(!(await p.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open))), '選好樣子就直接進房間，不再跳歡迎頁');
   assert(await p.isVisible('#scene') && (await p.textContent('#scene')).includes('日記本'), '小人提示去點書桌上的日記本');
-  assert(await p.isVisible('#cy-counts') && (await p.textContent('#cy-counts')).includes('人生'), '首頁上方是個人小卡和日記／相簿／信／人生數字');
+  assert(await p.isVisible('#cy-look') && await p.isVisible('#cy-news') && !(await p.$('#cy-counts')), '首頁上方是大頭照、名字、TODAY IS 和最近的日記（數字放在「我的」）');
   assert(await p.$eval('#cy-family-box', (e) => e.hidden), '還沒連結家人時，首頁不放「家人說」');
   await p.screenshot({ path: OUT + '/onb-2.png' });
   await p.click('#add-btn');
