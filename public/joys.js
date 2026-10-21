@@ -1,4 +1,4 @@
-// 我的幸福：重複發生的小幸福（喝到好喝的、看見漂亮的天空…），點一下就收藏，再問一句（有寫就變成日記），App 幫忙數次數、畫月曆
+// 我的幸福：重複發生的小幸福（喝到好喝的、看見漂亮的風景…），點一下就收藏，再問一句（有寫就變成日記），App 幫忙數次數、畫月曆
 // 資料：state.joys（幸福項目）、state.joyLog（每點一次一筆，刪除留墓碑在 state.deleted）
 // 每點一次存一筆，兩台手機同一天各點的次數合併時都會留下；次數、天數都從紀錄即時算，不另存計數
 
@@ -22,7 +22,7 @@ export function iconEl(key) {
 export const DEFAULT_JOYS = [
   { title: '喝到好喝的', icon: 'coffee', mode: 'many' },
   { title: '吃到好吃的', icon: 'meal', mode: 'many' },
-  { title: '看見漂亮的天空', icon: 'sunset', mode: 'once' },
+  { title: '看見漂亮的風景', icon: 'sunset', mode: 'once' },
   { title: '好好睡了一覺', icon: 'moon', mode: 'once' },
   { title: '被稱讚了', icon: 'star', mode: 'many' },
   { title: '收到小驚喜', icon: 'gift', mode: 'many' },
@@ -45,7 +45,7 @@ const SUGGESTIONS = [
 export const JOY_PRESETS = [...DEFAULT_JOYS, ...SUGGESTIONS];
 // 收藏之後的延伸提問（照圖示）；有寫就變成一篇日記
 const ASK = {
-  coffee: '喝了什麼？好喝在哪裡？', meal: '吃了什麼好吃的？', sunset: '天空是什麼顏色的？', moon: '睡得怎麼樣？做了什麼夢嗎？',
+  coffee: '喝了什麼？好喝在哪裡？', meal: '吃了什麼好吃的？', sunset: '看到了什麼樣的風景？', moon: '睡得怎麼樣？做了什麼夢嗎？',
   star: '被誰稱讚了？說了什麼？', gift: '是什麼樣的驚喜？', music: '是哪一首歌？', paw: '遇到什麼樣的小傢伙？',
   sneaker: '去了哪裡走走？', hearts: '和誰在一起？做了什麼？', cat: '貓咪今天睡在哪裡？', camera: '拍到了什麼？',
   bath: '泡澡的時候在想什麼？', cake: '吃了什麼甜點？', book: '讀了哪本書？', sun: '天氣好的時候做了什麼？',
@@ -56,7 +56,12 @@ const SEED_AT = '2000-01-01T00:00:00.000Z';
 // 還沒有任何小幸福的人放進預設的 10 個（只做一次）；回傳有沒有改動
 export function seedJoys(state) {
   state.prefs = state.prefs || {};
-  if (state.prefs.joysSeeded) return false;
+  // 預設名稱改過的，沒被使用者動過就跟著換（updatedAt 還是預設的時間）
+  let renamed = false;
+  for (const j of state.joys || []) {
+    if (j.id === 'joy-sunset' && j.updatedAt === SEED_AT && j.title === '看見漂亮的天空') { j.title = '看見漂亮的風景'; renamed = true; }
+  }
+  if (state.prefs.joysSeeded) return renamed;
   state.prefs.joysSeeded = true;
   if ((state.joys || []).length) return true;
   const now = new Date().toISOString();
