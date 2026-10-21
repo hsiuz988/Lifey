@@ -50,7 +50,7 @@ async function newPage(b, opts = {}) {
 
   // ===== 房間 =====
   await tab(p, 'home');
-  assert(await p.$eval('#scene', (e) => !!e.querySelector('image[href$="room.webp"]')), '首頁是房間');
+  assert(await p.$eval('#scene', (e) => !!e.querySelector('image[href*="room.webp"]')), '首頁是房間');
   // 點地板：小人走過去
   const before = await p.$eval('#room-me', (e) => e.getAttribute('transform'));
   const rb = await p.$eval('#scene svg', (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
@@ -83,6 +83,7 @@ async function newPage(b, opts = {}) {
   await p.waitForTimeout(300);
   assert(await p.$eval('#scene', (e) => e.dataset.face) === 'angry' && await p.$eval('#l-face', (e) => e.getAttribute('href').includes('face_angry')), '寫了生氣的事，小人換成生氣的臉');
   assert(await p.$eval('#scene-bubble', (e) => e.classList.contains('show')), '記完小人會說話');
+  assert(['哼哼哼 (╬ Ò﹏Ó)', '吸氣…吐氣…'].includes(await p.textContent('#scene-bubble')), `生氣時小人用自己的口吻說生氣的台詞（${await p.textContent('#scene-bubble')}）`);
   // 電視：出生那年的世界
   await p.click('#scene .hot[data-name="tv"]');
   await p.waitForSelector('#info-dialog[open]', { timeout: 8000 });
@@ -228,7 +229,7 @@ async function newPage(b, opts = {}) {
   await m.goto(URL);
   await m.fill('#setup-form [name=name]', 'M'); await m.fill('#setup-form [name=birthday]', '1990-01-01'); await m.click('#setup-form button');
   await m.waitForFunction(() => document.querySelector('#look-dialog').open); await m.keyboard.press('Escape');
-  assert(await m.$eval('#scene', (e) => !!e.querySelector('image[href$="room.webp"]') && e.querySelectorAll('#room-me image').length >= 6), '減少動態效果：房間照樣畫出來');
+  assert(await m.$eval('#scene', (e) => !!e.querySelector('image[href*="room.webp"]') && e.querySelectorAll('#room-me image').length >= 6), '減少動態效果：房間照樣畫出來');
 
   console.log('errors', errors);
   await b.close();

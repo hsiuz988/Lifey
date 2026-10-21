@@ -1,3 +1,4 @@
+import { mergeJoyData } from './joys.js';
 // 雲端：Face ID（Passkey）登入、同步合併、照片上傳下載、另一半
 import * as db from './db.js';
 
@@ -154,7 +155,9 @@ export function mergeStates(local, remote) {
 
   const prefs = { ...(remote.prefs || {}), ...(local.prefs || {}) };
   const lastExportAt = [local.lastExportAt, remote.lastExportAt].filter(Boolean).sort().pop() || null;
-  return { ...local, profile, moments, years, people, letters, prefs, deleted, achievements, lastExportAt };
+  // 累積幸福：項目和每一次的紀錄都逐筆合併，兩台手機同一天各點的次數都會留下
+  const { joys, joyLog, imprints } = mergeJoyData(local, remote, deleted);
+  return { ...local, profile, moments, years, people, letters, joys, joyLog, imprints, prefs, deleted, achievements, lastExportAt };
 }
 
 // 只送需要同步的欄位（回憶模式進度是各裝置自己的）

@@ -97,9 +97,16 @@ main#app {
 
 /* 首頁：TODAY／TOTAL、名字、個人小卡 */
 .cy-top { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 2px; }
-.cy-count { font-family: "DotGothic16", var(--mono); font-size: 14px; letter-spacing: .04em; color: #3e4c5a; }
-.cy-count b { font-weight: 400; color: var(--cy-pop); }
-.cy-count i { font-style: normal; color: #b9c7d6; margin: 0 4px; }
+.cy-count { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #3e4c5a; }
+.cy-count b { font-family: "DotGothic16", var(--mono); font-weight: 400; font-size: 17px; color: var(--cy-pop); margin-right: 2px; }
+.cy-count i { font-style: normal; color: #b9c7d6; }
+.cy-age-days, .cy-joy-n { display: flex; align-items: baseline; gap: 1px; }
+.cy-joy-n { align-items: center; gap: 4px; }
+.cy-sub-days { margin-left: 4px; color: var(--muted); }
+/* 小幸福的愛心：撲通撲通 */
+.cy-beat { transform-origin: 50% 55%; animation: cy-beat 2.4s ease-in-out infinite; }
+@keyframes cy-beat { 0%, 60%, 100% { transform: scale(1); } 10% { transform: scale(1.22); } 20% { transform: scale(1); } 30% { transform: scale(1.14); } }
+@media (prefers-reduced-motion: reduce) { .cy-beat { animation: none; } }
 .cy-bgm {
   display: flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px;
   border: 1px solid #8fa3b8; border-radius: 4px; background: var(--panel-2);
@@ -111,45 +118,54 @@ main#app {
 .cy-bgm.on .ic-pause { display: inline; }
 .cy-bgm.on { border-color: var(--cy-aqua); }
 .cy-bgm-next { width: 32px; padding: 0; justify-content: center; }
-.cy-head { display: flex; align-items: baseline; justify-content: space-between; margin: 6px 12px 10px; padding-bottom: 8px; border-bottom: 1px dashed #b9c7d6; }
-.cy-head h1 { margin: 0; font-size: 18px; color: var(--cy-blue); }
-.cy-head span { font-size: 13px; color: var(--muted); }
-
-.cy-profile { display: flex; gap: 10px; margin: 0 12px 12px; }
-/* 個人小卡放在「記一筆」和今日卡下面 */
-.home-sheet .cy-profile { margin: 16px 0 0; }
-.cy-card {
-  width: 104px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; align-items: stretch;
-  padding: 0; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
-}
-.cy-look { display: block; width: 104px; height: 104px; overflow: hidden; border: 1px solid #b9c7d6; background: var(--panel-2); }
-.cy-look .look-head { width: 104px; transform: scale(1.18); transform-origin: 42% 4%; }
+.cy-hero { display: flex; gap: 16px; align-items: center; margin: 14px 16px; }
+.cy-avatar { flex-shrink: 0; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 10px; }
+.cy-look { display: block; width: 92px; height: 92px; overflow: hidden; border: 1px solid #b9c7d6; border-radius: 10px; background: var(--panel-2); }
+.cy-look .look-head { width: 92px; transform: scale(1.18); transform-origin: 42% 4%; }
 .cy-look .look.doll.look-head { transform: scale(1.05); transform-origin: 50% 2%; }
 .cy-look .look.pixel.look-head { transform: translateY(-17%) scale(1.1); transform-origin: 50% 0; }
-.cy-today-is { font-family: "DotGothic16", var(--mono); font-size: 12px; color: #3e4c5a; }
-.cy-mood { display: block; font-size: 14px; font-weight: 700; color: var(--cy-blue); }
-.cy-mood.empty { font-weight: 400; color: var(--muted); }
+.cy-hero-text { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+.cy-name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cy-name-row h1 { margin: 0; font-size: 20px; line-height: 1.3; color: var(--cy-blue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* MSN 狀態：小燈＋文字＋▾，點了出選單 */
+.cy-status-box { position: relative; flex-shrink: 0; }
+.cy-status { display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 6px; border: 1px solid transparent; border-radius: 4px; background: none; font: inherit; font-size: 12px; color: var(--muted); cursor: pointer; }
+.cy-status:hover, .cy-status[aria-expanded="true"] { border-color: #d3dce6; background: var(--panel-2); }
+.cy-status svg { color: #8fa3b8; }
+.cy-dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: var(--dot, #3cc46a); box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, #3cc46a) 22%, #fff); flex-shrink: 0; }
+.cy-status-menu { position: absolute; left: 0; top: 32px; z-index: 30; width: 172px; display: flex; flex-direction: column; padding: 4px; border: 1px solid #7f95ad; border-radius: 6px; background: #fff; box-shadow: 2px 3px 0 rgba(43, 47, 51, .15); }
+.cy-status-menu[hidden] { display: none; }
+.cy-status-head { padding: 4px 8px 6px; font-family: "DotGothic16", var(--mono); font-size: 11px; color: #8a96a3; border-bottom: 1px dashed #d3dce6; }
+.cy-status-opt { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 8px; border: 0; border-radius: 4px; background: none; font: inherit; font-size: 14px; color: var(--text); text-align: left; cursor: pointer; }
+.cy-status-opt.on { background: var(--accent-soft); }
+/* MSN 個人訊息框：對話泡泡，尖角指向大頭照 */
+.cy-msg-box { position: relative; cursor: pointer; margin-top: 6px; display: flex; flex-direction: column; gap: 2px; padding: 7px 30px 8px 11px; border: 1px solid #b9c7d6; border-radius: 8px; background: linear-gradient(#fff, #eef3f8); }
+.cy-msg-tail { position: absolute; left: -6px; top: 14px; width: 10px; height: 10px; background: #fbfcfe; border-left: 1px solid #b9c7d6; border-bottom: 1px solid #b9c7d6; transform: rotate(45deg); }
+.cy-today-is { font-family: "DotGothic16", var(--mono); font-size: 11px; letter-spacing: .04em; color: #8a96a3; }
+.cy-msg { padding: 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 700; font-style: italic; color: var(--cy-blue); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; min-height: 22px; }
+.cy-msg.empty { font-weight: 400; color: #8a96a3; }
+.cy-msg.empty::before { content: "<"; } .cy-msg.empty::after { content: ">"; }
+.cy-msg-input { height: 26px; padding: 0 4px; border: 1px solid #8fa3b8; border-radius: 3px; font: inherit; font-size: 14px; font-style: italic; color: var(--cy-blue); background: #fff; }
+.cy-msg-pen { position: absolute; right: 10px; top: 50%; margin-top: -7px; color: #8fa3b8; pointer-events: none; }
 .cy-gem { width: 11px; height: 13px; background: var(--c); clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%); flex-shrink: 0; }
 
-.cy-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.cy-line {
-  min-height: 44px; padding: 6px 8px; text-align: left; border: 1px dashed #d3dce6; border-radius: 4px; background: #ffffff;
-  font: inherit; font-size: 14px; line-height: 1.45; color: var(--text); cursor: pointer;
-}
-.cy-line.empty { color: var(--cy-blue); }
 .cy-box-title {
   display: flex; align-items: center; justify-content: space-between;
   font-size: 13px; font-weight: 700; color: #3e4c5a; border-bottom: 1px solid var(--line); padding-bottom: 3px;
 }
 .cy-box-title .link-btn { font-size: 13px; font-weight: 400; padding: 8px 0; }
+.cy-recent { margin: 0 12px 16px; }
 .cy-news { display: flex; flex-direction: column; }
 .cy-news-item {
-  display: flex; gap: 6px; align-items: center; min-height: 36px; padding: 0; border: 0; border-bottom: 1px dashed #e4eaf0;
-  background: none; font: inherit; font-size: 13px; color: var(--cy-blue); text-align: left; cursor: pointer; min-width: 0;
+  display: flex; gap: 8px; align-items: center; min-height: 44px; padding: 0 2px; border: 0; border-bottom: 1px dashed #e4eaf0;
+  background: none; font: inherit; font-size: 14px; color: var(--text); text-align: left; cursor: pointer; min-width: 0;
 }
+.cy-news-item:last-child { border-bottom: 0; }
+.cy-news-date { width: 40px; flex-shrink: 0; font-family: "DotGothic16", var(--mono); font-size: 12px; color: var(--muted); }
 .cy-tag { color: var(--cy-pop); font-size: 12px; font-weight: 700; flex-shrink: 0; }
-.cy-news-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cy-empty { margin: 4px 0; font-size: 13px; color: var(--muted); }
+.cy-news-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cy-news-item .chev { color: #b9c7d6; flex-shrink: 0; }
+.cy-news-empty { color: var(--cy-blue); }
 
 /* Mini Room：房間放在細框裡 */
 .cy-room-title { margin: 0 12px 4px; border: 0; }
@@ -252,28 +268,59 @@ dialog.composer-page { border: 2px solid #5f7690; }
 .cy-mood .mood-face-wrap { vertical-align: middle; }
 .garden-card small { display: inline-flex; align-items: center; gap: 2px; }
 
-/* 註冊頁：點點桌面上一個「建立我的小窩」小視窗 */
-.cy-setup { max-width: 480px; padding: 24px 14px 32px; }
-.cy-setup-head { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; margin-bottom: 14px; }
+/* 註冊頁：點點桌面上一個「建立我的小窩」老視窗。只有 logo 和表單，第一屏就看得到 */
+.cy-setup { max-width: 440px; padding: max(28px, env(safe-area-inset-top)) 16px max(28px, 8vh); }
+.cy-setup:not([hidden]) { box-sizing: border-box; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
+.cy-setup > * { width: 100%; }
+.cy-setup-head { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; margin-bottom: 14px; }
 .cy-pixel { font-family: "DotGothic16", var(--mono); font-size: 13px; letter-spacing: .1em; color: #3e4c5a; }
-.cy-setup .brand { font-size: 26px; font-weight: 700; color: var(--cy-blue); letter-spacing: .05em; margin: 0; }
-.cy-setup .setup-lede { font-size: 13px; color: var(--muted); margin: 0; }
+.cy-setup .brand { position: relative; margin: 0; line-height: 0; }
+.setup-logo { padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.setup-logo .cy-logo { animation: setup-float 3.2s ease-in-out infinite; }
+.setup-logo.hop .cy-logo { animation: setup-hop .5s steps(5) 1; }
+.cy-logo { display: block; width: 176px; height: auto; margin: 0 auto; image-rendering: auto; filter: drop-shadow(0 6px 0 rgba(47, 95, 153, .12)); }
+.setup-say {
+  position: absolute; left: calc(50% + 62px); top: 14px; padding: 5px 9px; white-space: nowrap;
+  border: 2px solid #2f5f99; border-radius: 3px; background: #fff; color: #2f5f99;
+  font: 13px/1.2 "DotGothic16", var(--mono); box-shadow: 3px 3px 0 rgba(47, 95, 153, .2);
+  opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; pointer-events: none;
+}
+.setup-say::before { content: ""; position: absolute; left: -7px; top: 9px; border: 5px solid transparent; border-right-color: #2f5f99; border-left: 0; }
+.setup-say.on { opacity: 1; transform: none; }
 .cy-window { border: 2px solid var(--cy-frame); border-radius: 10px; overflow: hidden; background: #ffffff; }
+.setup-win { box-shadow: 4px 4px 0 rgba(47, 95, 153, .18); animation: setup-open .35s cubic-bezier(.2, 1.4, .4, 1) both; }
+.setup-win.shake { animation: setup-shake .4s steps(6) 1; }
 .cy-window-bar {
-  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px;
+  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 6px 0 10px;
   background: linear-gradient(#93a9c2, #7189a4); color: #ffffff; font-size: 13px; font-weight: 700;
 }
-.cy-setup .setup-hero { padding: 0; background: var(--room-bg); border-bottom: 1px solid var(--line); }
-.cy-setup .setup-room { height: 168px; aspect-ratio: auto; }
-.cy-setup .setup-body { margin: 0; padding: 14px; border-radius: 0; background: #ffffff; }
-.cy-setup .intro-list { gap: 6px; margin: 0 0 12px; }
-.cy-setup .intro-list li { font-size: 14px; gap: 8px; }
-.cy-setup .intro-list li::before { content: "·"; color: var(--accent); font-weight: 700; }
-.cy-setup .setup-form { margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 12px; }
+.cy-window-bar > span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.win-btns { display: flex; gap: 3px; }
+.win-btns i {
+  display: grid; place-items: center; width: 20px; height: 18px; font: 700 11px/1 var(--mono); font-style: normal; color: #4a5f77;
+  background: linear-gradient(#ffffff, #dfe7ef); border: 1px solid #5d7590; border-radius: 3px; cursor: pointer;
+}
+.win-btns i:active { background: #cfd9e4; transform: translateY(1px); }
+.cy-setup .setup-body { margin: 0; padding: 16px 16px 12px; border-radius: 0; background: #ffffff; }
+.cy-setup .invite-note:empty { display: none; }
+.cy-setup .setup-form { margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; gap: 14px; }
 .cy-setup .setup-form label { font-size: 13px; font-weight: 700; color: #3e4c5a; }
-.cy-setup .setup-form .hint { margin: -6px 0 0; font-size: 12px; }
-.cy-setup .btn.big { height: 48px; padding: 0; font-size: 16px; border-radius: 4px; }
-.cy-setup .setup-login { font-size: 13px; color: #3e4c5a; }
+.cy-setup .setup-form input[name=name] { border: 1px solid #8fa3b8; border-radius: 4px; background: #f3f6f9; }
+.cy-setup .setup-form input[name=name]:focus { background: #fff; border-color: var(--cy-pop); outline: 2px solid rgba(31, 169, 184, .25); }
+.cy-setup .setup-form .hint { margin: -6px 0 0; font-size: 12px; text-align: center; }
+/* 生日選好之後：「你已經在地球上 9,135 天了」 */
+.setup-days { margin: -4px 0 0; line-height: 1.5; padding: 8px 10px; border: 1px dashed #9fd6dc; border-radius: 4px; background: #f1fafb; color: #24515a; font-size: 13px; }
+.setup-days b { font-family: "DotGothic16", var(--mono); font-weight: 400; font-size: 16px; color: var(--cy-pop); }
+.cy-setup .btn.big { height: 50px; padding: 0; font-size: 16px; border-radius: 4px; letter-spacing: .04em; }
+.setup-go { box-shadow: 0 4px 0 var(--cy-pop-edge); transition: transform .06s, box-shadow .06s; }
+.setup-go:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--cy-pop-edge); }
+@keyframes setup-float { 50% { transform: translateY(-4px); } }
+@keyframes setup-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-14px) rotate(-3deg); } 70% { transform: translateY(-4px) rotate(2deg); } }
+@keyframes setup-open { from { opacity: 0; transform: scale(.94) translateY(8px); } }
+@keyframes setup-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .setup-logo .cy-logo, .setup-win { animation: none; }
+}
 .bday select { background: #f3f6f9; border: 1px solid #8fa3b8; border-radius: 4px; }
 dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10px; }
 
@@ -307,8 +354,6 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .stat-num { font-family: "DotGothic16", var(--mono); color: var(--cy-pop); }
 .stat-bars.compact .stat-track { height: 10px; }
 .stat-label { font-size: 13px; }
-.cy-setup .brand { line-height: 0; }
-.cy-logo { display: block; width: 220px; height: auto; margin: 0 auto; image-rendering: auto; }
 
 /* 「我的」最下面的版本號 */
 .app-version { margin: 14px 0 0; text-align: center; font-family: "DotGothic16", var(--mono); font-size: 12px; color: var(--muted); }
@@ -341,7 +386,7 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .stat.zero .stat-label { color: var(--muted); }
 .stat-empty { grid-column: 1 / -1; margin: 4px 0 0; font-size: 12.5px; }
 
-/* ================= 記一筆：一本攤開的電子手帳 =================
+/* ================= 記一筆：一本攤開的電子手帳 ==========
    點點桌面上放一本活頁筆記本：上面一頁寫今天（液晶日期戳記、橫線紙、照片），
    下面心情、標籤、更多三張小卡全部攤開。區塊標題用像素字（和首頁的 TODAY IS.. 一致）。
    標籤、人物是「原地亮燈」：位置固定，點了 LED 小燈亮起來，字的粗細不變，不會擠動旁邊的。 */
@@ -484,3 +529,113 @@ dialog.composer-page {
 }
 #info-body .nb-label { margin-top: 4px; }
 #info-body .tv-list b { font-size: 15px; }
+=======
+/* ---------- 累積幸福 ---------- */
+.joys { margin-top: 2px; }
+.joy-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 8px 0 6px; }
+.joy-row::-webkit-scrollbar { display: none; }
+.joy-btn {
+  position: relative; min-width: 0; min-height: 76px; padding: 8px 2px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 1px solid #b9c7d6; border-bottom-width: 2px; border-radius: 8px; background: #fff;
+  font: inherit; color: var(--text); cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+}
+.joy-btn .joy-ic { font-size: 26px; line-height: 1; }
+.joy-btn .joy-name { font-size: 11px; line-height: 1.25; text-align: center; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.joy-btn.on { background: var(--accent-soft); border-color: #9fd4da; }
+.joy-btn.on .joy-name { color: var(--cy-pop); }
+.joy-check, .joy-count {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  background: var(--cy-aqua); color: #fff; font-size: 11px; font-weight: 700; line-height: 20px; text-align: center;
+}
+.joy-more .joy-ic { color: var(--cy-blue); font-size: 22px; }
+.joy-btn.pop { animation: joy-pop .55s ease; }
+@keyframes joy-pop { 0% { transform: scale(1); } 35% { transform: scale(1.12) translateY(-3px); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .joy-btn.pop { animation: none; } }
+.joy-empty { margin: 0 0 4px; width: 100%; font-size: 13px; color: var(--muted); }
+.joy-row:has(.joy-empty) { display: flex; flex-wrap: wrap; gap: 8px; }
+.joy-chip { padding: 8px 12px; border: 1px dashed #8fa3b8; border-radius: 16px; background: #fff; font: inherit; font-size: 13px; color: var(--cy-blue); cursor: pointer; }
+
+.joy-dialog #joy-body { display: flex; flex-direction: column; gap: 12px; }
+.joy-hero { display: flex; align-items: center; gap: 12px; }
+.joy-hero-ic { font-size: 40px; line-height: 1; }
+.joy-hero div { display: flex; flex-direction: column; gap: 2px; }
+.joy-total { font-size: 20px; color: var(--cy-pop); }
+.joy-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 6px; }
+.joy-stat { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; font-size: 13px; color: var(--muted); border-bottom: 1px solid #eef2f6; }
+.joy-stat:nth-child(odd) { border-right: 1px solid #eef2f6; }
+.joy-stat b { color: var(--text); font-weight: 600; }
+.joy-cal { border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.joy-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.joy-week, .joy-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.joy-week span { text-align: center; font-size: 11px; color: var(--muted); }
+.joy-day {
+  position: relative; aspect-ratio: 1; min-height: 38px; padding: 2px; border: 0; border-radius: 6px; background: #f6f8fa;
+  font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.joy-day.empty { background: none; }
+.joy-day:disabled { opacity: .35; cursor: default; }
+.joy-day.today { box-shadow: inset 0 0 0 2px var(--cy-aqua); }
+.joy-day-num { font-size: 11px; color: var(--muted); line-height: 1; }
+.joy-day.on { background: var(--accent-soft); }
+.joy-stamp { font-size: 16px; line-height: 1.1; }
+.joy-day-n { position: absolute; right: 2px; bottom: 1px; font-size: 9px; color: var(--cy-pop); font-weight: 700; }
+.joy-cal-hint { margin: -4px 0 0; }
+.joy-adjust { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed #9fd4da; border-radius: 6px; font-size: 14px; }
+.joy-adjust .btn.small { min-width: 40px; min-height: 36px; font-size: 18px; }
+.joy-icons { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.joy-icon-opt { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 20px; cursor: pointer; padding: 0; }
+.joy-icon-opt.on { border: 2px solid var(--cy-aqua); background: var(--accent-soft); }
+.joy-mode { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; flex-direction: row; }
+.joy-mode span { display: flex; flex-direction: column; }
+.joy-mode input { margin-top: 3px; accent-color: var(--cy-aqua); }
+.joy-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 6px; }
+.joy-item { display: flex; align-items: center; border-bottom: 1px dashed #e4eaf0; }
+.joy-item:last-child { border-bottom: 0; }
+.joy-item-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.joy-item-main .joy-ic { font-size: 24px; }
+.joy-item-text { display: flex; flex-direction: column; min-width: 0; }
+.joy-item-text small { margin: 0; }
+.joy-order { display: flex; gap: 2px; padding-right: 6px; }
+.joy-archived summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 6px 0; }
+
+/* 累積幸福的像素圖示：跟著字級放大，em 計算 */
+.joy-pix { width: 1.3em; height: 1.3em; object-fit: contain; vertical-align: middle; pointer-events: none; -webkit-user-select: none; user-select: none; }
+.joy-chip .joy-pix, .joy-presets .joy-pix { width: 20px; height: 20px; margin: -3px 0; }
+.joy-icon-opt .joy-pix { width: 80%; height: 80%; }
+
+/* 生活印記：詳情的一句話、收藏冊、拿到時的小視窗 */
+.joy-imprint { margin: 6px 0 2px; font-size: 13px; color: var(--muted, #6b7280); }
+.joy-imprint.got { color: var(--cy-blue, #2f6fb3); font-weight: 600; }
+.imprint-book { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.imprint-book h4 { margin: 0 0 4px; font-size: 14px; }
+.imprint-grid { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.imprint-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border: 1px solid var(--line); border-radius: 8px; background: #fff; text-align: center; min-width: 0; }
+.imprint-cell b { font-size: 11px; line-height: 1.2; }
+.imprint-cell small { font-size: 10px; }
+.imprint-cell .btn.small { padding: 2px 6px; font-size: 11px; margin-top: 2px; }
+.imprint-cell:not(.got) .imprint-art { opacity: .35; filter: grayscale(1); }
+.imprint-art { width: 44px; height: 36px; object-fit: contain; image-rendering: pixelated; }
+.imprint-icon { display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.imprint-icon .joy-pix { width: 30px; height: 30px; }
+.imprint-hero { display: flex; justify-content: center; padding: 10px 0; }
+.imprint-big { width: 160px; height: 120px; object-fit: contain; image-rendering: pixelated; animation: imprint-pop .5s ease-out; }
+.imprint-big.imprint-icon .joy-pix { width: 72px; height: 72px; }
+.imprint-name { text-align: center; margin: 0; font-size: 16px; }
+.imprint-dialog .hint { text-align: center; }
+@keyframes imprint-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .imprint-big { animation: none; } }
+
+/* 收藏後的延伸提問：有寫就變成日記 */
+.joy-ask { margin: 4px 0 8px; padding: 10px 12px; border: 1px solid #9fd4da; border-radius: 10px; background: var(--accent-soft); display: flex; flex-direction: column; gap: 8px; animation: joy-ask-in .25s ease-out; }
+@keyframes joy-ask-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .joy-ask { animation: none; } }
+.joy-ask-head { display: flex; align-items: center; gap: 8px; }
+.joy-ask-ic .joy-pix { width: 30px; height: 30px; }
+.joy-ask-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.joy-ask-title b { font-size: 14px; color: var(--cy-pop); }
+.joy-ask-title small { font-size: 12px; color: var(--muted); }
+.joy-ask-x { width: 32px; height: 32px; font-size: 20px; color: var(--muted); }
+.joy-ask-input { height: 40px; padding: 0 10px; border: 1px solid #8fa3b8; border-radius: 6px; background: #fff; font: inherit; font-size: 15px; color: var(--text); }
+.joy-ask-actions { display: flex; align-items: center; gap: 8px; }
+.joy-ask-actions .link-btn { font-size: 13px; color: var(--muted); padding: 8px 0; }

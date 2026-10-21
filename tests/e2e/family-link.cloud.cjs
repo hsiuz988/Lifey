@@ -37,6 +37,14 @@ async function setup(p, name, bday, { keepEditor = false, signup = false } = {})
   await p.waitForTimeout(200);
   if (!keepEditor) await p.waitForFunction(() => document.querySelector('#look-dialog').open, null, { timeout: 8000 }).catch(() => {}); await p.evaluate(() => { const d = document.querySelector('#look-dialog'); if (d.open) d.close(); });
 }
+// 註冊頁沒有登入：換手機的人先填名字生日，再到「我 → 雲端與家人」用 Face ID 登入
+async function loginLater(p, name, birthday) {
+  await setup(p, name, birthday);
+  await tab(p, 'me').then(() => p.click('.me-menu [data-open=cloud]'));
+  await p.click('#cloud-section button:text-is("用 Face ID 登入")');
+  await p.waitForSelector('#cloud-section >> text=已登入', { timeout: 20000 });
+  await p.click('#settings-dialog .win-x'); await p.waitForTimeout(100);
+}
 async function register(p) {
   await p.waitForSelector('#cloud-section button:text-is("用 Face ID 建立帳號")', { timeout: 15000 });
   await p.click('#cloud-section button:text-is("用 Face ID 建立帳號")');
@@ -172,7 +180,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   const B = await device(b, 'B');
   const { credentials } = await A.k.cdp.send('WebAuthn.getCredentials', { authenticatorId: A.k.authenticatorId });
   for (const credential of credentials) await B.k.cdp.send('WebAuthn.addCredential', { authenticatorId: B.k.authenticatorId, credential });
-  await B.goto(URL); await B.click('#setup-login'); await B.waitForSelector('#app:not([hidden])', { timeout: 20000 }); await synced(B);
+  await B.goto(URL); await loginLater(B, 'Hsiu', '1995-03-02'); await synced(B);
   let sB = await st(B);
   assert(sB.people.length === 2 && sB.moments.find(m => m.text === '全家一起吃飯').people.length === 2, '第二支手機：人物卡與「和誰」都同步');
   // 刪除人物卡會同步（墓碑）

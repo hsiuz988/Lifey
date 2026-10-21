@@ -50,7 +50,7 @@ let b;
     protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
 
   await p.goto(URL);
-  assert(await p.waitForFunction(() => document.querySelector('.setup-login').hidden, null, { timeout: 5000 }).then(() => true).catch(() => false), '還沒有任何帳號時，不顯示「用 Face ID 登入」');
+  assert(!(await p.textContent('#setup')).includes('Face ID'), '註冊頁沒有 Face ID');
   await p.fill('#setup-form [name=name]', 'Hsiu'); await p.fill('#setup-form [name=birthday]', '1998-03-02'); await p.click('#setup-form button');
   await p.waitForTimeout(300);
   await p.waitForFunction(() => document.querySelector('#letter-dialog').open, null, { timeout: 4000 }).catch(() => {});
@@ -149,7 +149,7 @@ let b;
   await p.evaluate(() => document.querySelector('#moment-dialog').close());
 
   // 被拒絕：顯示溫和的訊息，次數退回
-  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '拒絕測試'); await p.click('#moment-save');
+  await tab(p, 'home').then(() => p.click('#add-btn')); await p.fill('#moment-form [name=text]', '拒絕測試'); await p.click('#moment-save');
   await p.waitForSelector('#letter-dialog .story-error', { timeout: 15000 });
   assert(await p.isVisible('#letter-dialog >> text=這則沒辦法寫成故事'), '被拒絕時顯示訊息');
   await sheetBtn(p, '關閉');
@@ -166,7 +166,7 @@ let b;
   await p.click('#pref-ai-story');
   await p.click('#settings-dialog .win-x');
   const before = calls.length;
-  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '普通的一天'); await p.click('#moment-save');
+  await tab(p, 'home').then(() => p.click('#add-btn')); await p.fill('#moment-form [name=text]', '普通的一天'); await p.click('#moment-save');
   await p.waitForTimeout(500);
   assert(!(await p.evaluate(() => document.querySelector('#letter-dialog').open)) && calls.length === before, '關掉設定就不會寫故事');
 

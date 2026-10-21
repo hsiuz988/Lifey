@@ -13,19 +13,21 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   // 假裝雲端可以建立帳號：確認「要不要開雲端」是在記完第一筆之後才問
   await p.route('**/api/signup*', (r) => r.fulfill({ json: { open: true, empty: false, invite: false, inviter: null } }));
   await p.goto(URL);
-  assert((await p.textContent('#setup')).includes('一生 90 格'), '第一次打開有產品介紹');
+  assert(await p.isVisible('#setup-form [name=name]') && await p.isHidden('#setup-days'), '第一次打開：註冊頁只有名字和生日');
   await p.screenshot({ path: OUT + '/onb-1.png' });
-  await p.fill('#setup-form [name=name]', '秀'); await p.fill('#setup-form [name=birthday]', '1998-03-01'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', '秀'); await p.fill('#setup-form [name=birthday]', '1998-03-01');
+  assert(/雙魚座的你，已經在地球上 [\d,]+ 天了/.test(await p.textContent('#setup-days')) && await p.isVisible('#setup-days'), '選好生日：顯示星座和在地球上幾天');
+  assert((await p.textContent('.setup-win .cy-window-bar')).includes('建立 秀 的小窩'), '名字放進視窗標題');
+  await p.click('#setup-form button');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   await p.click('#look-save'); await p.waitForTimeout(800);
   assert(!(await p.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open))), '選好樣子就直接進房間，不再跳歡迎頁');
   assert(await p.isVisible('#scene') && (await p.textContent('#scene')).includes('日記本'), '小人提示去點書桌上的日記本');
-  const box = await p.$eval('#quick-open', (e) => e.getBoundingClientRect().bottom);
-  assert(box <= 844 - 60, `「今天過得怎麼樣」在第一屏、沒被分頁列擋住（底部 ${Math.round(box)}px）`);
+  assert(await p.isVisible('#cy-look') && await p.isVisible('#cy-news') && !(await p.$('#cy-counts')), '首頁上方是大頭照、名字、TODAY IS 和最近的日記（數字放在「我的」）');
   assert(await p.$eval('#cy-family-box', (e) => e.hidden), '還沒連結家人時，首頁不放「家人說」');
   await p.screenshot({ path: OUT + '/onb-2.png' });
-  await p.click('#quick-open');
-  assert(await p.$eval('#moment-dialog', d => d.open), '首頁的一句話入口打開記一筆');
+  await p.click('#add-btn');
+  assert(await p.$eval('#moment-dialog', d => d.open), '「記一筆」打開記一筆');
   await p.fill('#moment-form [name=text]', '開始用 wowo'); await p.click('#moment-save');
   assert(await p.waitForFunction(() => { const d = document.querySelector('#letter-dialog'); return d.open && d.textContent.includes('記下第一筆了'); }, null, { timeout: 5000 }).then(() => true, () => false), '記完第一筆才問要不要備份到雲端');
   await p.click('#letter-dialog button:text-is("之後再說")'); await p.waitForTimeout(200);
