@@ -298,16 +298,18 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--cy-aqua); }
 .cy-pixel { font-family: "DotGothic16", var(--mono); font-size: 13px; letter-spacing: .1em; color: #3e4c5a; }
 .cy-setup .brand { position: relative; margin: 0; line-height: 0; }
 .setup-logo { padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.setup-logo .cy-logo { animation: setup-float 3.2s ease-in-out infinite; }
-.setup-logo.hop .cy-logo { animation: setup-hop .5s steps(5) 1; }
-.cy-logo { display: block; width: 176px; height: auto; margin: 0 auto; image-rendering: auto; filter: drop-shadow(0 6px 0 rgba(47, 95, 153, .12)); }
+.setup-logo { display: flex; flex-direction: column; align-items: center; width: 100%; }
+/* 插圖慢慢飄、點了跳一下；wowo! 字壓在床緣上，不動 */
+.setup-hero-img { display: block; width: min(340px, 100%); height: auto; animation: setup-float 3.2s ease-in-out infinite; filter: drop-shadow(0 5px 0 rgba(47, 95, 153, .1)); }
+.setup-logo.hop .setup-hero-img { animation: setup-hop .5s steps(5) 1; }
+.setup-logo-text { position: relative; display: block; width: min(210px, 62%); height: auto; margin-top: -26px; filter: drop-shadow(0 3px 0 rgba(47, 95, 153, .18)); }
 .setup-say {
-  position: absolute; left: calc(50% + 62px); top: 14px; padding: 5px 9px; white-space: nowrap;
+  position: absolute; left: 50%; top: -30px; margin-left: -4px; padding: 5px 9px; white-space: nowrap;
   border: 2px solid #2f5f99; border-radius: 3px; background: #fff; color: #2f5f99;
   font: 13px/1.2 "DotGothic16", var(--mono); box-shadow: 3px 3px 0 rgba(47, 95, 153, .2);
   opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; pointer-events: none;
 }
-.setup-say::before { content: ""; position: absolute; left: -7px; top: 9px; border: 5px solid transparent; border-right-color: #2f5f99; border-left: 0; }
+.setup-say::before { content: ""; position: absolute; left: 14px; bottom: -7px; border: 5px solid transparent; border-top-color: #2f5f99; border-bottom: 0; } /* 尾巴朝下，指向插圖裡的女孩 */
 .setup-say.on { opacity: 1; transform: none; }
 .cy-window { border: 2px solid var(--cy-frame); border-radius: 10px; overflow: hidden; background: #ffffff; }
 .setup-win { box-shadow: 4px 4px 0 rgba(47, 95, 153, .18); animation: setup-open .35s cubic-bezier(.2, 1.4, .4, 1) both; }
@@ -336,7 +338,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--cy-aqua); }
 @keyframes setup-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-14px) rotate(-3deg); } 70% { transform: translateY(-4px) rotate(2deg); } }
 @keyframes setup-open { from { opacity: 0; transform: scale(.94) translateY(8px); } }
 @media (prefers-reduced-motion: reduce) {
-  .setup-logo .cy-logo, .setup-win { animation: none; }
+  .setup-hero-img, .setup-win { animation: none; }
 }
 dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10px; }
 
@@ -672,3 +674,5 @@ dialog.composer-page {
   font-size: 11px; color: #5e6b78; background: #f3f6f9;
   border: 1px solid; border-color: #9aaabb #ffffff #ffffff #9aaabb; /* 左上深、右下亮：凹下去 */
 }
+/* 窄螢幕（iPhone SE）：狀態列排成兩排，字才不會被截掉 */
+@media (max-width: 380px) { .win-status { display: grid; grid-template-columns: 1fr 1fr; } }

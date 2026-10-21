@@ -1,5 +1,5 @@
 // 版本號：主.次.修（見 CLAUDE.md「版本號」）。改了任何檔案就把最後一位 +1，舊快取才會被清掉
-const VERSION = '0.0.74';
+const VERSION = '0.0.75';
 const CACHE = `lifelog-${VERSION}`;
 const ASSETS = [
   './',
@@ -95,7 +95,8 @@ const ASSETS = [
   './icons/apple-touch-icon.png',
   './icons/icon-maskable-512.png',
   './icons/favicon-32.png',
-  './logo.webp',
+  './brand/setup_hero.webp',
+  './brand/logo_text.webp',
   './room/pixel_room/room.webp',
   './room/pixel_room/room_night.webp',
   './room/pixel_room/tv_on.webp',
