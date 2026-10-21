@@ -2838,7 +2838,8 @@ async function afterLogin(result) {
     && await askCloudOnly(local, remote)) {
     state = normalize(remote);
     await saveState({ fromSync: true });
-  } else if (remote && !state.profile) {
+  } else if (remote && remote.profile && (!state.profile || !state.moments.length)) {
+    // 註冊頁沒有登入：換手機的人先填名字生日進來，再到「我 → 雲端與家人」登入，這時手機上還沒寫東西，直接用雲端的
     state = normalize(remote);
     await saveState({ fromSync: true });
   }
@@ -3404,7 +3405,6 @@ function bind() {
 
   $('#sync-btn').addEventListener('click', () => openSettings('cloud'));
   $('#partner-btn').addEventListener('click', () => openMembers());
-  $('#setup-login').addEventListener('click', (e) => withBusy(e.target, async () => afterLogin(await cloudApi.login())));
   document.querySelectorAll('#settings-dialog [data-back]').forEach((btn) => btn.addEventListener('click', () => $('#settings-dialog').close()));
   $('#add-person-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
   $('#add-pet-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
@@ -3634,9 +3634,6 @@ async function init() {
   cleanupOrphanPhotos().catch(() => {});
   loadWeather();
   setInterval(() => { if (!document.hidden) loadWeather(); }, 10 * 60 * 1000);
-  if (!cloudApi.passkeySupported()) $('#setup-login').hidden = true;
-  // 還沒有任何帳號時，不顯示「已經有帳號了？用 Face ID 登入」（按了只會跳出掃條碼）
-  else if (!state.profile) cloudApi.signupStatus().then((s) => { if (s.open) $('#setup-login').closest('.setup-login').hidden = true; }).catch(() => {});
   try {
     cloud.me = await cloudApi.fetchMe();
   } catch (e) { /* 離線：照樣可以用，之後再同步 */ }

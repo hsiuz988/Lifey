@@ -270,7 +270,7 @@ dialog.composer-page { border: 2px solid #5f7690; }
 
 /* 註冊頁：點點桌面上一個「建立我的小窩」老視窗。logo 縮小、介紹收成跑馬燈，表單在第一屏就看得到 */
 .cy-setup { max-width: 440px; padding: max(14px, env(safe-area-inset-top)) 16px 28px; }
-.cy-setup-head { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; margin-bottom: 6px; }
+.cy-setup-head { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; margin-bottom: 14px; }
 .cy-pixel { font-family: "DotGothic16", var(--mono); font-size: 13px; letter-spacing: .1em; color: #3e4c5a; }
 .cy-setup .brand { position: relative; margin: 0; line-height: 0; }
 .setup-logo { padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -287,8 +287,6 @@ dialog.composer-page { border: 2px solid #5f7690; }
 .setup-say.on { opacity: 1; transform: none; }
 .cy-setup .setup-lede { min-height: 1.5em; margin: 6px 0 0; font: 14px/1.5 "DotGothic16", var(--mono); color: #3e4c5a; letter-spacing: .02em; }
 .setup-caret { display: inline-block; width: 7px; height: 13px; margin-left: 2px; vertical-align: -1px; background: var(--cy-pop); animation: setup-blink 1s steps(1) infinite; }
-.cy-setup .setup-login { margin: 4px 0 12px; gap: 6px; font-size: 13px; color: #3e4c5a; }
-.cy-setup .setup-login .link-btn { padding: 6px 2px; font-size: 13px; font-weight: 700; color: var(--cy-blue); text-decoration: underline dotted; text-underline-offset: 3px; }
 .cy-window { border: 2px solid var(--cy-frame); border-radius: 10px; overflow: hidden; background: #ffffff; }
 .setup-win { box-shadow: 4px 4px 0 rgba(47, 95, 153, .18); animation: setup-open .35s cubic-bezier(.2, 1.4, .4, 1) both; }
 .setup-win.shake { animation: setup-shake .4s steps(6) 1; }
