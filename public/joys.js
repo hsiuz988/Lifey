@@ -2,14 +2,13 @@
 // 資料：state.joys（幸福項目）、state.joyLog（每點一次一筆，刪除留墓碑在 state.deleted）
 // 每點一次存一筆，兩台手機同一天各點的次數合併時都會留下；次數、天數都從紀錄即時算，不另存計數
 
-// 圖示：有像素圖（joys/<key>.webp，art/tools/joy_icons.py 切的）就用圖，還沒有的先用 emoji
+// 圖示：像素圖 joys/<key>.webp（art/tools/joy_icons.py 切的）；emoji 只在圖還沒做好時當備用
 export const JOY_ICONS = {
   cat: '🐈', coffee: '☕', meal: '🍚', camera: '📷', gift: '🎁', sunset: '🌅', bear: '🧸', letter: '💌',
   book: '📖', sneaker: '👟', plant: '🪴', music: '🎧', cake: '🧁', star: '⭐', umbrella: '☂️', moon: '🌙',
   bike: '🚲', icecream: '🍦', hearts: '💕', home: '🏠', paw: '🐾', bath: '🛁', sparkle: '✨', sun: '☀️',
 };
-const JOY_PIX = new Set(['cat', 'coffee', 'meal', 'camera', 'gift', 'sunset', 'bear', 'letter', 'book', 'sneaker', 'plant',
-  'cake', 'star', 'umbrella', 'moon', 'bike', 'icecream', 'hearts', 'home', 'paw', 'bath', 'sun']);
+const JOY_PIX = new Set(Object.keys(JOY_ICONS));
 export function iconEl(key) {
   if (!JOY_PIX.has(key)) return JOY_ICONS[key] || '✨';
   const img = new Image();

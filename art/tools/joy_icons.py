@@ -25,7 +25,7 @@ KEYS = [
     'cake', 'star', 'umbrella', 'moon', 'bike', 'icecream',
     'hearts', 'home', 'paw', 'bath', 'sparkle', 'sun',
 ]
-SKIP = {'music', 'sparkle', 'sun'}
+SKIP = {'music', 'sparkle', 'sun'}  # 表裡光暈太重的，都已經用單張重畫取代
 DARK = 25      # 比附近（模糊後）暗多少算外框
 HOLE_TOL = 30  # 被圍住的區塊跟附近背景差多少以內算背景
 HOLES = {'bike'}  # 只有這些會挖洞（夕陽、月亮的顏色跟光暈太像，挖了會整個空掉）

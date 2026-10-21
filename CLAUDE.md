@@ -63,7 +63,7 @@
 - 刪除＝墓碑（`state.deleted`）；同步和匯入都用 `mergeJoyData` 逐筆合併，兩台手機同一天各點一次會留兩筆。
 - 規則：可以補記過去、不能記未來；每天一次的同一天再點會打開詳情；一天多次改成每天一次要先確認才合併；連點 350ms 內只算一次。
 - 用語：收藏／發生了／小幸福，**不要**打卡／達標／積分／連續天數／排行榜。
-- 圖示：`python3 art/tools/joy_icons.py` 把 `art/source/joys/sheet.png`（6×4 張圖示表）去背切成 `public/joys/<key>.webp`（白底預覽 `preview.png`）。閃光、耳機光暈太重沒切（`SKIP`），先用 emoji；單張白底重畫的放 `art/source/joys/<key>.png`（太陽已換），會蓋過表裡的；新圖要加進 `joys.js` 的 `JOY_PIX` 和 `sw.js`。
+- 圖示：`python3 art/tools/joy_icons.py` 把 `art/source/joys/sheet.png`（6×4 張圖示表）去背切成 `public/joys/<key>.webp`（白底預覽 `preview.png`）。太陽、閃光、耳機在表裡光暈太重（`SKIP`），改用單張白底重畫的 `art/source/joys/<key>.png`（會蓋過表裡的）。24 個都有像素圖了；新增圖示要加進 `joys.js` 的 `JOY_ICONS`（emoji 備用）和 `sw.js`。
 - 之後：Phase 2 幸福星罐、Phase 3 生活印記（門檻放 `joys-config.js`，印記永久、預設收起來）、Phase 4 年度回顧卡、日記時間軸上的小印章。
 
 ### 「我」分頁
