@@ -368,3 +368,8 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .joy-item-text small { margin: 0; }
 .joy-order { display: flex; gap: 2px; padding-right: 6px; }
 .joy-archived summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 6px 0; }
+
+/* 累積幸福的像素圖示：跟著字級放大，em 計算 */
+.joy-pix { width: 1.3em; height: 1.3em; object-fit: contain; vertical-align: middle; pointer-events: none; -webkit-user-select: none; user-select: none; }
+.joy-chip .joy-pix, .joy-presets .joy-pix { width: 20px; height: 20px; margin: -3px 0; }
+.joy-icon-opt .joy-pix { width: 80%; height: 80%; }

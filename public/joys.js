@@ -2,12 +2,20 @@
 // 資料：state.joys（幸福項目）、state.joyLog（每點一次一筆，刪除留墓碑在 state.deleted）
 // 每點一次存一筆，兩台手機同一天各點的次數合併時都會留下；次數、天數都從紀錄即時算，不另存計數
 
-// 暫用 emoji，像素圖示到了換成 room/joys/<key>.webp
+// 圖示：有像素圖（joys/<key>.webp，art/tools/joy_icons.py 切的）就用圖，還沒有的先用 emoji
 export const JOY_ICONS = {
   cat: '🐈', coffee: '☕', meal: '🍚', camera: '📷', gift: '🎁', sunset: '🌅', bear: '🧸', letter: '💌',
   book: '📖', sneaker: '👟', plant: '🪴', music: '🎧', cake: '🧁', star: '⭐', umbrella: '☂️', moon: '🌙',
   bike: '🚲', icecream: '🍦', hearts: '💕', home: '🏠', paw: '🐾', bath: '🛁', sparkle: '✨', sun: '☀️',
 };
+const JOY_PIX = new Set(['cat', 'coffee', 'meal', 'camera', 'gift', 'sunset', 'bear', 'letter', 'book', 'sneaker', 'plant',
+  'cake', 'star', 'umbrella', 'moon', 'bike', 'icecream', 'hearts', 'home', 'paw', 'bath']);
+export function iconEl(key) {
+  if (!JOY_PIX.has(key)) return JOY_ICONS[key] || '✨';
+  const img = new Image();
+  img.src = `joys/${key}.webp`; img.alt = ''; img.className = 'joy-pix'; img.draggable = false;
+  return img;
+}
 export const JOY_PRESETS = [
   { title: '和貓一起睡', icon: 'cat', mode: 'once' },
   { title: '喝到好咖啡', icon: 'coffee', mode: 'many' },
@@ -23,7 +31,7 @@ const HOME_MAX = 8; // 首頁最多擺幾顆，其他在「全部」
 const CHEERS = ['又收藏了一個小幸福 ♡', '這個瞬間，收好囉！', '今天又多了一點點美好。', '小窩記住這件事了。', '一顆小星星，悄悄亮起來。'];
 
 // ---------- 計算（純函式，測試和合併也用） ----------
-export const iconOf = (joy) => JOY_ICONS[joy && joy.icon] || '✨';
+export const iconOf = (joy) => iconEl(joy && joy.icon);
 export const activeJoys = (state) => (state.joys || []).filter((j) => !j.archivedAt).sort((a, b) => a.order - b.order);
 const logsOf = (state, joyId) => (state.joyLog || []).filter((l) => l.joyId === joyId);
 // 日期 → 那天記了幾次（每日一次模式最多 1）
@@ -105,7 +113,7 @@ export function renderJoyRow() {
     row.replaceChildren(h('p', { class: 'joy-empty' }, '把常常發生的小幸福做成按鈕，發生了就點一下：'),
       ...JOY_PRESETS.filter((p) => !used.has(p.title)).slice(0, 6).map((p) => h('button', {
         type: 'button', class: 'joy-chip', onclick: () => { addJoy(p); renderJoyRow(); ctx.toast(`加入了「${p.title}」，發生的時候點一下就好`); },
-      }, `＋ ${JOY_ICONS[p.icon]} ${p.title}`)),
+      }, '＋ ', iconEl(p.icon), ` ${p.title}`)),
       h('button', { type: 'button', class: 'joy-chip', onclick: () => openJoyEdit(null) }, '＋ 自己做一個'));
     return;
   }
@@ -243,14 +251,14 @@ export function openJoyEdit(id) {
   const joy = id ? s.joys.find((j) => j.id === id) : null;
   let icon = joy ? joy.icon : 'sparkle';
   const name = h('input', { value: joy ? joy.title : '', maxlength: String(MAX_TITLE), placeholder: '例如：和貓一起睡', 'aria-label': '小幸福的名字', class: 'joy-title-input' });
-  const icons = h('div', { class: 'joy-icons', role: 'radiogroup', 'aria-label': '圖示' }, ...Object.entries(JOY_ICONS).map(([k, e]) => h('button', {
+  const icons = h('div', { class: 'joy-icons', role: 'radiogroup', 'aria-label': '圖示' }, ...Object.keys(JOY_ICONS).map((k) => h('button', {
     type: 'button', class: `joy-icon-opt${k === icon ? ' on' : ''}`, role: 'radio', 'aria-checked': String(k === icon), 'data-icon': k,
     onclick: (ev) => { icon = k; icons.querySelectorAll('.joy-icon-opt').forEach((b) => { const on = b.dataset.icon === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }); ev.preventDefault(); },
-  }, e)));
+  }, iconEl(k))));
   const mode = (v, label, hint) => h('label', { class: 'joy-mode' }, h('input', { type: 'radio', name: 'joy-mode', value: v, checked: (joy ? joy.mode : 'once') === v }), h('span', {}, h('b', {}, label), h('small', { class: 'hint' }, hint)));
   const presets = joy ? null : h('div', { class: 'chips joy-presets' }, ...JOY_PRESETS.filter((p) => !s.joys.some((j) => j.title === p.title)).map((p) => h('button', {
     type: 'button', class: 'chip', onclick: () => { name.value = p.title; icon = p.icon; icons.querySelector(`[data-icon="${p.icon}"]`).click(); body().querySelector(`input[value="${p.mode}"]`).checked = true; },
-  }, `${JOY_ICONS[p.icon]} ${p.title}`)));
+  }, iconEl(p.icon), ` ${p.title}`)));
   const save = () => {
     const title = name.value.trim().slice(0, MAX_TITLE);
     if (!title) { ctx.toast('幫這個小幸福取個名字'); name.focus(); return; }
