@@ -3,6 +3,8 @@
 - full.webp：擺好家具的完整房間（目前直接當房間背景）
 - small.webp：小物件（檯燈開／關、電視開機…），切出來疊在房間上
 GPT 的房間地板前角被畫布切掉一塊，這裡補成完整的菱形，畫布往下加高到 1064。
+層架：shelf_empty.png 是 GPT 改過「層架清空」的整張房間，只切層架那一塊貼回來（預設空層架，
+  拍照的小幸福累積到了才擺相機）；牆色用接縫附近的平均差校正。
 用法：python3 art/tools/room_pixel.py
 """
 from PIL import Image
@@ -40,9 +42,26 @@ def main():
     a = np.zeros((H, W, 4), np.uint8); a[:full.shape[0]] = full
     a[..., 3] = np.where(a[..., 3] >= 128, 255, 0)
     a = fix_corner(a)
+    a = empty_shelf(a)
     Image.fromarray(a).save(f'{OUT}/room.webp', quality=95, method=6)
     tv_on()
     print('room', a.shape)
+
+# 書桌上方 L 形層架上原本的東西（植物、書、相框、貓）的範圍，避開書桌上的盆栽和檯燈
+SHELF_POLY = [(662, 96), (915, 96), (915, 232), (850, 232), (812, 226), (735, 226), (732, 248), (700, 248), (700, 226), (662, 226)]
+def empty_shelf(a):
+    from PIL import ImageDraw, ImageFilter
+    b = np.zeros_like(a); src = np.array(Image.open(f'{SRC}/shelf_empty.png').convert('RGBA'))
+    b[:src.shape[0], :src.shape[1]] = src[:H, :W]
+    hard = Image.new('L', (W, H), 0); ImageDraw.Draw(hard).polygon(SHELF_POLY, fill=255)
+    hard = np.array(hard) > 0
+    from scipy import ndimage
+    ring = ndimage.binary_dilation(hard, iterations=4) & ~ndimage.binary_erosion(hard, iterations=4)
+    shift = (a[ring, :3].astype(float) - b[ring, :3]).mean(0)
+    b[..., :3] = np.clip(b[..., :3] + shift, 0, 255)
+    m = np.array(Image.fromarray((hard * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.5)), float)[..., None] / 255
+    out = a.copy(); out[..., :3] = (b[..., :3] * m + a[..., :3] * (1 - m)).astype(np.uint8)
+    return out
 
 # 電視開機：把小物件圖裡電視的畫面，用仿射變換貼到房間電視的螢幕上（房間座標 TV_BOX）
 TV_BOX = (1040, 405, 140, 145)

@@ -52,7 +52,7 @@
 ### 像素房間（`cyworld` 分支）
 
 - 素材 `art/source/room2/`：`full.webp` 完整房間（目前直接當背景）、`empty.webp` 空房間、`furniture.webp` 大型家具（床畫錯方向，之後從 full 切）、`small.webp` 小物件。
-- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（地板前角補齊，畫布 1536×1064）、`tv_on.webp`（電視畫面用仿射貼到房間電視上）。
+- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（地板前角補齊，畫布 1536×1064；書桌上方層架用 `shelf_empty.png` 清空，改了圖要把 room.js 和 sw.js 的 `room.webp?v=` +1）、`tv_on.webp`（電視畫面用仿射貼到房間電視上）。
 - `room.js`：地板 `O/EU/EV`、`BLOCKS`（家具佔的地板，u 沿右牆、v 沿左牆）、`HOTS` 都是照這張圖量的；換房間圖要一起重量。
 - 之後做金幣商店：空房間＋一件件家具疊上去。
 

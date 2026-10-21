@@ -150,7 +150,7 @@ export class Room {
     const defs = el('defs', {}, svg);
     const rg = el('radialGradient', { id: 'room-glow' }, defs);
     el('stop', { offset: 0, 'stop-color': '#fff3b0', 'stop-opacity': .75 }, rg); el('stop', { offset: 1, 'stop-color': '#fff3b0', 'stop-opacity': 0 }, rg);
-    el('image', { href: `${BASE}pixel_room/room.webp`, x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated' }, svg);
+    el('image', { href: `${BASE}pixel_room/room.webp?v=2`, x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated' }, svg);
     this.tvOn = el('image', { href: `${BASE}pixel_room/tv_on.webp`, x: 1040, y: 405, width: 140, height: 145, class: 'room-fade', opacity: 0 }, svg);
     this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: 'url(#room-glow)', class: 'room-fade', opacity: 0 }, svg);
     this.markers = el('g', {}, svg);
