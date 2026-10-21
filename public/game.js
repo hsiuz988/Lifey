@@ -9,8 +9,8 @@ export const STATS = [
 ];
 
 const weight = (m) => (m.starred ? 2 : 1);
-// 邊際遞減：第一則加最多，記越多越接近 100，不會一下子就滿
-const grow = (points) => Math.round(20 + 80 * (1 - 0.8 ** points));
+// 邊際遞減：第一則加最多，記越多越接近 100，不會一下子就滿；還沒有相關的紀錄就是 0（不給假的底分）
+const grow = (points) => (points > 0 ? Math.round(20 + 80 * (1 - 0.8 ** points)) : 0);
 
 // 這個時刻算不算在某一項狀態裡（用來計算重心的進度）
 export function countsToward(stat, m) {
@@ -22,7 +22,7 @@ export function statsFor(moments) {
   const points = (tags) => moments.filter((m) => m.tags.some((t) => tags.includes(t))).reduce((n, m) => n + weight(m), 0);
   const moods = moments.map((m) => m.mood).filter(Boolean);
   const avgMood = moods.length ? moods.reduce((a, b) => a + b, 0) / moods.length : null;
-  const happyBase = avgMood ? 10 + ((avgMood - 1) / 4) * 80 : 50; // 沒填心情就是普通的 50
+  const happyBase = avgMood ? 10 + ((avgMood - 1) / 4) * 80 : 0; // 只看有心情的紀錄；一則都沒有就是 0
   const fun = Math.min(10, points(['旅行', '興趣', '里程碑']) * 2);
   const out = { happy: Math.round(Math.min(100, happyBase + fun)) };
   for (const s of STATS) if (s.tags) out[s.key] = grow(points(s.tags));

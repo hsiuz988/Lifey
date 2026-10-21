@@ -335,3 +335,152 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .year-actions .btn { min-height: 44px; justify-content: center; text-align: center; }
 .year-actions .btn[hidden] { display: none; }
 .legend-future { flex-basis: 100%; margin-top: 4px; }
+
+/* 狀態：還沒有相關紀錄的那一項淡一點、顯示「–」 */
+.stat.zero .stat-num { color: var(--muted); }
+.stat.zero .stat-label { color: var(--muted); }
+.stat-empty { grid-column: 1 / -1; margin: 4px 0 0; font-size: 12.5px; }
+
+/* ================= 記一筆：一本攤開的電子手帳 =================
+   點點桌面上放一本活頁筆記本：上面一頁寫今天（液晶日期戳記、橫線紙、照片），
+   下面心情、標籤、更多三張小卡全部攤開。區塊標題用像素字（和首頁的 TODAY IS.. 一致）。
+   標籤、人物是「原地亮燈」：位置固定，點了 LED 小燈亮起來，字的粗細不變，不會擠動旁邊的。 */
+dialog.composer-page {
+  background-color: var(--cy-desk);
+  background-image: radial-gradient(#b3c3d4 1.2px, transparent 1.2px); background-size: 8px 8px;
+}
+.composer-body { padding: 22px 14px 32px; gap: 14px; }
+
+.nb-page {
+  position: relative; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;
+  padding: 22px 16px 14px; background: #fffefa;
+  border: 2px solid var(--cy-frame); border-radius: 6px; box-shadow: 3px 3px 0 rgba(43, 47, 51, .14);
+}
+/* 活頁圈：一排灰色圓環，中間透出白色 */
+.nb-rings {
+  position: absolute; top: -10px; left: 14px; right: 14px; height: 20px; pointer-events: none;
+  background: radial-gradient(circle, #fffefa 0 3px, #7f95ad 3.5px 6px, transparent 6.5px) center / 26px 20px repeat-x;
+}
+/* 液晶日期戳記 */
+.nb-stamp {
+  font-family: "DotGothic16", var(--mono); font-size: 14px; letter-spacing: .04em;
+  padding: 6px 10px; min-height: 34px; border-radius: 3px;
+  background: var(--accent-soft); border: 1px solid var(--cy-aqua); color: var(--cy-pop);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
+}
+.nb-stamp.filled { background: #fff4d6; border-color: #e0b050; color: #8a5a14; } /* 不是今天：換成黃色，一眼看得出在補過去的事 */
+.nb-page .save-hint { font-size: 12px; }
+.nb-date-pop { margin: 0; background: var(--panel-2); border: 1px dashed var(--cy-frame); border-radius: 4px; }
+/* 橫線紙：行高 32px，每一行底下一條淡藍線，跟著字一起捲 */
+.nb-page .composer-text {
+  flex: none; min-height: 128px; overflow: hidden; margin: 0; padding: 0 2px;
+  border: 0; border-radius: 0; font-size: 18px; line-height: 32px; color: var(--text);
+  background: repeating-linear-gradient(to bottom, transparent 0 31px, #dbe5ef 31px 32px) local;
+}
+.nb-page .composer-text:focus { outline: none; box-shadow: none; }
+/* 照片：一排四小格；只有一張時佔兩格 */
+.nb-page .photo-picker, .nb-page .photo-picker.single { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.nb-page .photo-picker.single .photo-item { grid-column: span 2; aspect-ratio: 1; }
+.nb-page .photo-item, .nb-page .photo-add { aspect-ratio: 1; border-radius: 4px; }
+.nb-page .photo-add { font-size: 20px; border: 1.5px dashed #a9b8c8; background: var(--panel-2); }
+
+/* 下面三張小卡：心情、標籤、更多 */
+.nb-sec {
+  flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
+  background: #ffffff; border: 1px solid #b9c7d6; border-radius: 6px;
+}
+.nb-label { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 14px; font-weight: 700; color: #3e4c5a; }
+.nb-label b {
+  font-family: "DotGothic16", var(--mono); font-weight: 400; font-size: 12px; letter-spacing: .14em;
+  padding: 1px 6px; border-radius: 2px; background: var(--cy-pop); color: #ffffff;
+}
+.nb-label .hint-inline { margin-left: auto; font-size: 11.5px; text-align: right; }
+/* 心情：10 個表情排兩排，一眼看完 */
+.emo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.emo-grid .chip.emo { width: auto; min-height: 64px; border-radius: 6px; }
+.emo-grid .chip.emo.on { box-shadow: 0 0 0 2px var(--accent-soft); }
+
+/* 亮燈按鈕：左邊一顆 LED，沒選是灰的，選了變邦迪藍發光 */
+.nb-chips { flex-wrap: wrap; gap: 8px; }
+.chip.led {
+  position: relative; min-height: 36px; padding: 6px 12px 6px 25px; border-radius: 4px; font-weight: 500;
+  border: 1px solid #b9c7d6; background: linear-gradient(#ffffff, #f1f4f7); color: #3e4c5a;
+}
+.chip.led::before {
+  content: ""; position: absolute; left: 10px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%;
+  background: #c9d3dd; box-shadow: inset 0 1px 1px rgba(0, 0, 0, .25);
+}
+.chip.led.on { font-weight: 500; border-color: var(--cy-aqua); background: #e3f6f8; color: var(--cy-pop); }
+.chip.led.on::before { background: #2fe0cf; box-shadow: 0 0 0 1px #13a39a, 0 0 7px 1px rgba(47, 224, 207, .85); }
+/* 建議的：虛線框＋右上角小黃點（不搬位置、不改寬度） */
+.chip.led.suggest { border-style: dashed; border-color: var(--cy-aqua); color: var(--cy-pop); }
+.chip.led.suggest::after {
+  content: ""; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%;
+  background: #ffd36b; box-shadow: 0 0 0 1.5px #ffffff;
+}
+.nb-chips .chip.add-chip { min-height: 36px; padding: 6px 12px; border-radius: 4px; border: 1px dashed #8fa3b8; background: none; color: var(--cy-blue); }
+
+/* 更多：和誰（人物直接攤開）、人生大事、值得記住、分享 */
+.nb-who { display: flex; flex-direction: column; gap: 8px; }
+.nb-k { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--text); }
+.nb-k .ask { color: var(--accent); font-weight: 700; }
+.nb-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 0;
+  border: 0; border-top: 1px dashed var(--line); background: none; font: inherit; font-size: 15px; color: var(--text); text-align: left; cursor: pointer;
+}
+.nb-row .ic, .nb-k .ic { width: 22px; text-align: center; flex-shrink: 0; }
+.nb-row .k { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.nb-row .k small { font-size: 11.5px; color: var(--muted); }
+.nb-row .v { color: var(--muted); font-size: 14px; }
+.nb-row .v.set { color: var(--accent); font-weight: 700; }
+/* LED 撥桿開關（值得記住、分享） */
+.led-switch, .led-check {
+  position: relative; flex-shrink: 0; width: 46px; height: 26px; margin: 0; border-radius: 13px;
+  background: #c9d3dd; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .2); font-size: 0; color: transparent; transition: background .15s;
+  -webkit-appearance: none; appearance: none; border: 0; cursor: pointer;
+}
+.led-switch::after, .led-check::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #ffffff; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); transition: left .15s;
+}
+.led-switch.set, .led-check:checked { background: var(--cy-aqua); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .2), 0 0 6px rgba(31, 169, 184, .6); }
+.led-switch.set::after, .led-check:checked::after { left: 23px; }
+#star-toggle.filled .ic { color: #e0a020; }
+/* 想多說一點心情：也是橫線紙，兩行 */
+.nb-sec textarea[name="feel"] {
+  min-height: 64px; padding: 0 2px; border: 0; border-radius: 0; resize: none; font-size: 15px; line-height: 32px;
+  background: repeating-linear-gradient(to bottom, transparent 0 31px, #dbe5ef 31px 32px) local;
+}
+.nb-sec textarea[name="feel"]:focus { outline: none; box-shadow: none; }
+
+/* ================= 電視：新聞報導 =================
+   一台映像管電視：深藍畫面、掃描線、左上 LIVE 紅燈、頻道名稱，中間頭條，底下跑馬燈；
+   下面的列表維持白底黑字，好讀。 */
+.tv-screen {
+  position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 14px 0; border-radius: 14px; border: 6px solid #4a5663;
+  background: radial-gradient(120% 90% at 50% 40%, #24406a, #0f1d33 75%); color: #eaf6ff;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, .55), 0 2px 0 #2f3843;
+}
+.tv-screen::after { /* 掃描線 */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, .05) 0 1px, transparent 1px 3px);
+}
+.tv-bar { display: flex; align-items: center; justify-content: space-between; font-family: "DotGothic16", var(--mono); font-size: 12px; letter-spacing: .08em; }
+.tv-live { color: #ff6b6b; animation: tv-blink 1.4s steps(2, start) infinite; }
+.tv-ch { color: #9fd8ff; }
+.tv-headline { display: flex; flex-direction: column; gap: 4px; padding-bottom: 4px; }
+.tv-headline small { font-size: 11.5px; color: #9fd8ff; }
+.tv-headline b { font-size: 19px; line-height: 1.4; color: #ffffff; }
+.tv-headline p { margin: 0; font-size: 13.5px; line-height: 1.6; color: #cfe3f5; }
+.tv-static { margin: 18px 0; text-align: center; font-family: "DotGothic16", var(--mono); color: #9fd8ff; }
+.tv-ticker { margin: 0 -14px; padding: 7px 0; overflow: hidden; white-space: nowrap; background: #ffd36b; color: #3a2a10; font-size: 13px; font-weight: 700; }
+.tv-ticker span { display: inline-block; padding-left: 100%; animation: tv-ticker 28s linear infinite; }
+@keyframes tv-ticker { to { transform: translateX(-100%); } }
+@keyframes tv-blink { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+  .tv-ticker span { animation: none; padding-left: 14px; }
+  .tv-live { animation: none; }
+}
+#info-body .nb-label { margin-top: 4px; }
+#info-body .tv-list b { font-size: 15px; }

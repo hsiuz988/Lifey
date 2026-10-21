@@ -31,6 +31,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
 
   assert(!(await playing(p)), '預設不播音樂');
   assert(await p.$eval('#cy-bgm', (e) => e.getAttribute('aria-pressed') === 'false'), 'BGM 按鈕預設是關的');
+  assert(await p.textContent('#cy-bgm-label') === '早晨咖啡' && await p.isVisible('#cy-bgm-next') && await p.isVisible('#cy-bgm .ic-play'), '暫停時照樣顯示歌名和 ⏭，圖示是 ▶');
 
   await p.click('#cy-bgm');
   await p.waitForTimeout(300);
@@ -72,6 +73,7 @@ const hide = (p, hidden) => p.evaluate((h) => {
   await p.waitForTimeout(1200);
   assert(!(await playing(p)), '設定裡關掉就停');
   assert(await p.$eval('#cy-bgm', (e) => e.getAttribute('aria-pressed') === 'false'), '首頁的 BGM 跟著變成關');
+  assert(await p.textContent('#cy-bgm-label') !== 'BGM' && !(await p.$eval('#cy-bgm-next', (e) => e.hidden)) && !(await p.$eval('#cy-bgm', (e) => e.classList.contains('on'))), '暫停後歌名和 ⏭ 還在，只換成 ▶');
 
   // 選曲子：關著時選了會換歌並打開
   assert(await p.$$eval('#music-tracks .chip', (els) => els.map((e) => e.textContent).join()) === '早晨咖啡,慵懶午後,晴天爵士', '可以選三首曲子');
