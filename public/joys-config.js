@@ -12,4 +12,8 @@ export const IMPRINTS = {
   hearts: { name: '愛心氣球', where: '禮物旁邊', x: 275, y: 650, w: 85, h: 140, z: 3 },
   gift: { name: '禮物盒', where: '書櫃旁邊', x: 245, y: 705, w: 105, h: 141, r: .04, z: 4 },
   bear: { name: '熊熊玩偶', where: '床邊', x: 330, y: 720, w: 95, h: 126, r: .035, z: 5 },
+  paw: { name: '貓狗玩偶', where: '熊熊旁邊', x: 445, y: 740, w: 120, h: 81, r: .035, z: 5 },
+  moon: { name: '月亮小夜燈', where: '床頭', x: 300, y: 468, w: 44, h: 56, z: 1 },
+  star: { name: '星星吊飾', where: '書桌旁的牆上', x: 1022, y: 240, w: 200, h: 135, z: 1 },
+  sneaker: { name: '地球儀', where: '書櫃上', x: 215, y: 372, w: 62, h: 86, z: 1 },
 };

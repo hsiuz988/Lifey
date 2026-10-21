@@ -65,6 +65,17 @@ const errors = [];
     return { img: !!box.querySelector('image[data-imprint="meal"]'), keys: box.dataset.imprints };
   });
   assert(blocked.img && blocked.keys === 'meal', '房間照設定擺上家具');
+  const all = await p.evaluate(async () => {
+    const { Room } = await import('./room.js');
+    const { IMPRINTS } = await import('./joys-config.js');
+    const box = document.createElement('div'); document.body.append(box);
+    const r = new Room(box, {});
+    const keys = Object.keys(IMPRINTS);
+    r.update({ imprints: keys });
+    const ok = await Promise.all(keys.map((k) => fetch(`room/imprints/${k}.webp`).then((x) => x.ok)));
+    return { want: keys.length, got: box.querySelectorAll('image[data-imprint]').length, files: ok.every(Boolean) };
+  });
+  assert(all.want === 10 && all.got === 10 && all.files, '10 件有圖的家具都放得進房間、圖都在');
 
   // 兩台手機：A 先拿到（10/20），B 後來又拿到（10/25）且收起來 → 日期留最早，放不放照最新
   const merged = await p.evaluate(async () => {
