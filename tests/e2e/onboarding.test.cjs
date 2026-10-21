@@ -13,9 +13,12 @@ const st = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB.open('
   // 假裝雲端可以建立帳號：確認「要不要開雲端」是在記完第一筆之後才問
   await p.route('**/api/signup*', (r) => r.fulfill({ json: { open: true, empty: false, invite: false, inviter: null } }));
   await p.goto(URL);
-  assert((await p.textContent('#setup')).includes('一生 90 格'), '第一次打開有產品介紹');
+  assert(await p.isVisible('#setup-form [name=name]') && await p.isHidden('#setup-days'), '第一次打開：註冊頁只有名字和生日');
   await p.screenshot({ path: OUT + '/onb-1.png' });
-  await p.fill('#setup-form [name=name]', '秀'); await p.fill('#setup-form [name=birthday]', '1998-03-01'); await p.click('#setup-form button');
+  await p.fill('#setup-form [name=name]', '秀'); await p.fill('#setup-form [name=birthday]', '1998-03-01');
+  assert(/雙魚座的你，已經在地球上 [\d,]+ 天了/.test(await p.textContent('#setup-days')) && await p.isVisible('#setup-days'), '選好生日：顯示星座和在地球上幾天');
+  assert((await p.textContent('.setup-win .cy-window-bar')).includes('建立 秀 的小窩'), '名字放進視窗標題');
+  await p.click('#setup-form button');
   await p.waitForFunction(() => document.querySelector('#look-dialog').open);
   await p.click('#look-save'); await p.waitForTimeout(800);
   assert(!(await p.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open))), '選好樣子就直接進房間，不再跳歡迎頁');

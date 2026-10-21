@@ -2838,7 +2838,8 @@ async function afterLogin(result) {
     && await askCloudOnly(local, remote)) {
     state = normalize(remote);
     await saveState({ fromSync: true });
-  } else if (remote && !state.profile) {
+  } else if (remote && remote.profile && (!state.profile || !state.moments.length)) {
+    // 註冊頁沒有登入：換手機的人先填名字生日進來，再到「我 → 雲端與家人」登入，這時手機上還沒寫東西，直接用雲端的
     state = normalize(remote);
     await saveState({ fromSync: true });
   }
@@ -3245,9 +3246,52 @@ function enhanceBirthday(input) {
   fromInput();
 }
 
+// 註冊頁的小巧思：點 logo 跳一下說句話、名字填進視窗標題、生日算出在地球上幾天、標題列的鈕點了視窗抖一下（logo 說話）
+const LOGO_SAYS = ['嗨～歡迎光臨！', '要來我家玩嗎？', '我等你好久了 ♥', '先寫名字吧！', '噓，這裡只有你知道'];
+const STAR_SIGNS = [[120, '摩羯座'], [219, '水瓶座'], [320, '雙魚座'], [420, '白羊座'], [521, '金牛座'], [621, '雙子座'], [722, '巨蟹座'], [823, '獅子座'], [923, '處女座'], [1023, '天秤座'], [1122, '天蠍座'], [1222, '射手座'], [1232, '摩羯座']];
+function setupDelight() {
+  const form = $('#setup-form');
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let sayTimer = 0, sayN = 0;
+  const say = (text) => {
+    const logo = $('#setup-logo'), bubble = $('#setup-logo-say');
+    if (!calm) { logo.classList.remove('hop'); void logo.offsetWidth; logo.classList.add('hop'); }
+    bubble.textContent = text;
+    bubble.classList.add('on');
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(() => bubble.classList.remove('on'), 2200);
+  };
+  $('#setup-logo').addEventListener('click', () => say(LOGO_SAYS[sayN++ % LOGO_SAYS.length]));
+  $('#setup-logo').addEventListener('animationend', (e) => { if (e.animationName === 'setup-hop') e.currentTarget.classList.remove('hop'); });
+  const win = $('.setup-win');
+  const WIN_SAYS = { min: '縮小了就找不到我了啦～', max: '已經是最大的小窩了！', close: '先別走嘛，填完名字就好 ♥' };
+  win.querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => {
+    win.classList.remove('shake'); void win.offsetWidth; win.classList.add('shake');
+    say(WIN_SAYS[b.dataset.win]);
+  }));
+  win.addEventListener('animationend', (e) => { if (e.animationName === 'setup-shake') win.classList.remove('shake'); });
+  form.name.addEventListener('input', () => {
+    const name = form.name.value.trim();
+    $('#setup-win-title').textContent = name ? `建立 ${name} 的小窩` : '建立我的小窩';
+  });
+  const days = $('#setup-days');
+  const showDays = () => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(form.birthday.value);
+    const n = m ? Math.round((new Date(todayStr()) - new Date(form.birthday.value)) / 86400000) : -1;
+    days.hidden = n < 0;
+    if (n < 0) return;
+    const md = Number(m[2]) * 100 + Number(m[3]);
+    const sign = STAR_SIGNS.find(([end]) => md < end)[1];
+    days.replaceChildren(`${sign}的你，已經在地球上 `, h('b', {}, n.toLocaleString()), ' 天了。');
+  };
+  form.addEventListener('change', showDays);
+  form.birthday.addEventListener('input', showDays);
+}
+
 // ---------- 綁定事件 ----------
 function bind() {
   document.querySelectorAll('input.bday-native').forEach(enhanceBirthday);
+  setupDelight();
   $('#setup-form').birthday.max = todayStr();
   $('#setup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3350,7 +3394,6 @@ function bind() {
 
   $('#sync-btn').addEventListener('click', () => openSettings('cloud'));
   $('#partner-btn').addEventListener('click', () => openMembers());
-  $('#setup-login').addEventListener('click', (e) => withBusy(e.target, async () => afterLogin(await cloudApi.login())));
   document.querySelectorAll('#settings-dialog [data-back]').forEach((btn) => btn.addEventListener('click', () => $('#settings-dialog').close()));
   $('#add-person-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'person' }));
   $('#add-pet-btn').addEventListener('click', () => openPersonEditor(null, { kind: 'pet' }));
@@ -3580,9 +3623,6 @@ async function init() {
   cleanupOrphanPhotos().catch(() => {});
   loadWeather();
   setInterval(() => { if (!document.hidden) loadWeather(); }, 10 * 60 * 1000);
-  if (!cloudApi.passkeySupported()) $('#setup-login').hidden = true;
-  // 還沒有任何帳號時，不顯示「已經有帳號了？用 Face ID 登入」（按了只會跳出掃條碼）
-  else if (!state.profile) cloudApi.signupStatus().then((s) => { if (s.open) $('#setup-login').closest('.setup-login').hidden = true; }).catch(() => {});
   try {
     cloud.me = await cloudApi.fetchMe();
   } catch (e) { /* 離線：照樣可以用，之後再同步 */ }
