@@ -1,5 +1,6 @@
 // 首頁的房間：一張插畫房間＋用圖層疊出來的小人，點地板走路、點東西互動
 // 房間裡只有遊戲的部分；點了東西要做什麼（記一筆、看月曆…）由 app.js 傳進來
+import { IMPRINTS } from './joys-config.js';
 const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (parent) parent.append(e); return e; };
 const BASE = 'room/';
@@ -112,8 +113,11 @@ const toUV = (x, y) => { const dx = x - O[0], dy = y - O[1]; return [(dx * EV[1]
 // 床、書架、書桌＋椅子、大盆栽、電視櫃（地毯可以走過去）
 const BLOCKS = [[0, .27, .22, .87], [0, .1, .84, 1], [0, .37, 0, .25], [.38, .49, 0, .17], [.5, .83, 0, .21]];
 const MIN = .03, MAX = .97, PAD = .015;
+// 生活印記放在地板上的家具（圓形，[u, v, r]），房間 update 時換
+let EXTRA = [];
 const free = (u, v) => u >= MIN && u <= MAX && v >= MIN && v <= MAX
-  && !BLOCKS.some(([u0, u1, v0, v1]) => u > u0 - PAD && u < u1 + PAD && v > v0 - PAD && v < v1 + PAD);
+  && !BLOCKS.some(([u0, u1, v0, v1]) => u > u0 - PAD && u < u1 + PAD && v > v0 - PAD && v < v1 + PAD)
+  && !EXTRA.some(([cu, cv, r]) => (u - cu) ** 2 + (v - cv) ** 2 < (r + PAD) ** 2);
 const N = 48;
 function nearestFree(u, v) {
   if (free(u, v)) return [u, v];
@@ -175,6 +179,8 @@ export class Room {
     setInterval(() => this.showWindow(), 60000); // 天黑、天亮時換窗外
     this.tvOn = el('image', { href: `${BASE}pixel_room/tv_on.webp`, x: 1040, y: 405, width: 140, height: 145, class: 'room-fade', opacity: 0 }, svg);
     this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: 'url(#room-glow)', class: 'room-fade', opacity: 0 }, svg);
+    this.itemsG = el('g', { class: 'room-items room-nohit' }, svg);
+    this.itemKeys = '';
     this.markers = el('g', {}, svg);
     this.hots = el('g', {}, svg);
     this.fx = el('g', { class: 'room-nohit' }, svg);
@@ -235,6 +241,7 @@ export class Room {
     if (face !== this.face && !this.faceTimer) { this.face = face; }
     this.dress();
     this.showWindow();
+    this.placeItems(st.imprints || []);
     // 讓測試和樣式知道目前狀態
     Object.assign(this.box.dataset, {
       weather: st.weather ? st.weather.kind : 'none', emo: st.emo || 'none', companions: String((st.companions || []).slice(0, 3).length),
@@ -263,6 +270,21 @@ export class Room {
     this.lamp.setAttribute('opacity', this.lampOn && !night ? 1 : 0);
     this.dark.setAttribute('opacity', !this.lampOn && night ? .4 : 0);
     this.box.dataset.lamp = this.lampOn ? 'on' : 'off';
+  }
+  // 生活印記的家具：照 z 疊，地板上的會擋路（小人剛好站在那裡就挪開）
+  placeItems(keys) {
+    const list = keys.filter((k) => IMPRINTS[k]).sort((a, b) => IMPRINTS[a].z - IMPRINTS[b].z);
+    if (list.join() === this.itemKeys) return;
+    this.itemKeys = list.join();
+    this.itemsG.replaceChildren();
+    EXTRA = [];
+    for (const k of list) {
+      const it = IMPRINTS[k];
+      el('image', { href: `${BASE}imprints/${k}.webp`, x: it.x - it.w / 2, y: it.y - it.h, width: it.w, height: it.h, 'data-imprint': k, style: 'image-rendering:pixelated' }, this.itemsG);
+      if (it.r) EXTRA.push([...toUV(it.x, it.y - 20), it.r]);
+    }
+    this.box.dataset.imprints = list.join(' ');
+    if (!free(this.me.u, this.me.v)) { [this.me.u, this.me.v] = nearestFree(this.me.u, this.me.v); this.place(); }
   }
   start() {}
   stop() {}

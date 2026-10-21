@@ -36,7 +36,7 @@ const assert = (c, msg) => { if (!c) { console.log('❌ FAIL', msg); process.exi
   assert(v['人際關係'] === 49 && v['健康'] === 20 && v['知識'] === 20, '人際：朋友 ☆ 算兩倍（2 點）→ 49；其他 20');
   assert(v['幸福'] === 94, '幸福：心情 😄 (90) + 旅行 ☆ 加分 (4) → 94');
   assert(await p.textContent('#now-caption') === '31 歲 · 出社會 · 今年記了 1 則', '今年說明文字');
-  assert(await p.$eval('#scene', (e) => !!e.querySelector('svg image[href$="room.webp"]') && e.querySelectorAll('#room-me image').length >= 6), '首頁的房間和小人有畫出來');
+  assert(await p.$eval('#scene', (e) => !!e.querySelector('svg image[href*="room.webp"]') && e.querySelectorAll('#room-me image').length >= 6), '首頁的房間和小人有畫出來');
 
   // 新增健康 → 解鎖成就通知 + 健康上升
   await p.click('#add-btn');

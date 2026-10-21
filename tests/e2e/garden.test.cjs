@@ -60,7 +60,7 @@ const scene = (p) => p.evaluate(() => ({ ...document.querySelector('#scene').dat
   await p.waitForFunction(() => !document.querySelector('#moment-dialog').open);
 
   // 一秒日記也會判斷
-  await tab(p, 'home').then(() => p.click('#quick-open')); await p.fill('#moment-form [name=text]', '今天好緊張'); await p.click('#moment-save');
+  await tab(p, 'home').then(() => p.click('#add-btn')); await p.fill('#moment-form [name=text]', '今天好緊張'); await p.click('#moment-save');
   await p.waitForTimeout(300);
   m = (await st(p)).moments.find((x) => x.text === '今天好緊張');
   assert(m && m.emo === 'nervous', '從首頁入口記的也判斷情緒（緊張）');

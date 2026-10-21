@@ -51,10 +51,10 @@
 | 檯燈、床、時鐘、窗戶 | 小互動：開關燈、睡覺、報時、天氣 |
 | 門 `door` | 尚未接功能（「其他房間還在裝潢中」） |
 
-### 像素房間（`cyworld` 分支）
+### 像素房間
 
 - 素材 `art/source/room2/`：`full.webp` 完整房間（目前直接當背景）、`empty.webp` 空房間、`furniture.webp` 大型家具（床畫錯方向，之後從 full 切）、`small.webp` 小物件。
-- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（地板前角補齊，畫布 1536×1064）、`tv_on.webp`（電視畫面用仿射貼到房間電視上）。
+- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（地板前角補齊，畫布 1536×1064；書桌上方層架用 `shelf_empty.png` 清空，改了圖要把 room.js 和 sw.js 的 `room.webp?v=` +1）、`tv_on.webp`（電視畫面用仿射貼到房間電視上）。
 - `room.js`：地板 `O/EU/EV`、`BLOCKS`（家具佔的地板，u 沿右牆、v 沿左牆）、`HOTS` 都是照這張圖量的；換房間圖要一起重量。
 - 之後做金幣商店：空房間＋一件件家具疊上去。
 
@@ -74,6 +74,22 @@ TODAY／TOTAL（都是「則」）、名字 → Mini Room → 「今天過得怎
 - **日記**：一次看一歲，自己的紀錄和打開過的信**新的在上面**，「這一年」（不確定日期）排最後；世界大事收成「🌏 N 歲那一年的世界 · N 件」一列，點了才展開，台灣／全球在展開後選。篩選只有一排，多的左右滑。
 - **地圖**：點過去的格子打開「這一歲」抽屜（`openYear`：一句話、狀態、看日記、記一筆、補回憶、年度卡），**不跳分頁**；按「看這一歲的日記」才去日記分頁。未來的格子是寫信。「最幸福的一歲」要那一歲至少 3 則有心情才顯示。
 - **返回鍵**：有抽屜開著時，瀏覽紀錄上固定墊**一筆**（`syncHistory`）；返回鍵關最上層的抽屜（草稿照樣先問），全部關掉再退掉那一筆。不要改成每個抽屜各墊一筆（「繼續編輯」之後會少算一筆，下一次返回就離開 App）。
+
+### 累積幸福（`public/joys.js`，依 PRD v1.0 分階段做）
+
+- 首頁「今天過得怎麼樣？」下面的一列按鈕，點一下＝「發生了」；長按打開詳情。「我」選單也有入口。
+- 資料：`state.joys`（`{id,title,icon,mode:'once'|'many',order,archivedAt,updatedAt}`）、`state.joyLog`（一次一筆 `{id,joyId,date}`）。次數、天數、本月、今年都從 log 算，不另外存。
+- 刪除＝墓碑（`state.deleted`）；同步和匯入都用 `mergeJoyData` 逐筆合併，兩台手機同一天各點一次會留兩筆。
+- 規則：可以補記過去、不能記未來；每天一次的同一天再點會打開詳情；一天多次改成每天一次要先確認才合併；連點 350ms 內只算一次。
+- 用語：收藏／發生了／小幸福，**不要**打卡／達標／積分／連續天數／排行榜。
+- 圖示：`python3 art/tools/joy_icons.py` 把 `art/source/joys/sheet.png`（6×4 張圖示表）去背切成 `public/joys/<key>.webp`（白底預覽 `preview.png`）。太陽、閃光、耳機在表裡光暈太重（`SKIP`），改用單張白底重畫的 `art/source/joys/<key>.png`（會蓋過表裡的）。24 個都有像素圖了；新增圖示要加進 `joys.js` 的 `JOY_ICONS`（emoji 備用）和 `sw.js`。
+- **生活印記**（Phase 3）：同一個圖示的小幸福收藏滿 `IMPRINT_DAYS`（10）個不同日子 → 跳出「房間多了一件東西」，選「放到房間」或「先收著」；拿到就永久（刪紀錄不收回）。
+  - 資料 `state.imprints`：`{id:key, key, joyId, at, shown, updatedAt}`；同步用 `mergeImprints`：日期留最早、`shown` 照最新。
+  - 設定 `public/joys-config.js` 的 `IMPRINTS`：每件家具在房間的位置（底部中間 x,y）、大小、疊放順序 z、放在地板上的擋路半徑 r；改數字不用動程式。
+  - 圖：`python3 art/tools/imprint_items.py` 把 `art/source/furniture/<key>.png`（GPT 白底單張）去背、縮到房間大小、外框重畫成房間的粗細顏色 → `public/room/imprints/<key>.webp`；新增要加進 `WIDTH`、`IMPRINTS`、`sw.js`。
+  - 房間不清空：新家具直接疊上去蓋住舊的（使用者定案）。目前有圖的：cat 小貓抱枕、coffee 拿鐵、meal 小矮桌（電視前地毯上）、gift 禮物、bear 熊熊、hearts 愛心氣球；其他 18 個拿到會顯示「家具製作中」。
+  - 收藏冊在「累積幸福 → 全部」最下面，24 格。
+- 之後：Phase 2 幸福星罐、Phase 4 年度回顧卡、日記時間軸上的小印章；新房間草稿在 `art/source/room2/room_*.webp`（之後做換房間時用）。
 
 ### 「我」分頁
 
@@ -174,7 +190,7 @@ tests/             Playwright 端對端測試
   - 衣服：一整張「光頭素體穿衣服」的圖，先用腿和鞋對齊素體，只取脖子以下，頭一律用素體的（頭髮才對得齊）；
   - 目前有：女生、長直髮／鮑伯頭／光頭、T 恤／運動服；這一版沒有表情；
   - 男生素體 `art/source/doll34_boy_base.webp` 已有，髮型和衣服等使用者生成。
-- **像素女孩**（`style: 'pixel'`，新使用者的預設，`cyworld` 分支）：logo 女孩的像素風，**紙娃娃做法**。
+- **像素女孩**（`style: 'pixel'`，新使用者的預設）：logo 女孩的像素風，**紙娃娃做法**。
   - 頭和身體是 GPT 分開畫的零件（`art/source/pixel2/`）：`head_<髮型>` 一列 3 顆頭（正、側朝右、背），只有頭、下巴有外框；`body_<衣服>` 一列 7 個沒頭的身體（正、側、背、側面走路 4 格），脖子是一小截皮膚；
   - 改了像素女孩的圖：`room.js` 的 `PIX_REV` 和 `sw.js` 清單的 `?v=` 一起 +1（檔名相同、內容不同時，舊程式才不會混到新圖）；
   - `python3 art/tools/pixel_parts.py`：每張用自己外框的粗細算出「一格像素多大」統一縮放，**不用和別張對齊**；輸出 `public/room/pixel/` 的 `body_<衣服>_front|side|back|walk0-3.webp`、`head_<髮型>_front|side|back.webp`，脖子固定在畫布 (133.5, 225)，頭的下巴蓋在脖子上；

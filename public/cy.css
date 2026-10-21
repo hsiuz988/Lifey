@@ -335,3 +335,99 @@ dialog.info-dialog > #info-body { display: flex; flex-direction: column; gap: 10
 .year-actions .btn { min-height: 44px; justify-content: center; text-align: center; }
 .year-actions .btn[hidden] { display: none; }
 .legend-future { flex-basis: 100%; margin-top: 4px; }
+
+/* ---------- 累積幸福 ---------- */
+.joys { margin-top: 2px; }
+.joy-row { display: flex; gap: 8px; overflow-x: auto; padding: 8px 2px 6px; scrollbar-width: none; flex-wrap: nowrap; }
+.joy-row::-webkit-scrollbar { display: none; }
+.joy-btn {
+  position: relative; flex: 0 0 auto; width: 68px; min-height: 76px; padding: 8px 4px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 1px solid #b9c7d6; border-bottom-width: 2px; border-radius: 8px; background: #fff;
+  font: inherit; color: var(--text); cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+}
+.joy-btn .joy-ic { font-size: 26px; line-height: 1; }
+.joy-btn .joy-name { font-size: 11px; line-height: 1.25; text-align: center; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.joy-btn.on { background: var(--accent-soft); border-color: #9fd4da; }
+.joy-btn.on .joy-name { color: var(--cy-pop); }
+.joy-check, .joy-count {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  background: var(--cy-aqua); color: #fff; font-size: 11px; font-weight: 700; line-height: 20px; text-align: center;
+}
+.joy-more .joy-ic { color: var(--cy-blue); font-size: 22px; }
+.joy-btn.pop { animation: joy-pop .55s ease; }
+@keyframes joy-pop { 0% { transform: scale(1); } 35% { transform: scale(1.12) translateY(-3px); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .joy-btn.pop { animation: none; } }
+.joy-empty { margin: 0 0 4px; width: 100%; font-size: 13px; color: var(--muted); }
+.joy-row:has(.joy-empty) { flex-wrap: wrap; }
+.joy-chip { padding: 8px 12px; border: 1px dashed #8fa3b8; border-radius: 16px; background: #fff; font: inherit; font-size: 13px; color: var(--cy-blue); cursor: pointer; }
+
+.joy-dialog #joy-body { display: flex; flex-direction: column; gap: 12px; }
+.joy-hero { display: flex; align-items: center; gap: 12px; }
+.joy-hero-ic { font-size: 40px; line-height: 1; }
+.joy-hero div { display: flex; flex-direction: column; gap: 2px; }
+.joy-total { font-size: 20px; color: var(--cy-pop); }
+.joy-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 6px; }
+.joy-stat { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; font-size: 13px; color: var(--muted); border-bottom: 1px solid #eef2f6; }
+.joy-stat:nth-child(odd) { border-right: 1px solid #eef2f6; }
+.joy-stat b { color: var(--text); font-weight: 600; }
+.joy-cal { border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.joy-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.joy-week, .joy-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.joy-week span { text-align: center; font-size: 11px; color: var(--muted); }
+.joy-day {
+  position: relative; aspect-ratio: 1; min-height: 38px; padding: 2px; border: 0; border-radius: 6px; background: #f6f8fa;
+  font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.joy-day.empty { background: none; }
+.joy-day:disabled { opacity: .35; cursor: default; }
+.joy-day.today { box-shadow: inset 0 0 0 2px var(--cy-aqua); }
+.joy-day-num { font-size: 11px; color: var(--muted); line-height: 1; }
+.joy-day.on { background: var(--accent-soft); }
+.joy-stamp { font-size: 16px; line-height: 1.1; }
+.joy-day-n { position: absolute; right: 2px; bottom: 1px; font-size: 9px; color: var(--cy-pop); font-weight: 700; }
+.joy-cal-hint { margin: -4px 0 0; }
+.joy-adjust { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed #9fd4da; border-radius: 6px; font-size: 14px; }
+.joy-adjust .btn.small { min-width: 40px; min-height: 36px; font-size: 18px; }
+.joy-icons { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.joy-icon-opt { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 20px; cursor: pointer; padding: 0; }
+.joy-icon-opt.on { border: 2px solid var(--cy-aqua); background: var(--accent-soft); }
+.joy-mode { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; flex-direction: row; }
+.joy-mode span { display: flex; flex-direction: column; }
+.joy-mode input { margin-top: 3px; accent-color: var(--cy-aqua); }
+.joy-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 6px; }
+.joy-item { display: flex; align-items: center; border-bottom: 1px dashed #e4eaf0; }
+.joy-item:last-child { border-bottom: 0; }
+.joy-item-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.joy-item-main .joy-ic { font-size: 24px; }
+.joy-item-text { display: flex; flex-direction: column; min-width: 0; }
+.joy-item-text small { margin: 0; }
+.joy-order { display: flex; gap: 2px; padding-right: 6px; }
+.joy-archived summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 6px 0; }
+
+/* 累積幸福的像素圖示：跟著字級放大，em 計算 */
+.joy-pix { width: 1.3em; height: 1.3em; object-fit: contain; vertical-align: middle; pointer-events: none; -webkit-user-select: none; user-select: none; }
+.joy-chip .joy-pix, .joy-presets .joy-pix { width: 20px; height: 20px; margin: -3px 0; }
+.joy-icon-opt .joy-pix { width: 80%; height: 80%; }
+
+/* 生活印記：詳情的一句話、收藏冊、拿到時的小視窗 */
+.joy-imprint { margin: 6px 0 2px; font-size: 13px; color: var(--muted, #6b7280); }
+.joy-imprint.got { color: var(--cy-blue, #2f6fb3); font-weight: 600; }
+.imprint-book { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.imprint-book h4 { margin: 0 0 4px; font-size: 14px; }
+.imprint-grid { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.imprint-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border: 1px solid var(--line); border-radius: 8px; background: #fff; text-align: center; min-width: 0; }
+.imprint-cell b { font-size: 11px; line-height: 1.2; }
+.imprint-cell small { font-size: 10px; }
+.imprint-cell .btn.small { padding: 2px 6px; font-size: 11px; margin-top: 2px; }
+.imprint-cell:not(.got) .imprint-art { opacity: .35; filter: grayscale(1); }
+.imprint-art { width: 44px; height: 36px; object-fit: contain; image-rendering: pixelated; }
+.imprint-icon { display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.imprint-icon .joy-pix { width: 30px; height: 30px; }
+.imprint-hero { display: flex; justify-content: center; padding: 10px 0; }
+.imprint-big { width: 160px; height: 120px; object-fit: contain; image-rendering: pixelated; animation: imprint-pop .5s ease-out; }
+.imprint-big.imprint-icon .joy-pix { width: 72px; height: 72px; }
+.imprint-name { text-align: center; margin: 0; font-size: 16px; }
+.imprint-dialog .hint { text-align: center; }
+@keyframes imprint-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .imprint-big { animation: none; } }
