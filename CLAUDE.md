@@ -83,7 +83,7 @@
 ### 像素房間
 
 - 素材 `art/source/room2/`：`full_v3.webp` **現在的房間**（GPT 照 `full_crt.png` 重畫、拿掉書櫃左邊的垂吊植物；使用者定案）、`full_crt.png` 上一版（GPT 拿舊房間改的：粉色映像管電視、拿掉桌上信紙、清空層架上的擺設和窗邊吊盆、電視櫃上的鬧鐘）、`full.webp` 最早的完整房間（熱點、走路範圍、窗戶、夜晚圖都是照它量的）、`empty.webp` 空房間、`furniture.webp` 大型家具（床畫錯方向，之後從 full 切）、`small.webp` 小物件。
-- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（`full.webp` 補齊地板前角、畫布 1536×1064，再把現在的房間（`room_pixel.py` 的 `EDIT`）放大、用邊緣比對對回去，所以座標不用重量）、`tv_on.webp`（電視畫面用仿射貼到映像管螢幕上，照螢幕的圓角裁）。換圖後依序跑 `room_pixel.py` → `room_night.py` → `room_window.py`，再把 `sw.js` 的 VERSION +1。
+- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（`full.webp` 補齊地板前角、畫布 1536×1064，再把現在的房間（`room_pixel.py` 的 `EDIT`）放大、用邊緣比對對回去，所以座標不用重量）、`tv_on.webp`（電視畫面用仿射貼到映像管螢幕上，照螢幕的圓角裁）。換圖後依序跑 `room_pixel.py` → `room_night.py` → `room_window.py`，再把 `sw.js` 的 VERSION +1。GPT 畫的外框左右不一致（左牆頂太細、右前方地板底邊沒有線），`even_outline` 沿量出來的直線補一條約 3px 的深咖啡線，左右邊緣才一樣粗。
 - 再請 GPT 改房間：**附舊房間、用編輯模式、一次只改一兩樣**，並列出要保留的細節（重畫整間的版本使用者都覺得比較差：比例變真實、家具變小、前面地板太空、透視歪）。
 - `room.js`：地板 `O/EU/EV`、`BLOCKS`（家具佔的地板，u 沿右牆、v 沿左牆）、`HOTS` 都是照這張圖量的；換房間圖要一起重量。
 - 之後做金幣商店：空房間＋一件件家具疊上去。

@@ -85,7 +85,31 @@ def apply_edit(base):
 
 def room():
     a = old_room()
-    return apply_edit(a) if os.path.exists(f'{SRC}/{EDIT}') else a
+    return even_outline(apply_edit(a)) if os.path.exists(f'{SRC}/{EDIT}') else a
+
+# GPT 畫的外框左右不一致：左牆頂只有 1px、右地板邊底下沒有外框，看起來左右邊緣粗細不同
+# 照另一邊補一條約 3px 的深咖啡線（沿著量出來的直線，邊緣反鋸齒）
+OUTLINE = np.array([34, 8, 4], float)
+def even_outline(a):
+    alpha = a[..., 3] > 128
+    def fit(xs, ys):
+        m, c = np.polyfit(xs, ys, 1)
+        return lambda x: m * x + c
+    xs = np.arange(110, 740); top = fit(xs, [np.argmax(alpha[:, x]) for x in xs])                       # 左牆頂邊
+    xs2 = np.arange(800, 1440); bot = fit(xs2, [H - 1 - np.argmax(alpha[::-1, x]) for x in xs2])        # 右前方地板底邊
+    def band(x0, x1, line, lo, hi):
+        for x in range(x0, x1):
+            y0 = line(x)
+            for y in range(int(y0 + lo) - 1, int(y0 + hi) + 2):
+                cov = max(0.0, min(y + 1, y0 + hi) - max(y, y0 + lo))    # 這一格被線蓋住多少
+                if cov <= 0: continue
+                px = a[y, x].astype(float); al = px[3] / 255
+                rgb = OUTLINE * cov + px[:3] * al * (1 - cov)
+                na = cov + al * (1 - cov)
+                a[y, x, :3] = np.clip(rgb / max(na, 1e-3), 0, 255); a[y, x, 3] = int(round(na * 255))
+    band(80, 762, top, 0, 3)          # 牆頂：從邊往裡 3px
+    band(768, 1460, bot, -2.5, .5)    # 地板底：最後 3px
+    return a
 
 def main():
     os.makedirs(OUT, exist_ok=True)
