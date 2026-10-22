@@ -197,6 +197,10 @@ export function renderJoyRow() {
       h('button', { type: 'button', class: 'joy-chip', onclick: () => openJoyEdit(null) }, '＋ 新增小幸福'));
     return;
   }
+  if (!row.dataset.sortable) {
+    row.dataset.sortable = '1';
+    sortable(row, { item: '[data-sort-id]', hold: 450, onHold: (id) => openJoy(id), onDrop: reorder });
+  }
   row.replaceChildren(...list.slice(0, HOME_MAX).map((j) => joyButton(j, today)),
     ...(list.length < HOME_MAX ? [h('button', { type: 'button', class: 'joy-btn joy-more', 'aria-label': '新增小幸福', onclick: () => openJoyEdit(null) }, h('span', { class: 'joy-ic' }, '＋'), h('span', { class: 'joy-name' }, '新增'))] : []));
 }
@@ -205,17 +209,82 @@ function joyButton(joy, today) {
   const { h } = ctx;
   const n = joyStats(ctx.getState(), joy, today).today;
   const btn = h('button', {
-    type: 'button', class: `joy-btn${n ? ' on' : ''}`, 'data-joy': joy.id, 'aria-pressed': String(!!n),
+    type: 'button', class: `joy-btn${n ? ' on' : ''}`, 'data-joy': joy.id, 'data-sort-id': joy.id, 'aria-pressed': String(!!n),
     'aria-label': `${joy.title}${n ? '，今天已收藏' : ''}`,
   }, h('span', { class: 'joy-ic' }, iconOf(joy)), h('span', { class: 'joy-name' }, joy.title),
   n ? h('span', { class: 'joy-check' }, '✓') : null);
-  // 長按：打開這一項（看月曆、調整、撤銷）
-  let timer = null, long = false;
-  btn.addEventListener('pointerdown', () => { long = false; timer = setTimeout(() => { long = true; openJoy(joy.id); }, 480); });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
+  // 長按放開：打開這一項（月曆、編輯）；長按後拖曳：排順序（sortable 處理）
   btn.addEventListener('contextmenu', (e) => e.preventDefault());
-  btn.addEventListener('click', () => { if (long) { long = false; return; } tap(joy); });
+  btn.addEventListener('click', () => { if (Date.now() - holdAt < 500) return; tap(joy); });
   return btn;
+}
+
+// ---------- 拖曳排序 ----------
+// 按住後拖到想要的位置放開。handle：只有按把手才拖（全部頁，立刻開始）；hold：按住多久才開始（首頁按鈕，免得和點一下、捲動打架）
+// 按住但沒移動就放開 → onHold（首頁：打開詳情）
+let holdAt = 0; // 剛結束長按／拖曳的時間：接著的 click 不算點一下
+let dragging = false;
+function sortable(container, { item, handle = null, hold = 0, onHold = null, onDrop }) {
+  container.addEventListener('touchmove', (e) => { if (dragging) e.preventDefault(); }, { passive: false }); // 拖曳時畫面不要跟著捲
+  container.addEventListener('pointerdown', (e) => {
+    const it = e.target.closest(item);
+    if (!it || !container.contains(it) || (handle && !e.target.closest(handle)) || e.button > 0) return;
+    const start = { x: e.clientX, y: e.clientY };
+    const scroller = container.closest('dialog') || document.scrollingElement;
+    let active = false, moved = false;
+    const begin = () => { active = dragging = true; holdAt = Date.now(); it.classList.add('dragging'); container.classList.add('sorting'); if (navigator.vibrate) navigator.vibrate(8); };
+    const timer = hold ? setTimeout(begin, hold) : null;
+    if (!hold) { e.preventDefault(); begin(); }
+    const move = (ev) => {
+      if (!active) { if (Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 8) end(false); return; }
+      ev.preventDefault();
+      moved = true;
+      // 拖到視窗上下邊緣：跟著捲動（清單比畫面長的時候）
+      const box = scroller === document.scrollingElement ? { top: 0, bottom: innerHeight } : scroller.getBoundingClientRect();
+      const edge = ev.clientY < box.top + 56 ? -14 : ev.clientY > box.bottom - 56 ? 14 : 0;
+      if (edge) { const was = scroller.scrollTop; scroller.scrollTop += edge; start.y -= scroller.scrollTop - was; }
+      it.style.transform = `translate(${ev.clientX - start.x}px, ${ev.clientY - start.y}px)`;
+      it.style.pointerEvents = 'none';
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      it.style.pointerEvents = '';
+      const over = under && under.closest(item);
+      if (!over || over === it || !container.contains(over)) return;
+      const list = [...container.querySelectorAll(item)];
+      const before = it.getBoundingClientRect();
+      if (list.indexOf(it) < list.indexOf(over)) over.after(it); else over.before(it);
+      const after = it.getBoundingClientRect();
+      start.x += after.left - before.left; start.y += after.top - before.top; // 換位置後，手指底下還是它
+      it.style.transform = `translate(${ev.clientX - start.x}px, ${ev.clientY - start.y}px)`;
+    };
+    const end = (drop = true) => {
+      clearTimeout(timer);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      if (!active) return;
+      active = dragging = false;
+      holdAt = Date.now();
+      it.classList.remove('dragging'); container.classList.remove('sorting'); it.style.transform = '';
+      if (!drop) return;
+      if (moved) onDrop([...container.querySelectorAll(item)].map((x) => x.dataset.sortId));
+      else if (onHold) onHold(it.dataset.sortId);
+    };
+    const up = () => end(true);
+    const cancel = () => end(false);
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+  });
+}
+// 照拖好的順序重排；ids 是畫面上看得到的那幾個，其他的照原本順序接在後面
+function reorder(ids) {
+  const s = ctx.getState();
+  const list = activeJoys(s);
+  const picked = ids.map((id) => list.find((j) => j.id === id)).filter(Boolean);
+  const next = [...picked, ...list.filter((j) => !picked.includes(j))];
+  const t = now();
+  next.forEach((j, i) => { if (j.order !== i) { j.order = i; j.updatedAt = t; } });
+  done();
 }
 
 async function tap(joy) {
@@ -223,8 +292,13 @@ async function tap(joy) {
   const now = Date.now();
   if (lastTap.id === joy.id && now - lastTap.t < 350) return; // 手指抖一下不算兩次
   lastTap = { id: joy.id, t: now };
-  // 今天已經亮了：不再加一次，重新打開提問卡（可以補寫日記，或取消今天的收藏）
-  if (joyStats(ctx.getState(), joy, today).today) { showAsk(joy, { again: true }); return; }
+  // 今天已經亮了：再點一下就取消（提示上可以復原）
+  if (joyStats(ctx.getState(), joy, today).today) {
+    unrecord(joy, today);
+    await ctx.save(); renderJoyRow(); counted();
+    ctx.toast(`取消了今天的「${joy.title}」`, 3500, { label: '復原', fn: async () => { record(joy, today); afterChange(); await ctx.save(); renderJoyRow(); counted(); } });
+    return;
+  }
   record(joy, today);
   afterChange();
   await ctx.save();
@@ -235,15 +309,15 @@ async function tap(joy) {
   showAsk(joy);
 }
 
-// 收藏後在按鈕下面問一句；有寫就存成日記，也可以復原這次收藏。again：今天已經收藏過，再點一次打開的
-function showAsk(joy, { again = false } = {}) {
+// 收藏後跳出小視窗問一句；有寫就存成日記，也可以復原這次收藏
+function showAsk(joy) {
   const { h, $ } = ctx;
   const s = ctx.getState();
   const today = ctx.todayStr();
   const st = joyStats(s, joy, today);
-  let card = $('#joy-ask');
-  if (!card) { card = h('div', { id: 'joy-ask', class: 'joy-ask', role: 'region', 'aria-label': '收藏了' }); $('#joy-row').after(card); }
-  const close = () => card.remove();
+  const dlg = $('#joy-ask-dialog');
+  const card = $('#joy-ask');
+  const close = () => dlg.close();
   const input = h('input', { class: 'joy-ask-input', maxlength: '200', placeholder: askOf(joy), 'aria-label': askOf(joy), enterkeyhint: 'done' });
   const save = h('button', { type: 'button', class: 'btn small primary', disabled: true, onclick: async () => {
     const text = input.value.trim();
@@ -257,13 +331,15 @@ function showAsk(joy, { again = false } = {}) {
   const left = IMPRINTS[joy.icon] && !(s.imprints || []).some((i) => i.key === joy.icon) ? IMPRINT_DAYS - imprintDays(s, joy.icon) : 0;
   const count = `第 ${st.days} 天`;
   card.replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `收藏了！${joy.title}`)),
     h('div', { class: 'joy-ask-head' }, h('span', { class: 'joy-ask-ic' }, iconOf(joy)),
-      h('span', { class: 'joy-ask-title' }, h('b', {}, again ? `今天已經收藏了 ✓ ${joy.title}` : `收藏了！${joy.title}`), h('small', {}, left > 0 && left <= 3 ? `${count} · 再 ${left} 天房間會多一件東西 🎁` : count)),
-      h('button', { type: 'button', class: 'icon-btn joy-ask-x', 'aria-label': '關掉', onclick: close }, '×')),
+      h('span', { class: 'joy-ask-title' }, h('b', {}, joy.title), h('small', {}, left > 0 && left <= 3 ? `${count} · 再 ${left} 天房間會多一件東西 🎁` : count))),
     input,
-    h('div', { class: 'joy-ask-actions' },
-      h('button', { type: 'button', class: 'link-btn', onclick: () => { unrecord(joy, today); ctx.save(); renderJoyRow(); counted(); close(); ctx.toast('取消今天的收藏了'); } }, again ? '取消今天的收藏' : '復原'),
-      h('span', { class: 'spacer' }), save));
+    h('div', { class: 'sheet-actions joy-ask-actions' },
+      h('button', { type: 'button', class: 'link-btn', onclick: () => { unrecord(joy, today); ctx.save(); renderJoyRow(); counted(); close(); ctx.toast('取消今天的收藏了'); } }, '復原'),
+      h('span', { class: 'spacer' }),
+      h('button', { type: 'button', class: 'btn', onclick: close }, '不用了'), save));
+  if (!dlg.open) dlg.showModal();
 }
 
 function addJoy(p) {
@@ -280,7 +356,7 @@ function addJoy(p) {
 const dialog = () => ctx.$('#joy-dialog');
 const body = () => ctx.$('#joy-body');
 function show(children) {
-  body().replaceChildren(...children);
+  body().replaceChildren(...children.filter(Boolean)); // 沒有的區塊是 null，直接放進去會印出「null」
   if (!dialog().open) dialog().showModal();
 }
 const done = () => { afterChange(); ctx.save(); renderJoyRow(); counted(); };
@@ -417,27 +493,20 @@ export function openJoyList() {
   const s = ctx.getState();
   const today = ctx.todayStr();
   const active = activeJoys(s), archived = s.joys.filter((j) => j.archivedAt);
-  const move = (j, d) => {
-    const i = active.indexOf(j), k = active[i + d];
-    if (!k) return;
-    [j.order, k.order] = [k.order, j.order];
-    j.updatedAt = k.updatedAt = now();
-    done(); openJoyList();
-  };
-  const row = (j, i, arr) => {
+  const row = (j) => {
     const st = joyStats(s, j, today);
-    return h('li', { class: 'joy-item' },
+    return h('li', { class: 'joy-item', 'data-sort-id': j.archivedAt ? null : j.id },
       h('button', { type: 'button', class: 'joy-item-main', onclick: () => openJoy(j.id) },
         h('span', { class: 'joy-ic' }, iconOf(j)),
         h('span', { class: 'joy-item-text' }, h('b', {}, j.title), h('small', { class: 'hint' }, `收藏了 ${st.days} 天${st.today ? ' · 今天收藏了 ✓' : ''}`))),
-      j.archivedAt ? null : h('span', { class: 'joy-order' },
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': `${j.title}往前`, disabled: i === 0, onclick: () => move(j, -1) }, '↑'),
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': `${j.title}往後`, disabled: i === arr.length - 1, onclick: () => move(j, 1) }, '↓')));
+      j.archivedAt ? null : h('span', { class: 'joy-handle', role: 'img', 'aria-label': `拖曳排序：${j.title}` }, '⠿'));
   };
+  const sorted = active.length ? h('ul', { class: 'joy-list' }, ...active.map(row)) : null;
+  if (sorted) sortable(sorted, { item: '[data-sort-id]', handle: '.joy-handle', onDrop: (ids) => { reorder(ids); openJoyList(); } });
   show([
     h('div', { class: 'sheet-top' }, h('h3', {}, '我的幸福')),
-    h('p', { class: 'hint' }, '常常發生的小幸福，發生了就在首頁點一下。這裡可以排順序、編輯，點進去看月曆。'),
-    active.length ? h('ul', { class: 'joy-list' }, ...active.map(row)) : h('p', { class: 'hint' }, '還沒有小幸福，新增一個吧。'),
+    h('p', { class: 'hint' }, '常常發生的小幸福，發生了就在首頁點一下，再點一下取消。按住右邊的 ⠿ 拖曳排順序（首頁的按鈕長按也可以拖），前 10 個會放在首頁。'),
+    sorted || h('p', { class: 'hint' }, '還沒有小幸福，新增一個吧。'),
     archived.length ? h('details', { class: 'joy-archived' }, h('summary', {}, `收起來的（${archived.length}）`), h('ul', { class: 'joy-list' }, ...archived.map(row))) : null,
     imprintBook(),
     h('div', { class: 'sheet-actions' }, h('span', { class: 'spacer' }), h('button', { type: 'button', class: 'btn primary', onclick: () => openJoyEdit(null) }, '＋ 新增小幸福')),

@@ -794,6 +794,19 @@ dialog.composer-page {
 .joy-ask-title small { font-size: 12px; color: var(--muted); }
 .joy-ask-x { width: 32px; height: 32px; font-size: 20px; color: var(--muted); }
 .joy-ask-input { width: 100%; }
+/* 點亮後的提問是小視窗 */
+/* 置中的小視窗（不是底部抽屜）；鍵盤跳出來時往上移半個鍵盤高，留在看得到的地方 */
+dialog.sheet.joy-ask-dialog { margin: auto; width: calc(100% - 32px); max-width: 380px; padding-bottom: 16px; border-bottom: 2px solid var(--cy-win-line); border-radius: 10px; box-shadow: 4px 4px 0 rgba(43, 47, 51, .25); transform: translateY(calc(var(--kb, 0px) / -2)); }
+.joy-ask-dialog .sheet-actions { position: static; margin: 0; padding: 0; border: 0; background: none; }
+.joy-ask-dialog .joy-ask { margin: 0; padding: 0; border: 0; background: none; animation: none; gap: 12px; }
+.joy-ask-dialog .joy-ask-ic .joy-pix { width: 44px; height: 44px; }
+/* 拖曳排序：首頁按鈕長按後拖、全部頁按住 ⠿ 拖 */
+.joy-btn, .joy-item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.joy-btn.dragging, .joy-item.dragging { position: relative; z-index: 5; opacity: .92; box-shadow: 0 8px 20px rgba(43, 47, 51, .22); transition: none; }
+.joy-row.sorting .joy-btn:not(.dragging), .joy-list.sorting .joy-item:not(.dragging) { transition: transform .15s; }
+.joy-handle { display: grid; place-items: center; width: 44px; min-height: 44px; flex-shrink: 0; font-size: 20px; color: var(--muted); cursor: grab; touch-action: none; }
+.joy-item.dragging .joy-handle { cursor: grabbing; color: var(--cy-aqua); }
+.joy-item.dragging { background: #fff; border-radius: 8px; }
 .joy-ask-actions { display: flex; align-items: center; gap: 8px; }
 .joy-ask-actions .link-btn { font-size: 13px; color: var(--muted); padding: 8px 0; }
 

@@ -22,8 +22,8 @@ const errors = [];
 
   const cat = 'joy-hearts';
   await p.click(`#joy-row [data-joy="${cat}"]`); await p.waitForTimeout(450);
-  await p.click('#joy-ask .joy-ask-x'); await p.waitForTimeout(100);
-  // 長按打開詳情（今天已經亮的，再點一下是打開提問卡）
+  await p.click('#joy-ask .btn >> text=不用了'); await p.waitForTimeout(100);
+  // 長按打開詳情（今天已經亮的，再點一下是取消）
   const box = await (await p.$(`#joy-row [data-joy="${cat}"]`)).boundingBox();
   await p.mouse.move(box.x + 20, box.y + 20); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(300);
   assert((await p.textContent('#joy-dialog .joy-imprint')).includes('再收藏 9 天') && (await p.textContent('#joy-dialog .joy-imprint')).includes('愛心氣球'), '詳情告訴你還差幾天、會拿到什麼');
