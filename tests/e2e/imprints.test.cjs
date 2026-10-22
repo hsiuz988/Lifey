@@ -78,7 +78,7 @@ const errors = [];
     const ok = await Promise.all(keys.map((k) => fetch(`room/imprints/${k}.webp`).then((x) => x.ok)));
     return { want: keys.length, got: box.querySelectorAll('image[data-imprint]').length, files: ok.every(Boolean) };
   });
-  assert(all.want === 10 && all.got === 10 && all.files, '10 件有圖的家具都放得進房間、圖都在');
+  assert(all.want === 20 && all.got === all.want - 3 && all.files, '20 件有圖的家具圖都在，同一個位置只畫一件（拿鐵／蛋糕、小貓／遊戲機、禮物／瑜珈墊各留一件）');
 
   // 多選一：同一個位置只放一件
   const slot = await p.evaluate(async () => {
@@ -96,10 +96,10 @@ const errors = [];
     const { Room } = await import('./room.js');
     const box = document.createElement('div'); document.body.append(box);
     const r = new Room(box, {});
-    r.update({ imprints: ['coffee', 'cake', 'gift'] });
+    r.update({ imprints: ['cake', 'coffee', 'gift'] });
     return box.dataset.imprints;
   });
-  assert(swap === 'coffee gift', '房間只畫有家具圖的那件');
+  assert(swap === 'cake gift', '同一個位置有兩件時，房間只畫新放的那件');
 
   // 兩台手機：A 先拿到（10/20），B 後來又拿到（10/25）且收起來 → 日期留最早，放不放照最新
   const merged = await p.evaluate(async () => {

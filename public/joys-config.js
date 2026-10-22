@@ -16,6 +16,16 @@ export const IMPRINTS = {
   moon: { name: '月亮小夜燈', where: '床頭', x: 300, y: 468, w: 44, h: 56, z: 1 },
   star: { name: '星星吊飾', where: '書桌旁的牆上', x: 1022, y: 240, w: 200, h: 135, z: 1 },
   sneaker: { name: '地球儀', where: '書櫃上', x: 212, y: 396, w: 62, h: 86, z: 1 },
+  cake: { name: '杯子蛋糕', where: '書桌上', x: 705, y: 334, w: 58, h: 58, z: 1 },
+  call: { name: '復古電話', where: '書桌上', x: 948, y: 380, w: 72, h: 57, z: 1 },
+  camera: { name: '拍立得相機', where: '牆角的層架上', x: 715, y: 165, w: 58, h: 53, z: 1 },
+  home: { name: '全家福相框', where: '牆角的層架上', x: 842, y: 180, w: 56, h: 55, z: 1 },
+  plant: { name: '小多肉盆栽', where: '窗台上', x: 470, y: 398, w: 64, h: 49, z: 1 },
+  sparkle: { name: '星光串燈', where: '窗簾桿上', x: 470, y: 312, w: 300, h: 178, z: 2 },
+  sunset: { name: '風景明信片', where: '窗戶旁的牆上', x: 700, y: 270, w: 96, h: 79, z: 1 },
+  game: { name: '掌上遊戲機', where: '床上', x: 520, y: 515, w: 110, h: 69, z: 2 },
+  workout: { name: '瑜珈墊和啞鈴', where: '書櫃旁邊', x: 245, y: 705, w: 70, h: 106, r: .04, z: 4 },
+  book: { name: '一疊書', where: '小熊旁邊', x: 420, y: 712, w: 66, h: 65, r: .03, z: 5 },
 };
 
 // 擺放位置（多選一，使用者定案）：同一個位置一次只放一件；換上新的，原本那件自動收起來，隨時可以換回來
