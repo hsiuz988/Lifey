@@ -23,11 +23,11 @@ WIDTH = {'cat': 130, 'coffee': 54, 'meal': 170, 'gift': 105, 'bear': 95, 'hearts
          'paw': 120, 'moon': 44, 'star': 200, 'sneaker': 62,
          'cake': 58, 'call': 84, 'camera': 52, 'home': 56, 'plant': 64, 'sparkle': 300, 'sunset': 96,
          'game': 110, 'workout': 100, 'book': 118,
-         'bike': 62, 'bath': 56, 'letter': 58, 'umbrella': 62, 'shop': 88, 'clean': 100, 'sun': 70, 'movie': 72,
+         'bike': 66, 'bath': 54, 'letter': 58, 'umbrella': 62, 'shop': 88, 'clean': 100, 'sun': 70, 'movie': 72,
          'sing': 58, 'music': 44, 'icecream': 200, 'cook': 170}
 # 掛在牆上的要照牆的斜度斜過去：每往右 1px 往下幾 px（GPT 畫的是正面，右牆約往下 0.49，原圖的線已經斜 0.19）
 # 負的是往右上升：左牆、窗簾桿（約 -0.49）
-SHEAR = {'star': 0.3, 'sparkle': -0.49, 'sunset': -0.49, 'bike': 0.49, 'bath': 0.49}
+SHEAR = {'star': 0.3, 'sparkle': -0.49, 'sunset': -0.49}
 # GPT 畫的角度差一點的，順時針轉幾度跟家具平行（電話要和電視櫃平行）
 ROTATE = {'call': 11}
 # 小東西的外框細一點（預設 3px）
