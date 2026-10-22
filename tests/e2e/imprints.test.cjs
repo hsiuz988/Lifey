@@ -26,21 +26,21 @@ const errors = [];
   // 長按打開詳情（今天已經亮的，再點一下是取消）
   const box = await (await p.$(`#joy-row [data-joy="${cat}"]`)).boundingBox();
   await p.mouse.move(box.x + 20, box.y + 20); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(300);
-  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('再收藏 9 天') && (await p.textContent('#joy-dialog .joy-imprint')).includes('愛心氣球'), '詳情告訴你還差幾天、會拿到什麼');
+  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('再收藏 9 天') && (await p.textContent('#joy-dialog .joy-imprint')).includes('室內拖鞋'), '詳情告訴你還差幾天、會拿到什麼');
 
   // 補記 10/12～10/19：還差一天，不會跳
   for (let d = 12; d <= 19; d++) { await p.click(`.joy-day[data-date="2026-10-${d}"]`); await p.waitForTimeout(80); }
   await p.waitForTimeout(500);
   assert(!(await p.$eval('#imprint-dialog', (e) => e.open)) && !((await st(p)).imprints || []).length, '收藏 9 天還不會拿到');
   await p.click('.joy-day[data-date="2026-10-20"]'); await p.waitForTimeout(700);
-  assert(await p.$eval('#imprint-dialog', (e) => e.open) && (await p.textContent('#imprint-dialog')).includes('愛心氣球'), '第 10 天跳出「房間多了一件東西」');
+  assert(await p.$eval('#imprint-dialog', (e) => e.open) && (await p.textContent('#imprint-dialog')).includes('室內拖鞋'), '第 10 天跳出「房間多了一件東西」');
   let s = await st(p);
   assert(s.imprints.length === 1 && s.imprints[0].key === 'hearts' && s.imprints[0].at === '2026-10-21' && !s.imprints[0].shown, '記下拿到的日期（照日期排的第 10 天），先不放出來');
   await p.screenshot({ path: OUT + '/imprint-got.png' });
   await p.click('#imprint-dialog .btn >> text=放到房間'); await p.waitForTimeout(300);
   s = await st(p);
-  assert(s.imprints[0].shown && await p.$('#scene image[data-imprint="hearts"]'), '放到房間：小窩裡出現愛心氣球');
-  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('紀念'), '詳情改成「房間裡的愛心氣球就是它的紀念」');
+  assert(s.imprints[0].shown && await p.$('#scene image[data-imprint="hearts"]'), '放到房間：小窩裡出現室內拖鞋');
+  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('紀念'), '詳情改成「房間裡的室內拖鞋就是它的紀念」');
 
   // 撤銷一天也不會收回
   await p.click('.joy-day[data-date="2026-10-20"]'); await p.waitForTimeout(300);
@@ -78,28 +78,28 @@ const errors = [];
     const ok = await Promise.all(keys.map((k) => fetch(`room/imprints/${k}.webp`).then((x) => x.ok)));
     return { want: keys.length, got: box.querySelectorAll('image[data-imprint]').length, files: ok.every(Boolean) };
   });
-  assert(all.want === 19 && all.got === all.want - 3 && all.files, '19 件有圖的家具圖都在，同一個位置只畫一件（拿鐵／蛋糕、小貓／遊戲機、禮物／瑜珈墊各留一件）');
+  assert(all.want === 32 && all.got === 21 && all.files, '32 件家具的圖都在，21 個位置各畫一件');
 
   // 多選一：同一個位置只放一件
   const slot = await p.evaluate(async () => {
     const { shownImprints, PICKABLE_ICONS } = await import('./joys.js');
     const { onePerSlot, slotOf } = await import('./joys-config.js');
     const st = { imprints: [
-      { key: 'coffee', shown: true, updatedAt: '2026-10-01T00:00:00Z' }, { key: 'cake', shown: true, updatedAt: '2026-10-05T00:00:00Z' },
-      { key: 'cat', shown: true, updatedAt: '2026-09-01T00:00:00Z' }] };
+      { key: 'cat', shown: true, updatedAt: '2026-10-01T00:00:00Z' }, { key: 'game', shown: true, updatedAt: '2026-10-05T00:00:00Z' },
+      { key: 'coffee', shown: true, updatedAt: '2026-09-01T00:00:00Z' }] };
     return { shown: shownImprints(st).sort().join(), room: onePerSlot(['bike', 'bath', 'star']).join(), same: slotOf('sun') === slotOf('sing'), pick: PICKABLE_ICONS.includes('game') };
   });
-  assert(slot.shown === 'cake,cat', '同一個位置有兩件時，留最後放上去的');
+  assert(slot.shown === 'coffee,game', '同一個位置有兩件時，留最後放上去的');
   assert(slot.room === 'bike,star' && slot.same, '房間每個位置只畫一件');
   assert(!slot.pick, '還沒有像素圖示的不能選來用');
   const swap = await p.evaluate(async () => {
     const { Room } = await import('./room.js');
     const box = document.createElement('div'); document.body.append(box);
     const r = new Room(box, {});
-    r.update({ imprints: ['cake', 'coffee', 'gift'] });
+    r.update({ imprints: ['game', 'cat', 'gift'] });
     return box.dataset.imprints;
   });
-  assert(swap === 'cake gift', '同一個位置有兩件時，房間只畫新放的那件');
+  assert(swap.split(' ').sort().join() === 'game,gift', '同一個位置有兩件時，房間只畫新放的那件');
 
   // 兩台手機：A 先拿到（10/20），B 後來又拿到（10/25）且收起來 → 日期留最早，放不放照最新
   const merged = await p.evaluate(async () => {

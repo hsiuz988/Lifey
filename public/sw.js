@@ -1,5 +1,5 @@
 // 版本號：主.次.修（見 CLAUDE.md「版本號」）。改了任何檔案就把最後一位 +1，舊快取才會被清掉
-const VERSION = '0.0.96';
+const VERSION = '0.0.110';
 const CACHE = `lifelog-${VERSION}`;
 const ASSETS = [
   './',
@@ -63,6 +63,7 @@ const ASSETS = [
   './room/imprints/sneaker.webp',
   './room/imprints/cake.webp',
   './room/imprints/call.webp',
+  './room/imprints/camera.webp',
   './room/imprints/home.webp',
   './room/imprints/plant.webp',
   './room/imprints/sparkle.webp',
@@ -70,6 +71,18 @@ const ASSETS = [
   './room/imprints/game.webp',
   './room/imprints/workout.webp',
   './room/imprints/book.webp',
+  './room/imprints/bike.webp',
+  './room/imprints/bath.webp',
+  './room/imprints/letter.webp',
+  './room/imprints/umbrella.webp',
+  './room/imprints/shop.webp',
+  './room/imprints/clean.webp',
+  './room/imprints/sun.webp',
+  './room/imprints/movie.webp',
+  './room/imprints/sing.webp',
+  './room/imprints/music.webp',
+  './room/imprints/icecream.webp',
+  './room/imprints/cook.webp',
   './joys/sparkle.webp',
   './joys/music.webp',
   './room/tv_on.webp',
