@@ -12,6 +12,7 @@ import { PICKABLE_ICONS, iconEl } from './joys.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
 import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints, todayJoyCount } from './joys.js';
+import { IMPRINTS, slotOf } from './joys-config.js';
 import { initMusic, setMusic, musicPref, TRACKS, trackPref, setTrack, nextTrack as nextTrackOf } from './music.js';
 import * as cloudApi from './cloud.js';
 import { EVENT_CATS, LIFE_EVENTS, eventById, RELATIONS } from './events.js';
@@ -527,6 +528,36 @@ function renderStatBars(el, stats, focus, empty = false) {
   empty ? h('p', { class: 'hint stat-empty' }, '還沒有紀錄，所以狀態都是空的。記下第一筆，相關的狀態就會開始長大。') : null);
 }
 
+// 測試網址才有：房間擺出全部家具給使用者看擺設（只是預覽，不寫進資料；開關記在這台裝置）
+// 同一個位置的家具輪流換：第 v 組放每個位置的第 v 件
+const IS_TEST_SITE = location.hostname !== 'app.lifey.workers.dev';
+const PREVIEW_KEY = 'lifey.previewAll';
+const PREVIEW_SLOTS = (() => {
+  const by = new Map();
+  for (const k of Object.keys(IMPRINTS)) { const s = slotOf(k); if (!by.has(s)) by.set(s, []); by.get(s).push(k); }
+  return [...by.values()];
+})();
+const PREVIEW_SETS = Math.max(...PREVIEW_SLOTS.map((l) => l.length));
+function previewSet() {
+  if (!IS_TEST_SITE) return null;
+  try { const v = localStorage.getItem(PREVIEW_KEY); return v == null ? null : +v % PREVIEW_SETS; } catch (e) { return null; }
+}
+function previewImprints() {
+  const v = previewSet();
+  return v == null ? null : PREVIEW_SLOTS.map((l) => l[v % l.length]);
+}
+function renderPreviewControls() {
+  const v = previewSet();
+  $('#pref-preview-all').checked = v != null;
+  $('#preview-next').hidden = v == null;
+  $('#preview-next').textContent = `換一組（${(v || 0) + 1}/${PREVIEW_SETS}）`;
+}
+function setPreview(v) {
+  try { if (v == null) localStorage.removeItem(PREVIEW_KEY); else localStorage.setItem(PREVIEW_KEY, String(v)); } catch (e) { /* 存不了就算了 */ }
+  renderPreviewControls();
+  renderNow();
+}
+
 function renderNow() {
   const { birthday } = state.profile;
   const today = todayStr();
@@ -538,7 +569,7 @@ function renderNow() {
     scene.update({
       stageKey: stage.key, age, avatar: state.profile.avatar || null, birthday,
       props: propsForTags(new Set(list.flatMap((m) => m.tags))), weather: ui.weather, messages: sceneMessages, pets: scenePets(), look: state.profile.look,
-      garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0, imprints: shownImprints(state), ...todayInScene(),
+      garden: gardenLevel(), quiet: isQuiet(), mail: readyLetters().length > 0, imprints: previewImprints() || shownImprints(state), ...todayInScene(),
     });
   }
   const w = ui.weather;
@@ -3971,6 +4002,10 @@ function bind() {
     await saveState();
     renderTimeline();
   });
+  $('#dev-preview').hidden = !IS_TEST_SITE;
+  renderPreviewControls();
+  $('#pref-preview-all').addEventListener('change', (e) => setPreview(e.target.checked ? 0 : null));
+  $('#preview-next').addEventListener('click', () => setPreview(((previewSet() || 0) + 1) % PREVIEW_SETS));
   $('#pref-achievements').addEventListener('change', async (e) => {
     state.prefs = { ...state.prefs, showAchievements: e.target.checked };
     await saveState();

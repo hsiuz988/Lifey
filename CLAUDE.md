@@ -170,6 +170,7 @@
     - 電視櫃最左格目前空著；電視櫃上（電視右邊）call／sun／movie（只有爆米花，舊的有電影票 `movie_tickets.png`）／sing（站在桌面中間；電話用 `imprint_items.py` 的 `ROTATE` 轉 11 度，和櫃子平行）；門邊地板 umbrella／shop（只有一個袋子，舊的兩袋 `shop_two_bags.png`）／clean（長柄掃把和畚箕，舊的短柄 `clean_short.png`；柄很細，工具的 `KEEP` 把透明度門檻放低，不然會斷成虛線）；門前 letter；門上掛鉤 bath／bike（GPT 直接畫成斜掛在門上的角度，**不要再用 `SHEAR` 自己斜**，使用者定案；舊的正面圖 `bath_front.png`、`bike_front.png`）。
     - 舊模型圖留著備用：`camera_tripod.png`、`cloud_beanbag.png`、`coffee_pot.png`、`hearts_balloons.png`、`shoes.png`、`music_turntable.png`、`shop_two_bags.png`、`home_frame.png`、`cook_hotpot.png`、`meal_bowls.png`、`bath_front.png`、`bike_front.png`。
   - 收藏冊在「累積幸福 → 全部」最下面，32 格（`JOY_ICONS` 全部）。
+  - **測試網址預覽全部家具**（使用者要的）：「我 → 外觀與其他」最下面的 `#dev-preview`（正式網址 `app.lifey.workers.dev` 不顯示），打開後房間每個位置都擺一件、「換一組」輪流換多選一的家具（4 組）。只是預覽：存在 localStorage `lifey.previewAll`，不寫進 `state.imprints`、不會同步給別人。
 - **使用者在小幸福選單（artifact）選了 32 個**：原本 24 個，加上 game 玩了喜歡的遊戲、cook 自己做了一頓飯、shop 買到喜歡的東西、workout 去運動了、movie 看了好看的電影、clean 把房間整理乾淨、call 和好久不見的人聊天、sing 大聲唱了歌。這 8 個已加進 `JOY_ICONS`（emoji）和 `ASK`，但**還沒有像素圖示**：不在 `JOY_PIX`，所以不能選來當小幸福或紙條貼圖（`PICKABLE_ICONS`），收藏冊顯示「即將推出」；圖做好放進 `public/joys/`、加進 `JOY_PIX` 和 `sw.js`，再加進 `SUGGESTIONS`。原本只有圖示的 6 個補了名稱，加進建議：被抱抱了 bear、照顧了植物 plant、完成了一件事 sparkle、雨天也很好 umbrella、吃到冰淇淋 icecream、騎車出去晃晃 bike。
 - 之後：Phase 2 幸福星罐、Phase 4 年度回顧卡、日記時間軸上的小印章；新房間草稿在 `art/source/room2/room_*.webp`（之後做換房間時用）。
 

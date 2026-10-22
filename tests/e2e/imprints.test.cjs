@@ -101,6 +101,19 @@ const errors = [];
   });
   assert(swap.split(' ').sort().join() === 'game,gift', '同一個位置有兩件時，房間只畫新放的那件');
 
+  // 測試網址：房間擺出全部家具（只是預覽，不改收藏）
+  const before = (await st(p)).imprints.length;
+  await p.evaluate(() => localStorage.setItem('lifey.previewAll', '0'));
+  await p.reload(); await p.waitForTimeout(900);
+  const n0 = await p.$$eval('#scene image[data-imprint]', (els) => els.map((e) => e.dataset.imprint).sort().join());
+  await p.evaluate(() => localStorage.setItem('lifey.previewAll', '1'));
+  await p.reload(); await p.waitForTimeout(900);
+  const n1 = await p.$$eval('#scene image[data-imprint]', (els) => els.map((e) => e.dataset.imprint).sort().join());
+  assert(n0.split(',').length === 21 && n0 !== n1 && (await st(p)).imprints.length === before, '預覽全部家具：21 個位置都擺上、換一組會換、不改收藏');
+  assert(!(await p.$eval('#dev-preview', (e) => e.hidden)), '測試網址看得到預覽開關');
+  await p.evaluate(() => localStorage.removeItem('lifey.previewAll'));
+  await p.reload(); await p.waitForTimeout(900);
+
   // 兩台手機：A 先拿到（10/20），B 後來又拿到（10/25）且收起來 → 日期留最早，放不放照最新
   const merged = await p.evaluate(async () => {
     const { mergeStates } = await import('./cloud.js');

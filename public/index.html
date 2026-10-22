@@ -614,6 +614,11 @@
       <p class="hint">需要登入雲端同步。開啟後，送出的事件和心情會傳給 Anthropic 的 Claude 改寫，不會被拿去訓練 AI；原文一樣會留著。每天最多 5 次。</p>
       <label class="switch"><input id="pref-world-sad" type="checkbox"><span>「那一年的世界」裡顯示災難、離別這類難過的事</span></label>
       <label class="switch"><input id="pref-achievements" type="checkbox"><span>顯示成就（關閉時照樣在背後記錄）</span></label>
+      <div id="dev-preview" class="field" hidden>
+        <span class="field-label">測試用（只有測試網址看得到）</span>
+        <label class="switch"><input id="pref-preview-all" type="checkbox"><span>房間擺出全部家具（只是預覽，不會改到收藏）</span></label>
+        <button class="btn small" type="button" id="preview-next" hidden>換一組</button>
+      </div>
       <p class="hint"><a href="privacy.html">隱私權政策與使用條款</a></p>
       <p id="settings-version" class="hint"></p>
       <div class="sheet-actions">
