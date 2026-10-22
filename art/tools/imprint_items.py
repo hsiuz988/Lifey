@@ -19,7 +19,7 @@ SRC = ROOT / 'art/source/furniture'
 OUT = ROOT / 'public/room/imprints'
 LINE = (62, 23, 11)  # 房間外框的顏色
 # key: 在房間裡的寬度（房間座標）
-WIDTH = {'cat': 130, 'coffee': 40, 'meal': 170, 'gift': 105, 'bear': 95, 'hearts': 85,
+WIDTH = {'cat': 130, 'coffee': 54, 'meal': 170, 'gift': 105, 'bear': 95, 'hearts': 85,
          'paw': 120, 'moon': 44, 'star': 200, 'sneaker': 62,
          'cake': 58, 'call': 64, 'camera': 52, 'home': 56, 'plant': 64, 'sparkle': 300, 'sunset': 96,
          'game': 110, 'workout': 100, 'book': 118}

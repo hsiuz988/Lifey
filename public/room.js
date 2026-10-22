@@ -588,8 +588,7 @@ export class Room {
     this.box.dataset.notes = String(n || 0);
     if (!n) return;
     // 平貼在桌面上：兩個邊照地板的方向（u 沿右牆、v 沿左牆）
-    // 書桌右前方的空位：筆記本旁邊放了拿鐵，紙條不疊在上面
-    const c = [852, 398], du = [EU[0] * .036, EU[1] * .036], dv = [EV[0] * .036, EV[1] * .036];
+    const c = [858, 372], du = [EU[0] * .036, EU[1] * .036], dv = [EV[0] * .036, EV[1] * .036];
     const pt = (a, b) => `${c[0] + a * du[0] + b * dv[0]},${c[1] + a * du[1] + b * dv[1]}`;
     const g = el('g', { class: fresh ? 'fresh' : '' }, this.noteG);
     if (n > 1) el('polygon', { points: [pt(-.8, -1.2), pt(1.2, -1.2), pt(1.2, .8), pt(-.8, .8)].join(' '), fill: '#f6e3c9', stroke: '#8a5a44', 'stroke-width': 3 }, g);
