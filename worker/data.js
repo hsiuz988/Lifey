@@ -159,7 +159,9 @@ function sharedView(doc, youId = null) {
   }
   // 串門子看到的小窩：擺出來的生活印記、最近一則的心情表情（只有表情，不含內容）；各有開關，預設都給看
   const room = profile.shareRoom === false ? null : {
-    imprints: (doc.imprints || []).filter((i) => i && i.shown && !deleted[i.id]).map((i) => i.key),
+    // 新放的在前：同一個位置有兩件時，房間只放第一件
+    imprints: (doc.imprints || []).filter((i) => i && i.shown && !deleted[i.id])
+      .sort((a, b) => ((b.updatedAt || '') > (a.updatedAt || '') ? 1 : -1)).map((i) => i.key),
     mood: profile.shareMood === false ? null : latestMood(doc.moments, deleted),
   };
   return { profile: { name: profile.name, birthday: profile.birthday, avatar: profile.avatar, look: profile.look, status: profile.status, msg: profile.msg }, moments, years, room };

@@ -162,8 +162,10 @@
   - 資料 `state.imprints`：`{id:key, key, joyId, at, shown, updatedAt}`；同步用 `mergeImprints`：日期留最早、`shown` 照最新。
   - 設定 `public/joys-config.js` 的 `IMPRINTS`：每件家具在房間的位置（底部中間 x,y）、大小、疊放順序 z、放在地板上的擋路半徑 r；改數字不用動程式。
   - 圖：`python3 art/tools/imprint_items.py` 把 `art/source/furniture/<key>.png`（GPT 白底單張）去背、縮到房間大小、外框重畫成房間的粗細顏色 → `public/room/imprints/<key>.webp`；新增要加進 `WIDTH`、`IMPRINTS`、`sw.js`。
-  - 房間不清空：新家具直接疊上去蓋住舊的（使用者定案）。目前有圖的：cat 小貓抱枕、coffee 拿鐵、meal 小矮桌（電視前地毯上）、gift 禮物、bear 熊熊、hearts 愛心氣球、paw 貓狗玩偶（書櫃頂，地球儀旁邊）、moon 月亮小夜燈（床頭）、star 星星吊飾（右牆，`SHEAR` 照牆的斜度斜過去）、sneaker 地球儀（出外旅行，書櫃頂）；其他 14 個拿到會顯示「家具製作中」。**hearts 要換成「兩雙並排的室內拖鞋」**（使用者定案，放書櫃旁、禮物和熊熊前面的地板，約 (290, 745)），等 GPT 圖放進 `art/source/furniture/hearts.png` 再換；key 照舊用 hearts。還缺：music 唱片機、sunset 風景明信片。`art/source/furniture/shoes.png`（球鞋＋踏墊）先留著備用。
-  - 收藏冊在「累積幸福 → 全部」最下面，24 格。
+  - **多選一的擺放位置**（使用者定案，取代原本的「新家具直接疊上去」）：`joys-config.js` 的 `SLOT_OF` 把 32 個圖示分到 23 個位置（`SLOTS` 是位置名稱），同一個位置一次只放一件。拿到新家具時位置已經有東西，視窗問「換上（原本的收起來）／先收著」；收藏冊的按鈕是「放到房間／換上／收起來」。`shownImprints` 和伺服器 `sharedView` 都是新放的在前，`onePerSlot` 每個位置只留第一件（兩台手機各放一件時，留最後放的）。多選一的位置：書桌左邊 coffee／cake、床上 cat／game、書櫃旁地板 gift／workout、地毯中間 meal／cook、電視櫃上 sun／movie／sing、門邊地板 umbrella／shop／clean、門上掛鉤 bath／bike。
+  - 擺放規劃（使用者定案）：拖鞋 hearts 在地毯左前方外緣、book 一疊書在小熊右邊、icecream 懶骨頭在左前方地板、bike 是掛在門上的安全帽；完整的 23 個位置見 `SLOT_OF`，還沒有圖的家具座標等圖做好再量。目前有圖的：cat 小貓抱枕、coffee 拿鐵、meal 小矮桌（電視前地毯上）、gift 禮物、bear 熊熊、hearts 愛心氣球、paw 貓狗玩偶（書櫃頂，地球儀旁邊）、moon 月亮小夜燈（床頭）、star 星星吊飾（右牆，`SHEAR` 照牆的斜度斜過去）、sneaker 地球儀（出外旅行，書櫃頂）；其他 14 個拿到會顯示「家具製作中」。**hearts 要換成「兩雙並排的室內拖鞋」**（使用者定案，放地毯左前方外緣，像脫了鞋要坐在地毯上吃飯；位置等圖做好再量），等 GPT 圖放進 `art/source/furniture/hearts.png` 再換；key 照舊用 hearts。還缺：music 唱片機、sunset 風景明信片。`art/source/furniture/shoes.png`（球鞋＋踏墊）先留著備用。
+  - 收藏冊在「累積幸福 → 全部」最下面，32 格（`JOY_ICONS` 全部）。
+- **使用者在小幸福選單（artifact）選了 32 個**：原本 24 個，加上 game 玩了喜歡的遊戲、cook 自己做了一頓飯、shop 買到喜歡的東西、workout 去運動了、movie 看了好看的電影、clean 把房間整理乾淨、call 和好久不見的人聊天、sing 大聲唱了歌。這 8 個已加進 `JOY_ICONS`（emoji）和 `ASK`，但**還沒有像素圖示**：不在 `JOY_PIX`，所以不能選來當小幸福或紙條貼圖（`PICKABLE_ICONS`），收藏冊顯示「即將推出」；圖做好放進 `public/joys/`、加進 `JOY_PIX` 和 `sw.js`，再加進 `SUGGESTIONS`。原本只有圖示的 6 個補了名稱，加進建議：被抱抱了 bear、照顧了植物 plant、完成了一件事 sparkle、雨天也很好 umbrella、吃到冰淇淋 icecream、騎車出去晃晃 bike。
 - 之後：Phase 2 幸福星罐、Phase 4 年度回顧卡、日記時間軸上的小印章；新房間草稿在 `art/source/room2/room_*.webp`（之後做換房間時用）。
 
 ### 串門子＋一起的回憶（Cyworld／無名小站方向；使用者定案，三期都做完了）

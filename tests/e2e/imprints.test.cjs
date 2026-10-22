@@ -49,7 +49,8 @@ const errors = [];
 
   // 收藏冊：收起來、再放出來
   await p.click('#joy-dialog .btn >> text=全部小幸福'); await p.waitForTimeout(150);
-  assert((await p.textContent('.imprint-book h4')).includes('1 / 24') && await p.$('.imprint-cell.got[data-imprint="hearts"]'), '收藏冊：24 格，拿到的會亮');
+  assert((await p.textContent('.imprint-book h4')).includes('1 / 32') && await p.$('.imprint-cell.got[data-imprint="hearts"]'), '收藏冊：32 格，拿到的會亮');
+  assert((await p.textContent('.imprint-cell[data-imprint="game"]')).includes('即將推出'), '還沒有像素圖示的新小幸福顯示「即將推出」');
   assert((await p.textContent('.imprint-cell[data-imprint="coffee"]')).includes('還沒有'), '還沒有的顯示灰色');
   await p.click('.imprint-cell[data-imprint="hearts"] .btn >> text=收起來'); await p.waitForTimeout(200);
   assert(!(await p.$('#scene image[data-imprint="hearts"]')) && !(await st(p)).imprints[0].shown, '收起來：房間裡不見，紀錄還在');
@@ -78,6 +79,27 @@ const errors = [];
     return { want: keys.length, got: box.querySelectorAll('image[data-imprint]').length, files: ok.every(Boolean) };
   });
   assert(all.want === 10 && all.got === 10 && all.files, '10 件有圖的家具都放得進房間、圖都在');
+
+  // 多選一：同一個位置只放一件
+  const slot = await p.evaluate(async () => {
+    const { shownImprints, PICKABLE_ICONS } = await import('./joys.js');
+    const { onePerSlot, slotOf } = await import('./joys-config.js');
+    const st = { imprints: [
+      { key: 'coffee', shown: true, updatedAt: '2026-10-01T00:00:00Z' }, { key: 'cake', shown: true, updatedAt: '2026-10-05T00:00:00Z' },
+      { key: 'cat', shown: true, updatedAt: '2026-09-01T00:00:00Z' }] };
+    return { shown: shownImprints(st).sort().join(), room: onePerSlot(['bike', 'bath', 'star']).join(), same: slotOf('sun') === slotOf('sing'), pick: PICKABLE_ICONS.includes('game') };
+  });
+  assert(slot.shown === 'cake,cat', '同一個位置有兩件時，留最後放上去的');
+  assert(slot.room === 'bike,star' && slot.same, '房間每個位置只畫一件');
+  assert(!slot.pick, '還沒有像素圖示的不能選來用');
+  const swap = await p.evaluate(async () => {
+    const { Room } = await import('./room.js');
+    const box = document.createElement('div'); document.body.append(box);
+    const r = new Room(box, {});
+    r.update({ imprints: ['coffee', 'cake', 'gift'] });
+    return box.dataset.imprints;
+  });
+  assert(swap === 'coffee gift', '房間只畫有家具圖的那件');
 
   // 兩台手機：A 先拿到（10/20），B 後來又拿到（10/25）且收起來 → 日期留最早，放不放照最新
   const merged = await p.evaluate(async () => {

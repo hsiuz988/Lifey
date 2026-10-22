@@ -8,7 +8,7 @@ import {
 } from './avatar.js';
 import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor } from './room.js';
-import { JOY_ICONS, iconEl } from './joys.js';
+import { PICKABLE_ICONS, iconEl } from './joys.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
 import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints, todayJoyCount } from './joys.js';
@@ -3458,7 +3458,7 @@ function openNoteComposer(id) {
   if (!link) return;
   let icon = 'hearts';
   const grid = h('div', { class: 'note-icons', role: 'radiogroup', 'aria-label': '選一張貼圖' });
-  const drawGrid = () => grid.replaceChildren(...Object.keys(JOY_ICONS).map((k) => h('button', {
+  const drawGrid = () => grid.replaceChildren(...PICKABLE_ICONS.map((k) => h('button', {
     type: 'button', role: 'radio', 'aria-checked': String(k === icon), 'aria-label': k, class: `note-icon${k === icon ? ' on' : ''}`,
     onclick: () => { icon = k; drawGrid(); },
   }, iconEl(k))));

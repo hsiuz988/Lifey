@@ -1,6 +1,6 @@
 // 首頁的房間：一張插畫房間＋用圖層疊出來的小人，點地板走路、點東西互動
 // 房間裡只有遊戲的部分；點了東西要做什麼（記一筆、看月曆…）由 app.js 傳進來
-import { IMPRINTS } from './joys-config.js';
+import { IMPRINTS, onePerSlot } from './joys-config.js';
 const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (parent) parent.append(e); return e; };
 const BASE = 'room/';
@@ -287,7 +287,8 @@ export class Room {
   }
   // 生活印記的家具：照 z 疊，地板上的會擋路（小人剛好站在那裡就挪開）
   placeItems(keys) {
-    const list = keys.filter((k) => IMPRINTS[k]).sort((a, b) => IMPRINTS[a].z - IMPRINTS[b].z);
+    // 同一個位置只放一件（keys 新的在前）
+    const list = onePerSlot(keys.filter((k) => IMPRINTS[k])).sort((a, b) => IMPRINTS[a].z - IMPRINTS[b].z);
     if (list.join() === this.itemKeys) return;
     this.itemKeys = list.join();
     this.itemsG.replaceChildren();

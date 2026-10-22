@@ -2,15 +2,20 @@
 // 資料：state.joys（幸福項目）、state.joyLog（每點一次一筆，刪除留墓碑在 state.deleted）
 // 每點一次存一筆，兩台手機同一天各點的次數合併時都會留下；次數、天數都從紀錄即時算，不另存計數
 
-import { IMPRINT_DAYS, IMPRINTS } from './joys-config.js';
+import { IMPRINT_DAYS, IMPRINTS, SLOTS, slotOf, onePerSlot } from './joys-config.js';
 
 // 圖示：像素圖 joys/<key>.webp（art/tools/joy_icons.py 切的）；emoji 只在圖還沒做好時當備用
 export const JOY_ICONS = {
   cat: '🐈', coffee: '☕', meal: '🍚', camera: '📷', gift: '🎁', sunset: '🌅', bear: '🧸', letter: '💌',
   book: '📖', sneaker: '👟', plant: '🪴', music: '🎧', cake: '🧁', star: '⭐', umbrella: '☂️', moon: '🌙',
   bike: '🚲', icecream: '🍦', hearts: '💕', home: '🏠', paw: '🐾', bath: '🛁', sparkle: '✨', sun: '☀️',
+  // 使用者選的新小幸福：像素圖示還沒畫，畫好放進 public/joys/ 再加進 JOY_PIX，才能被選來用
+  game: '🎮', cook: '🍳', shop: '🛍️', workout: '🏃', movie: '🎬', clean: '🧹', call: '📞', sing: '🎤',
 };
-const JOY_PIX = new Set(Object.keys(JOY_ICONS));
+const JOY_PIX = new Set(['cat', 'coffee', 'meal', 'camera', 'gift', 'sunset', 'bear', 'letter', 'book', 'sneaker', 'plant', 'music',
+  'cake', 'star', 'umbrella', 'moon', 'bike', 'icecream', 'hearts', 'home', 'paw', 'bath', 'sparkle', 'sun']);
+// 可以選來當小幸福、紙條貼圖的圖示（有像素圖的）
+export const PICKABLE_ICONS = Object.keys(JOY_ICONS).filter((k) => JOY_PIX.has(k));
 export function iconEl(key) {
   if (!JOY_PIX.has(key)) return JOY_ICONS[key] || '✨';
   const img = new Image();
@@ -42,6 +47,12 @@ const SUGGESTIONS = [
   { title: '天氣很好', icon: 'sun' },
   { title: '和家人吃飯', icon: 'home' },
   { title: '收到一封訊息', icon: 'letter' },
+  { title: '被抱抱了', icon: 'bear' },
+  { title: '照顧了植物', icon: 'plant' },
+  { title: '完成了一件事', icon: 'sparkle' },
+  { title: '雨天也很好', icon: 'umbrella' },
+  { title: '吃到冰淇淋', icon: 'icecream' },
+  { title: '騎車出去晃晃', icon: 'bike' },
 ];
 export const JOY_PRESETS = [...DEFAULT_JOYS, ...SUGGESTIONS];
 // 收藏之後的延伸提問（照圖示）；有寫就變成一篇日記
@@ -51,6 +62,10 @@ const ASK = {
   sneaker: '去了哪裡？看到了什麼？', hearts: '和誰在一起？做了什麼？', cat: '貓咪今天睡在哪裡？', camera: '拍到了什麼？',
   bath: '泡澡的時候在想什麼？', cake: '吃了什麼甜點？', book: '讀了哪本書？', sun: '天氣好的時候做了什麼？',
   home: '吃了什麼？聊了什麼？', letter: '是誰傳來的？',
+  bear: '被誰抱抱了？', plant: '照顧了哪一盆？長得好嗎？', sparkle: '完成了什麼？', umbrella: '下雨天做了什麼？',
+  icecream: '吃了什麼口味？', bike: '騎去了哪裡？',
+  game: '玩了什麼？', cook: '做了什麼菜？', shop: '買了什麼？', workout: '做了什麼運動？', movie: '看了哪一部？',
+  clean: '整理了哪裡？', call: '和誰聊了什麼？', sing: '唱了哪一首？',
 };
 const askOf = (joy) => ASK[joy.icon] || '想多記一點嗎？';
 const SEED_AT = '2000-01-01T00:00:00.000Z';
@@ -148,7 +163,9 @@ export function checkImprints(state) {
   }
   return fresh;
 }
-export const shownImprints = (state) => (state.imprints || []).filter((i) => i.shown).map((i) => i.key);
+// 放在房間裡的（同一個位置有兩件時，留最後放上去的）
+export const shownImprints = (state) => onePerSlot((state.imprints || []).filter((i) => i.shown)
+  .sort((a, b) => ((b.updatedAt || '') > (a.updatedAt || '') ? 1 : -1)).map((i) => i.key));
 
 // ---------- 畫面 ----------
 let ctx; // { getState, save, refresh, onCount, ask, addDiary, h, toast, todayStr, toDateStr, newId, $ }
@@ -439,7 +456,7 @@ export function openJoyEdit(id) {
   const joy = id ? s.joys.find((j) => j.id === id) : null;
   let icon = joy ? joy.icon : 'sparkle';
   const name = h('input', { value: joy ? joy.title : '', maxlength: String(MAX_TITLE), placeholder: '例如：和貓一起睡', 'aria-label': '小幸福的名字', class: 'joy-title-input' });
-  const icons = h('div', { class: 'joy-icons', role: 'radiogroup', 'aria-label': '圖示' }, ...Object.keys(JOY_ICONS).map((k) => h('button', {
+  const icons = h('div', { class: 'joy-icons', role: 'radiogroup', 'aria-label': '圖示' }, ...PICKABLE_ICONS.map((k) => h('button', {
     type: 'button', class: `joy-icon-opt${k === icon ? ' on' : ''}`, role: 'radio', 'aria-checked': String(k === icon), 'data-icon': k,
     onclick: (ev) => { icon = k; icons.querySelectorAll('.joy-icon-opt').forEach((b) => { const on = b.dataset.icon === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }); ev.preventDefault(); },
   }, iconEl(k))));
@@ -523,8 +540,18 @@ function imprintLine(joy, days) {
   if (got) return ctx.h('p', { class: 'joy-imprint got' }, `已經拿到「${imprintName(joy.icon)}」，可以在「全部小幸福 → 生活印記」放到房間`);
   return ctx.h('p', { class: 'joy-imprint' }, `再收藏 ${Math.max(1, IMPRINT_DAYS - days)} 天，房間會多一件「${imprintName(joy.icon)}」`);
 }
+// 同一個位置現在放著的另一件（有家具圖的才算）
+function occupant(key) {
+  const s = ctx.getState();
+  const k = shownImprints(s).find((x) => x !== key && slotOf(x) === slotOf(key));
+  return k && IMPRINTS[k] ? k : null;
+}
 function toggleImprint(rec, shown) {
-  rec.shown = shown; rec.updatedAt = now();
+  const t = now();
+  if (shown) {
+    for (const o of ctx.getState().imprints || []) if (o !== rec && o.shown && slotOf(o.key) === slotOf(rec.key)) { o.shown = false; o.updatedAt = t; }
+  }
+  rec.shown = shown; rec.updatedAt = t;
   ctx.save(); if (ctx.refresh) ctx.refresh();
 }
 function imprintBook() {
@@ -534,19 +561,24 @@ function imprintBook() {
   const cells = Object.keys(JOY_ICONS).map((key) => {
     const rec = got.get(key);
     if (rec) {
+      const occ = !rec.shown && IMPRINTS[key] ? occupant(key) : null;
       return h('li', { class: 'imprint-cell got', 'data-imprint': key },
         imprintArt(key), h('b', {}, imprintName(key)), h('small', { class: 'hint' }, fmt(rec.at)),
         IMPRINTS[key]
-          ? h('button', { type: 'button', class: `btn small${rec.shown ? '' : ' primary'}`, onclick: () => { toggleImprint(rec, !rec.shown); openJoyList(); } }, rec.shown ? '收起來' : '放到房間')
+          ? h('button', {
+            type: 'button', class: `btn small${rec.shown ? '' : ' primary'}`, title: occ ? `換掉${SLOTS[slotOf(key)] || ''}的「${imprintName(occ)}」` : '',
+            onclick: () => { toggleImprint(rec, !rec.shown); openJoyList(); },
+          }, rec.shown ? '收起來' : occ ? '換上' : '放到房間')
           : h('small', { class: 'hint' }, '家具製作中'));
     }
+    if (!JOY_PIX.has(key)) return h('li', { class: 'imprint-cell', 'data-imprint': key }, h('span', { class: 'imprint-art imprint-icon' }, iconEl(key)), h('small', { class: 'hint' }, '即將推出'));
     const days = imprintDays(s, key);
     return h('li', { class: 'imprint-cell', 'data-imprint': key }, h('span', { class: 'imprint-art imprint-icon' }, iconEl(key)),
       h('small', { class: 'hint' }, days ? `${days} / ${IMPRINT_DAYS} 天` : '還沒有'));
   });
   return h('section', { class: 'imprint-book' },
     h('h4', {}, `生活印記 · ${got.size} / ${Object.keys(JOY_ICONS).length}`),
-    h('p', { class: 'hint' }, `同一個小幸福收藏滿 ${IMPRINT_DAYS} 天，房間就會多一件紀念的家具。不用連續，慢慢來。`),
+    h('p', { class: 'hint' }, `同一個小幸福收藏滿 ${IMPRINT_DAYS} 天，房間就會多一件紀念的家具。不用連續，慢慢來。同一個位置一次放一件，可以隨時換。`),
     h('ul', { class: 'imprint-grid' }, ...cells));
 }
 const queue = [];
@@ -558,17 +590,18 @@ function nextImprint() {
   const joy = s.joys.find((j) => j.id === rec.joyId);
   let dlg = ctx.$('#imprint-dialog');
   const close = () => { dlg.close(); setTimeout(nextImprint, 200); };
+  const occ = IMPRINTS[rec.key] ? occupant(rec.key) : null;
   dlg.querySelector('#imprint-body').replaceChildren(
     h('div', { class: 'sheet-top' }, h('h3', {}, '房間多了一件東西')),
     h('div', { class: 'imprint-hero' }, imprintArt(rec.key, 'imprint-big')),
     h('p', { class: 'imprint-name' }, h('b', {}, imprintName(rec.key))),
     h('p', { class: 'hint' }, `「${joy ? joy.title : '小幸福'}」收藏滿 ${IMPRINT_DAYS} 天的紀念。`),
-    IMPRINTS[rec.key]
-      ? h('p', { class: 'hint' }, `會放在${IMPRINTS[rec.key].where}，之後也可以在「我的幸福 → 生活印記」收起來或放出來。`)
-      : h('p', { class: 'hint' }, '這件家具還在製作中，做好會出現在「我的幸福 → 生活印記」。'),
+    !IMPRINTS[rec.key] ? h('p', { class: 'hint' }, '這件家具還在製作中，做好會出現在「我的幸福 → 生活印記」。')
+      : occ ? h('p', { class: 'hint' }, `會放在${IMPRINTS[rec.key].where}，原本在那裡的「${imprintName(occ)}」會先收起來，之後也可以在「我的幸福 → 生活印記」換回來。`)
+        : h('p', { class: 'hint' }, `會放在${IMPRINTS[rec.key].where}，之後也可以在「我的幸福 → 生活印記」收起來或放出來。`),
     h('div', { class: 'sheet-actions' },
       h('button', { type: 'button', class: 'btn', onclick: close }, '先收著'),
       h('span', { class: 'spacer' }),
-      IMPRINTS[rec.key] ? h('button', { type: 'button', class: 'btn primary', onclick: () => { toggleImprint(rec, true); ctx.toast('放好了，回小窩看看 ♡'); close(); if (view && dialog().open) openJoy(view.id, view.month); } }, '放到房間') : null));
+      IMPRINTS[rec.key] ? h('button', { type: 'button', class: 'btn primary', onclick: () => { toggleImprint(rec, true); ctx.toast(occ ? '換好了，回小窩看看 ♡' : '放好了，回小窩看看 ♡'); close(); if (view && dialog().open) openJoy(view.id, view.month); } }, occ ? '換上' : '放到房間') : null));
   if (!dlg.open) dlg.showModal();
 }
