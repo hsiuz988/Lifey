@@ -34,7 +34,7 @@ export const IMPRINTS = {
   sing: { name: '小麥克風', where: '電視櫃上', x: 1210, y: 576, w: 58, h: 69, z: 1 },
   umbrella: { name: '小傘架', where: '門旁邊', x: 1276, y: 676, w: 62, h: 148, r: .03, z: 4 },
   shop: { name: '購物紙袋', where: '門旁邊', x: 1268, y: 688, w: 88, h: 105, r: .035, z: 4 },
-  clean: { name: '小掃把和畚箕', where: '門旁邊', x: 1270, y: 686, w: 92, h: 152, r: .035, z: 4 },
+  clean: { name: '小掃把和畚箕', where: '門旁邊', x: 1250, y: 676, w: 92, h: 152, r: .035, z: 4 },
   letter: { name: '門縫塞進來的信', where: '門前', x: 1335, y: 714, w: 58, h: 40, z: 2 },
   bath: { name: '浴巾和小黃鴨', where: '門上的掛鉤', x: 1368, y: 560, w: 54, h: 102, z: 2 },
   bike: { name: '腳踏車安全帽', where: '門上的掛鉤', x: 1368, y: 556, w: 66, h: 99, z: 2 },
