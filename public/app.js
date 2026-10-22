@@ -2372,6 +2372,71 @@ async function saveProfile(form) {
 }
 
 // ---------- 備份 ----------
+// 備份裡的「回憶.html」：解壓縮後用瀏覽器打開就是一本照年齡排好的日記（附照片），不用 wowo 也看得懂、印得出來
+const escHtml = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function memoriesHtml(photoIds, exportedAt) {
+  const { name, birthday } = state.profile;
+  const e = escHtml;
+  const ages = [...groupByAge(state.moments)].sort((a, b) => a[0] - b[0]);
+  const letters = state.letters.filter((l) => l.openedAt);
+  const sealed = state.letters.length - letters.length;
+  const dateLabel = (m) => { const d = parseDate(m.date); return m.approx ? '這一年' : `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`; };
+  const moment = (m) => {
+    const emo = emotionByKey(m.emo);
+    const people = m.people.map(personById).filter(Boolean).map(personName);
+    const pics = m.photoIds.filter((id) => photoIds.has(id));
+    return `<article class="m${m.starred ? ' star' : ''}">
+<div class="d">${e(dateLabel(m))}${m.starred ? ' ★' : ''}${emo ? ` · ${e(emo.icon)} ${e(emo.label)}` : ''}</div>
+${m.story ? `<h3>${e(m.story.title)}</h3><p>${e(m.story.text)}</p><p class="s">✏️ ${e(m.text)}</p>` : m.text ? `<p>${e(m.text)}</p>` : ''}
+${m.feel ? `<p class="s">${e(m.feel)}</p>` : ''}
+${m.from ? `<p class="s">📷 來自${e(m.from.name)}的回憶</p>` : ''}
+${people.length || m.tags.length ? `<p class="s">${people.map((x) => `👤 ${e(x)}`).concat(m.tags.map((t) => `#${e(t)}`)).join('　')}</p>` : ''}
+${pics.length ? `<div class="ph">${pics.map((id) => `<a href="photos/${id}.jpg"><img src="photos/${id}.jpg" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
+</article>`;
+  };
+  const byOpen = (age) => letters.filter((l) => ageAt(birthday, l.openOn) === age);
+  const allAges = [...new Set([...ages.map(([a]) => a), ...letters.map((l) => ageAt(birthday, l.openOn))])].sort((a, b) => a - b);
+  const map = new Map(ages);
+  const body = allAges.map((age) => {
+    const list = (map.get(age) || []).slice().sort((a, b) => (a.approx - b.approx) || a.date.localeCompare(b.date) || (a.createdAt || '').localeCompare(b.createdAt || ''));
+    const title = yearTitle(age);
+    return `<section><h2>${age} 歲${title ? `<small>「${e(title)}」</small>` : ''}</h2>
+${list.map(moment).join('\n')}
+${byOpen(age).map((l) => `<article class="m letter"><div class="d">✉️ 給 ${l.toAge} 歲的信 · 寫於 ${e(l.writtenOn || '')}</div><p>${e(l.text)}</p></article>`).join('\n')}
+</section>`;
+  }).join('\n');
+  return `<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${e(name)}的回憶 · wowo</title>
+<style>
+body{margin:0;background:#fff;color:#2c2c30;font:16px/1.8 -apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+main{max-width:680px;margin:0 auto;padding:32px 18px 64px}
+header{border-bottom:2px solid #8794cf;margin-bottom:24px;padding-bottom:12px}
+h1{margin:0;font-size:28px;color:#3d4c9a}
+.meta{color:#777;font-size:13px}
+h2{margin:36px 0 8px;font-size:22px;color:#3d4c9a;border-left:6px solid #8794cf;padding-left:10px}
+h2 small{display:block;font-size:15px;color:#666;font-weight:500}
+h3{margin:0 0 4px;font-size:17px}
+.m{padding:12px 0;border-bottom:1px dashed #d6ddf4;break-inside:avoid}
+.m.star .d{color:#c9861a}
+.m.letter{background:#fbf8ef;padding:12px;border:1px dashed #e0cfa0;border-radius:6px;margin:10px 0}
+.d{font-size:13px;color:#888}
+p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.s{font-size:14px;color:#666}
+.ph{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ph img{width:150px;height:150px;object-fit:cover;border-radius:6px;background:#eee}
+footer{margin-top:40px;color:#999;font-size:12px}
+@media print{.ph img{width:120px;height:120px}}
+</style></head>
+<body><main>
+<header><h1>${e(name)}的回憶</h1>
+<div class="meta">生日 ${e(birthday)} · ${state.moments.length} 則紀錄 · ${photoIds.size} 張照片 · 匯出於 ${e(exportedAt.slice(0, 10))}</div></header>
+${body || '<p>還沒有紀錄。</p>'}
+${sealed ? `<p class="s">✉️ 還有 ${sealed} 封給未來的信，還沒到打開的時候。</p>` : ''}
+<footer>這份檔案來自 wowo 的備份。照片在同一個資料夾的 photos 裡；要匯回 wowo，請在「我 → 備份與資料」選這個 ZIP 檔。</footer>
+</main></body></html>`;
+}
+
 // 兩段式：先準備 ZIP，再按一次分享。iPhone 規定分享面板必須由點擊直接觸發，
 // 照片多時準備時間會超過這個時限，所以拆成兩步。
 function resetExportButton() {
@@ -2390,7 +2455,10 @@ async function onExportClick() {
     const referenced = new Set(state.moments.flatMap((m) => m.photoIds));
     const photos = (await db.getAllPhotos()).filter((p) => referenced.has(p.id));
     const data = { ...state, lastExportAt: exportedAt, photos: photos.map(({ blob, thumb, ...meta }) => meta) };
-    const files = [{ name: 'data.json', blob: new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }) }];
+    const files = [
+      { name: '回憶.html', blob: new Blob([memoriesHtml(new Set(photos.map((p) => p.id)), exportedAt)], { type: 'text/html' }) },
+      { name: 'data.json', blob: new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }) },
+    ];
     for (const p of photos) {
       files.push({ name: `photos/${p.id}.jpg`, blob: p.blob }, { name: `photos/${p.id}-thumb.jpg`, blob: p.thumb });
     }

@@ -119,6 +119,11 @@ const photoDims = (p) => p.evaluate(() => new Promise(r => { const q = indexedDB
   console.log('  ', await p.textContent('#export-btn'), '|', await p.textContent('#storage-status'));
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#export-btn')]);
   await dl.saveAs(S + '/backup.zip');
+  // 備份裡的「回憶.html」：瀏覽器直接打開就是照年齡排好的日記，照片指向同一包裡的 photos/
+  const html = require('child_process').execFileSync('python3', ['-c', 'import sys,zipfile; sys.stdout.write(zipfile.ZipFile(sys.argv[1]).read("回憶.html").decode())', S + '/backup.zip']).toString();
+  const imgs = [...html.matchAll(/<img src="(photos\/[^"]+\.jpg)"/g)].map((x) => x[1]);
+  const names = require('child_process').execFileSync('python3', ['-c', 'import sys,zipfile; print("\\n".join(zipfile.ZipFile(sys.argv[1]).namelist()))', S + '/backup.zip']).toString().split('\n');
+  assert(html.includes('花蓮') && html.includes('的回憶') && imgs.length >= 1 && imgs.every((x) => names.includes(x)), `備份裡有看得懂的「回憶.html」，照片都在同一包（${imgs.length} 張）`);
   assert(await p.textContent('#export-btn') === '匯出備份', '匯出後按鈕復原');
   assert(await p.waitForFunction(() => document.querySelector('#backup-banner').hidden, null, { timeout: 5000 }).then(() => true, () => false), '匯出後不再提醒備份');
 
