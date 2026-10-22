@@ -78,28 +78,28 @@ const errors = [];
     const ok = await Promise.all(keys.map((k) => fetch(`room/imprints/${k}.webp`).then((x) => x.ok)));
     return { want: keys.length, got: box.querySelectorAll('image[data-imprint]').length, files: ok.every(Boolean) };
   });
-  assert(all.want === 19 && all.got === all.want - 3 && all.files, '19 件有圖的家具圖都在，同一個位置只畫一件（拿鐵／蛋糕、小貓／遊戲機、禮物／瑜珈墊各留一件）');
+  assert(all.want === 20 && all.got === all.want - 2 && all.files, '20 件有圖的家具圖都在，同一個位置只畫一件（小貓／遊戲機、禮物／瑜珈墊各留一件）');
 
   // 多選一：同一個位置只放一件
   const slot = await p.evaluate(async () => {
     const { shownImprints, PICKABLE_ICONS } = await import('./joys.js');
     const { onePerSlot, slotOf } = await import('./joys-config.js');
     const st = { imprints: [
-      { key: 'coffee', shown: true, updatedAt: '2026-10-01T00:00:00Z' }, { key: 'cake', shown: true, updatedAt: '2026-10-05T00:00:00Z' },
-      { key: 'cat', shown: true, updatedAt: '2026-09-01T00:00:00Z' }] };
+      { key: 'cat', shown: true, updatedAt: '2026-10-01T00:00:00Z' }, { key: 'game', shown: true, updatedAt: '2026-10-05T00:00:00Z' },
+      { key: 'coffee', shown: true, updatedAt: '2026-09-01T00:00:00Z' }] };
     return { shown: shownImprints(st).sort().join(), room: onePerSlot(['bike', 'bath', 'star']).join(), same: slotOf('sun') === slotOf('sing'), pick: PICKABLE_ICONS.includes('game') };
   });
-  assert(slot.shown === 'cake,cat', '同一個位置有兩件時，留最後放上去的');
+  assert(slot.shown === 'coffee,game', '同一個位置有兩件時，留最後放上去的');
   assert(slot.room === 'bike,star' && slot.same, '房間每個位置只畫一件');
   assert(!slot.pick, '還沒有像素圖示的不能選來用');
   const swap = await p.evaluate(async () => {
     const { Room } = await import('./room.js');
     const box = document.createElement('div'); document.body.append(box);
     const r = new Room(box, {});
-    r.update({ imprints: ['cake', 'coffee', 'gift'] });
+    r.update({ imprints: ['game', 'cat', 'gift'] });
     return box.dataset.imprints;
   });
-  assert(swap === 'cake gift', '同一個位置有兩件時，房間只畫新放的那件');
+  assert(swap.split(' ').sort().join() === 'game,gift', '同一個位置有兩件時，房間只畫新放的那件');
 
   // 兩台手機：A 先拿到（10/20），B 後來又拿到（10/25）且收起來 → 日期留最早，放不放照最新
   const merged = await p.evaluate(async () => {
