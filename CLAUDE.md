@@ -81,8 +81,8 @@
 
 ### 像素房間
 
-- 素材 `art/source/room2/`：`full_crt.png` **現在的房間**（GPT 拿舊房間改的：粉色映像管電視、拿掉桌上信紙、清空層架上的擺設和窗邊吊盆、電視櫃上的鬧鐘；使用者定案）、`full.webp` 最早的完整房間（熱點、走路範圍、窗戶、夜晚圖都是照它量的）、`empty.webp` 空房間、`furniture.webp` 大型家具（床畫錯方向，之後從 full 切）、`small.webp` 小物件。
-- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（`full.webp` 補齊地板前角、畫布 1536×1064，再把 `full_crt.png` 放大、用邊緣比對對回去，所以座標不用重量）、`tv_on.webp`（電視畫面用仿射貼到映像管螢幕上，照螢幕的圓角裁）。換圖後依序跑 `room_pixel.py` → `room_night.py` → `room_window.py`，再把 `sw.js` 的 VERSION +1。
+- 素材 `art/source/room2/`：`full_v3.webp` **現在的房間**（GPT 照 `full_crt.png` 重畫、拿掉書櫃左邊的垂吊植物；使用者定案）、`full_crt.png` 上一版（GPT 拿舊房間改的：粉色映像管電視、拿掉桌上信紙、清空層架上的擺設和窗邊吊盆、電視櫃上的鬧鐘）、`full.webp` 最早的完整房間（熱點、走路範圍、窗戶、夜晚圖都是照它量的）、`empty.webp` 空房間、`furniture.webp` 大型家具（床畫錯方向，之後從 full 切）、`small.webp` 小物件。
+- `python3 art/tools/room_pixel.py` → `public/room/pixel_room/room.webp`（`full.webp` 補齊地板前角、畫布 1536×1064，再把現在的房間（`room_pixel.py` 的 `EDIT`）放大、用邊緣比對對回去，所以座標不用重量）、`tv_on.webp`（電視畫面用仿射貼到映像管螢幕上，照螢幕的圓角裁）。換圖後依序跑 `room_pixel.py` → `room_night.py` → `room_window.py`，再把 `sw.js` 的 VERSION +1。
 - 再請 GPT 改房間：**附舊房間、用編輯模式、一次只改一兩樣**，並列出要保留的細節（重畫整間的版本使用者都覺得比較差：比例變真實、家具變小、前面地板太空、透視歪）。
 - `room.js`：地板 `O/EU/EV`、`BLOCKS`（家具佔的地板，u 沿右牆、v 沿左牆）、`HOTS` 都是照這張圖量的；換房間圖要一起重量。
 - 之後做金幣商店：空房間＋一件件家具疊上去。
@@ -248,7 +248,7 @@ tests/             Playwright 端對端測試
 - 對應：毛毛雨／大雨／雷雨 → 雨；陰天／有霧 → 多雲；夜晚多雲、夜晚下雪還沒有圖，先用 `clear_night`。
 - 夜晚房間：晚上（`windowView` 回傳 `*_night`）整間換成 `pixel_room/room_night.webp`（檯燈亮著），`#scene` 的 `data-light` 是 day／night、`data-lamp` 是 on／off。晚上點檯燈關燈＝蓋一層 40% 深藍（`this.dark`），等之後有「夜晚關燈」的圖再換。
   - 來源 `art/source/room2/night_lamp.webp`（GPT 照白天房間只改光線），`python3 art/tools/room_night.py`：GPT 會把整張圖縮放、平移幾 px，工具會自動比對邊緣、對回白天房間，再套白天的外形、補地板前角。換新的夜晚圖直接覆蓋來源、重跑就好。
-  - 夜晚圖是照 `full.webp` 畫的；白天換成 `full_crt.png` 後，工具算出「夜晚／舊白天」的光線比例（模糊過），套到新的白天房間上；拿掉或換掉的東西（`room_night.py` 的 `CHANGED`）用周圍的光線補。之後白天房間再改，要把改的範圍加進 `CHANGED`。
+  - 夜晚圖是照 `full.webp` 畫的；白天換成 GPT 改過的房間後，工具算出「夜晚／舊白天」的光線比例（模糊過），套到新的白天房間上；拿掉或換掉的東西（`room_night.py` 的 `CHANGED`）用周圍的光線補。之後白天房間再改，要把改的範圍加進 `CHANGED`。
 - 新增景色：用**同一間空房間只換窗外**的圖放進 `art/source/room2/window/<名稱>.webp`，加進 `art/tools/room_window.py` 的 `KINDS`，跑一次，再改 `windowView` 和 `sw.js`。
 
 ### 備份匯出

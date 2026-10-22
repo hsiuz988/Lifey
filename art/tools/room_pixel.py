@@ -1,7 +1,8 @@
 """像素房間：art/source/room2/ 的 GPT 圖 → public/room/pixel_room/。
 
 - full.webp：擺好家具的完整房間（最早的版本，地板前角被畫布切掉一塊，這裡補成完整的菱形，畫布往下加高到 1064）
-- full_crt.png：GPT 拿上面做好的房間改過的版本（粉色映像管電視、拿掉信紙、清掉層架上的東西）＝現在的房間背景。
+- full_crt.png：GPT 拿上面做好的房間改過的版本（粉色映像管電視、拿掉信紙、清掉層架上的東西）。
+- full_v3.webp：GPT 照 full_crt.png 重畫、拿掉書櫃左邊的垂吊植物＝現在的房間背景（EDIT）。
   GPT 改圖會整張輕微縮放（1536 → 1507），這裡先放大回來，再用邊緣比對對回原本的房間，熱點和走路範圍才不用重量
 - small.webp：小物件（檯燈開／關、電視開機…），切出來疊在房間上
 層架：shelf_empty.png 是 GPT 改過「層架清空」的整張房間，EMPTY_SHELF = True 時只切層架那一塊貼回來；
@@ -70,7 +71,7 @@ def old_room():
     if EMPTY_SHELF: a = empty_shelf(a)
     return a
 
-EDIT = 'full_crt.png'
+EDIT = 'full_v3.webp'
 def apply_edit(base):
     """GPT 改過的房間：放大回原本的寬度、對齊原本的房間，外形（alpha）用原本的"""
     e = Image.open(f'{SRC}/{EDIT}').convert('RGBA')
