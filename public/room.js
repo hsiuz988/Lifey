@@ -173,6 +173,7 @@ export class Room {
     this.on = on;
     this.guest = !!opts.guest;
     this.extra = [];
+    this.guestBlocks = [];
     const id = (name) => (this.guest ? `visit-${name}` : name);
     this.state = { look: DEFAULT_LOOK, emo: null, weather: null, companions: [], pets: [], flowers: [], items: [] };
     this.me = { u: .5, v: .62, dir: 1, path: [], then: null, asleep: false };
@@ -190,6 +191,7 @@ export class Room {
     this.tvOn = el('image', { href: `${BASE}pixel_room/tv_on.webp`, x: 1040, y: 405, width: 140, height: 145, class: 'room-fade', opacity: 0 }, svg);
     this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: `url(#${id('room-glow')})`, class: 'room-fade', opacity: 0 }, svg);
     this.itemsG = el('g', { class: 'room-items room-nohit' }, svg);
+    this.guestG = el('g', { class: 'room-guests' }, svg); // 來串門子的人站在門口
     this.itemKeys = '';
     this.markers = el('g', {}, svg);
     this.hots = el('g', {}, svg);
@@ -295,6 +297,7 @@ export class Room {
       if (it.r) EXTRA.push([...toUV(it.x, it.y - 20), it.r]);
     }
     this.box.dataset.imprints = list.join(' ');
+    this.use();
     if (!free(this.me.u, this.me.v)) { [this.me.u, this.me.v] = nearestFree(this.me.u, this.me.v); this.place(); }
   }
   start() {}
@@ -391,7 +394,33 @@ export class Room {
     if (this.bubble.classList.contains('show')) this.placeBubble();
   }
   // 擋路的生活印記是模組共用的變數：兩個房間（自己的、串門子的）輪流用，走路前換成自己的
-  use() { EXTRA = this.extra; }
+  use() { EXTRA = this.extra.concat(this.guestBlocks); }
+  // 客人站在門口：自己的房間是今天來過的人，別人的小窩是我自己；最多兩位，點了交給 on.guest
+  showGuests(list = []) {
+    const spots = [[.88, .18], [.95, .34]];
+    const guests = list.slice(0, spots.length);
+    const key = JSON.stringify(guests.map((g) => [g.name, g.look, g.emo]));
+    if (key === this.guestKey) return;
+    this.guestKey = key;
+    this.guestG.replaceChildren();
+    this.guestBlocks = [];
+    guests.forEach((g, i) => {
+      const [u, v] = spots[i];
+      const [x, y] = toXY(u, v);
+      const look = normalizeLook(g.look);
+      const wrap = el('g', { class: 'room-guest', transform: `translate(${x},${y}) scale(-1,1)`, role: 'button', 'aria-label': g.label || g.name, 'data-guest': g.name }, this.guestG);
+      el('ellipse', { cx: 0, cy: -2, rx: 46, ry: 12, fill: 'rgba(160,70,100,.16)' }, wrap);
+      const inner = el('g', { transform: `scale(${PIX_SIZE * .92 / PIX_H}) translate(${-PIX_FOOT[0]},${-PIX_FOOT[1]})` }, wrap);
+      for (const f of [...pixParts(look.hair, look.cloth, 'front'), PIX_FACES.includes(g.emo) && `face_${g.emo}`].filter(Boolean)) {
+        el('image', { href: pixSrc(f), width: PIX_W, height: PIX_H, style: 'image-rendering:pixelated' }, inner);
+      }
+      wrap.addEventListener('click', (e) => { e.stopPropagation(); if (this.on.guest) this.on.guest(g); });
+      this.guestBlocks.push([u, v, .06]);
+    });
+    this.box.dataset.guests = guests.map((g) => g.name).join(',');
+    this.use();
+    if (!free(this.me.u, this.me.v)) { [this.me.u, this.me.v] = nearestFree(this.me.u, this.me.v); this.place(); }
+  }
   walkTo(u, v, then) {
     this.use();
     if (this.me.asleep) this.wake();

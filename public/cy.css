@@ -322,6 +322,30 @@ html.room-full, html.room-full body { overflow: hidden; }
 .note-item-text { margin: 0 0 2px; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
 .note-item-who { font-size: 12px; color: var(--muted); }
 .note-item-acts { display: flex; gap: 6px; flex-shrink: 0; }
+/* 一起的回憶：首頁卡片、日記裡別人記的那一則（紙膠帶）、收進日記的標記 */
+.cy-together { display: flex; align-items: center; gap: 10px; width: 100%; margin: 8px 0 4px; padding: 10px 12px; border: 1px solid var(--cy-faint); border-radius: 8px; background: linear-gradient(#fff, var(--cy-bubble)); font: inherit; text-align: left; cursor: pointer; }
+.cy-together-ic { font-size: 22px; flex-shrink: 0; }
+.cy-together-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.cy-together-main b { font-size: 14px; color: var(--cy-blue); }
+.cy-together-main span { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cy-together-main small { font-size: 11px; color: var(--muted); }
+.moment.together { position: relative; }
+.moment.together .moment-main { position: relative; padding: 10px 10px 8px; border: 1px dashed var(--cy-field-line); border-radius: 6px; background: var(--panel-2); }
+.moment.together .moment-main::before { content: ""; position: absolute; left: 50%; top: -7px; width: 54px; height: 14px; transform: translateX(-50%) rotate(-3deg); background: color-mix(in srgb, var(--cy-aqua) 35%, #fff); opacity: .85; }
+.together-from { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--cy-blue); margin-bottom: 2px; }
+.together-pic { width: 22px; height: 22px; border-radius: 50%; overflow: hidden; background: #fff; border: 1px solid var(--cy-faint); line-height: 0; flex-shrink: 0; }
+.together-pic .look-head { width: 22px; }
+.together-pic .look.pixel.look-head { transform: translateY(-17%) scale(1.1); transform-origin: 50% 0; }
+.from-mark { display: block; margin-top: 2px; font-size: 12px; color: var(--cy-blue); }
+.together-dialog { display: none; flex-direction: column; gap: 8px; }
+.together-dialog[open] { display: flex; }
+#together-body { display: flex; flex-direction: column; gap: 8px; }
+.together-date { margin: 0; font-family: "DotGothic16", var(--mono); font-size: 13px; color: var(--cy-hint); }
+.together-card { padding: 12px; border: 1px dashed var(--cy-field-line); border-radius: 8px; background: var(--panel-2); }
+.together-text { margin: 0 0 6px; font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+.together-feel { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+/* 來串門子的人站在門口 */
+.room-guest { cursor: pointer; }
 /* 房間書桌上的紙條：新的會輕輕跳 */
 .room-note { cursor: pointer; }
 .room-note .fresh { animation: note-hop 1.6s infinite ease-in-out; transform-box: fill-box; transform-origin: center bottom; }

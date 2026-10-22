@@ -117,7 +117,7 @@
           <span id="hud-age" class="hud-chip" hidden></span>
           <span id="hud-weather" class="hud-chip" hidden></span>
           <span class="spacer"></span>
-          <button id="partner-btn" class="hud-btn" type="button" aria-label="連結的家人" hidden>💞</button>
+          <button id="partner-btn" class="hud-btn" type="button" aria-label="連結的家人和朋友" hidden>💞</button>
           <button id="sync-btn" class="hud-btn sync-btn" type="button" aria-label="同步狀態" hidden>☁︎</button>
         </div>
         <button id="room-zoom" class="hud-btn room-zoom" type="button" aria-label="全畫面" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="ic-open" d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"></path><path class="ic-close" d="M5 5l14 14M19 5L5 19"></path></svg></button>
@@ -134,9 +134,9 @@
         <div id="quick-done" class="hint" hidden></div>
         <!-- 今日卡：一次只放一張（生日 > 信 > 那年今日 > 本週回憶題） -->
         <section id="today-panel" class="today-cards" hidden></section>
-        <!-- 家人說：只有連結了家人才出現（還沒連結的人在「我的 → 雲端與家人」邀請） -->
+        <!-- 親友說：只有連結了家人或朋友才出現（還沒連結的人在「我的 → 雲端與家人」邀請） -->
         <section id="cy-family-box" class="cy-family" hidden>
-          <div class="cy-box-title"><span>家人說</span><button id="cy-family-more" class="link-btn" type="button">全部 ›</button></div>
+          <div class="cy-box-title"><span>親友說</span><button id="cy-family-more" class="link-btn" type="button">全部 ›</button></div>
           <div id="cy-family"></div>
         </section>
       </div>
@@ -427,6 +427,8 @@
       <button class="btn" type="button" data-close>回我的小窩</button>
     </div>
   </dialog>
+  <!-- 一起的回憶：連結的人記下和你有關的一天 -->
+  <dialog id="together-dialog" class="sheet together-dialog"><div id="together-body"></div></dialog>
   <!-- 紙條：寫一張、收到的紙條 -->
   <dialog id="note-dialog" class="sheet note-dialog"><div id="note-body"></div></dialog>
 

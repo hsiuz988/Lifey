@@ -486,9 +486,9 @@ function renderCyFamily() {
     pic.innerHTML = memberAvatarHtml(cloud.views.get(l.id));
     return h('button', { type: 'button', class: 'cy-visit', 'aria-label': `去${l.name}的小窩坐坐`, onclick: () => openVisit(l.id) }, pic, h('span', {}, `去${l.name}家`));
   }));
-  $('#cy-family').replaceChildren(doors, ...(said.length ? said.map(({ m, who, id }) => h('button', { type: 'button', class: 'cy-family-item', onclick: () => openMembers(id) },
+  $('#cy-family').replaceChildren(...[doors, togetherCard(), ...(said.length ? said.map(({ m, who, id }) => h('button', { type: 'button', class: 'cy-family-item', onclick: () => openMembers(id) },
     h('span', { class: 'cy-family-text' }, m.text), h('span', { class: 'cy-family-who' }, `${who} · ${m.date.slice(5).replace('-', '/')}`)))
-    : [h('p', { class: 'cy-empty' }, '家人還沒有分享紀錄。')]));
+    : [h('p', { class: 'cy-empty' }, '還沒有人分享紀錄。')])].filter(Boolean));
 }
 
 // 我：個人卡（房間裡的小人）、三個數字、各項摘要
@@ -898,6 +898,9 @@ function renderTimeline() {
   const rows = [
     ...mine.map((m) => ({ t: m.approx ? 0 : parseDate(m.date).getTime() + 1, c: m.createdAt || '', el: () => renderMoment(m) })),
     ...letters.map((l) => ({ t: parseDate(l.openOn).getTime() + 2, c: l.openedAt, el: () => renderLetterItem(l) })),
+    // 一起的回憶：連結的人記下和我有關的（還沒收進我的日記的），穿插在同一條時間軸上
+    ...togetherItems().filter((x) => !x.collected && ageAt(birthday, x.m.date) === age)
+      .map((x) => ({ t: x.m.approx ? 0 : parseDate(x.m.date).getTime() + 1, c: '', el: () => renderTogether(x) })),
   ].sort((a, b) => b.t - a.t || b.c.localeCompare(a.c));
 
   // 那一年的世界：收成一列，點了才展開；展開後可以選台灣／全球
@@ -993,6 +996,7 @@ function renderMoment(m) {
         h('span', { class: 'moment-text' }, eventById(m.event) ? h('span', { class: 'event-icon' }, `${eventById(m.event).icon} `) : null,
           momentFace(m), m.story ? h('b', { class: 'story-title' }, m.story.title) : m.text,
           m.shared ? h('span', { class: 'shared-mark', title: '已分享' }, ' 💞') : null),
+        m.from ? h('span', { class: 'from-mark' }, `📷 來自${m.from.name}的回憶`) : null,
         m.story ? h('span', { class: 'story-text' }, m.story.text) : null,
         // 有故事版時，原文和心情縮小放在下面；沒有時心情接在事件下面
         m.story ? h('span', { class: 'moment-orig' }, `✏️ ${m.text}${m.feel ? `　${m.feel}` : ''}`)
@@ -1683,9 +1687,15 @@ function shelfMemory() {
 }
 // 牆上的照片：最近的照片
 function wallPhotos() {
-  const ids = state.moments.slice().sort((a, b) => b.date.localeCompare(a.date)).flatMap((m) => m.photoIds).slice(0, 20);
-  if (ids.length) openLightbox(ids, 0);
-  else scene.say('記一筆時放照片，就會掛在這面牆上 📷');
+  // 自己的照片＋一起的回憶裡的照片，新的在前
+  const own = state.moments.map((m) => ({ d: m.date, ids: m.photoIds, link: null }));
+  const together = togetherItems().filter((x) => !x.collected).map((x) => ({ d: x.m.date, ids: x.m.photoIds || [], link: x.link.id }));
+  const list = [...own, ...together].sort((a, b) => b.d.localeCompare(a.d)).flatMap((x) => x.ids.map((id) => ({ id, link: x.link }))).slice(0, 20);
+  if (!list.length) { scene.say('記一筆時放照片，就會掛在這面牆上 📷'); return; }
+  if (list.every((x) => !x.link)) { openLightbox(list.map((x) => x.id), 0); return; }
+  const owner = new Map(list.map((x) => [x.id, x.link]));
+  openLightbox(list.map((x) => x.id), 0, (id, kind) => (owner.get(id) ? cloudApi.memberPhotoUrl(owner.get(id), id, kind)
+    : kind === 'thumb' ? thumbUrl(id) : db.getPhoto(id).then((ph) => (ph ? URL.createObjectURL(ph.blob) : null)).catch(() => null)));
 }
 // 給未來的信：可以打開的先打開，不然寫一封給下一歲
 function openLetters() {
@@ -3021,8 +3031,8 @@ async function renderCloudSection() {
     h('p', {}, `已登入：${cloud.me.user.name}`),
     h('p', { id: 'cloud-status', class: 'hint' }, cloudStatusText()),
     h('div', { class: 'row' }, syncBtn, logoutBtn),
-    h('h4', { class: 'sub-h' }, '連結的家人'),
-    h('p', { class: 'hint' }, '連結之後可以互看彼此「💞 分享」的紀錄、對照同一個年紀；對方捏好小人後，會出現在你的場景裡。'),
+    h('h4', { class: 'sub-h' }, '連結的家人和朋友'),
+    h('p', { class: 'hint' }, '家人、伴侶、朋友都可以連結。連結之後可以互看彼此「💞 分享」的紀錄、去對方的小窩串門子；對方記一筆時標了你，就會變成你們「一起的回憶」。'),
   ];
 
   const links = cloud.me.links;
@@ -3166,7 +3176,7 @@ let lastCompanions = [];
 async function loadCompanions() {
   if (!scene) return;
   if (cloud.me) await Promise.all([loadMemberViews(), loadInbox()]);
-  if (state.profile) renderCyFamily();
+  if (state.profile) { renderCyFamily(); showHomeGuests(); if (ui.tab === 'memories') renderTimeline(); }
   const links = cloud.me ? cloud.me.links : [];
   const count = (personId) => state.moments.filter((m) => m.people.includes(personId)).length;
   const rank = (l) => {
@@ -3302,7 +3312,7 @@ const roomOpen = (view) => !!(view && view.room && memberReady(view) && view.pro
 // 點自己房間的門：選要去誰的小窩
 async function openDoor() {
   const links = cloud.me ? cloud.me.links : [];
-  if (!links.length) { scene.say(cloud.me ? '想去家人的小窩串門子～先到「我 → 雲端與家人」邀請他們吧' : '想去家人的小窩串門子～先到「我 → 雲端與家人」登入吧'); return; }
+  if (!links.length) { scene.say(cloud.me ? '想去家人朋友的小窩串門子～先到「我 → 雲端與家人」邀請他們吧' : '想去家人朋友的小窩串門子～先到「我 → 雲端與家人」登入吧'); return; }
   if (links.length === 1) { openVisit(links[0].id); return; }
   const id = await ask({ title: '要去誰的小窩？', actions: [...links.map((l) => ({ label: `🏠 ${l.name}`, value: l.id })), { label: '先不要', value: null }] });
   if (id) openVisit(id);
@@ -3364,8 +3374,10 @@ function renderVisit(greet = false) {
       plant: () => visitRoom.say('我的小盆栽 🌱'),
       door: () => $('#visit-dialog').close(),
       poke: () => { const v = cloud.views.get(cloud.visitId); return (v && visitLine(v)) || null; },
+      guest: () => visitRoom.say('謝謝你來看我！'),
     }, { guest: true, label: `${name}的小窩：點東西互動` });
   }
+  visitRoom.showGuests([{ name: '我', label: '我（來串門子）', look: state.profile.look, emo: todayInScene().emo }]);
   visitRoom.svg.setAttribute('aria-label', `${name}的小窩：點東西互動`);
   visitRoom.update({ look: view.profile.look, emo: mood, imprints: view.room.imprints || [], weather: ui.weather });
   if (greet) setTimeout(() => visitRoom.say('歡迎來我的小窩～要不要留張紙條給我？'), 500);
@@ -3447,6 +3459,124 @@ function openNotes() {
     h('div', { class: 'sheet-actions' }, h('span', { class: 'spacer' }), h('button', { type: 'button', class: 'btn', onclick: () => $('#note-dialog').close() }, '關閉')));
   const dlg = $('#note-dialog');
   if (!dlg.open) dlg.showModal();
+}
+
+// ---------- 一起的回憶：連結的人記一筆時標了我（對到我的人物卡）而且分享 ----------
+const togetherSeen = () => { try { return new Set(JSON.parse(localStorage.getItem('lifey.togetherSeen') || '[]')); } catch (e) { return new Set(); } };
+function markTogetherSeen(key) {
+  const seen = togetherSeen();
+  if (seen.has(key)) return;
+  seen.add(key);
+  try { localStorage.setItem('lifey.togetherSeen', JSON.stringify([...seen].slice(-300))); } catch (e) { /* 無痕模式 */ }
+}
+function togetherItems() {
+  const links = cloud.me ? cloud.me.links : [];
+  const collected = new Set(state.moments.filter((m) => m.from).map((m) => `${m.from.userId}:${m.from.momentId}`));
+  return links.flatMap((l) => {
+    const v = cloud.views.get(l.id);
+    return v && v.moments ? v.moments.filter((m) => m.withYou).map((m) => ({ m, link: l, key: `${l.id}:${m.id}`, collected: collected.has(`${l.id}:${m.id}`) })) : [];
+  }).sort((a, b) => b.m.date.localeCompare(a.m.date));
+}
+// 首頁「親友說」最上面：有新的才出現，一次一張，看過就收起來
+function togetherCard() {
+  const seen = togetherSeen();
+  const fresh = togetherItems().filter((x) => !seen.has(x.key));
+  if (!fresh.length) return null;
+  const x = fresh[0];
+  const snip = x.m.text ? (x.m.text.length > 30 ? `${x.m.text.slice(0, 30)}…` : x.m.text) : '（照片）';
+  return h('button', { type: 'button', class: 'cy-together', onclick: () => openTogether(x.key) },
+    h('span', { class: 'cy-together-ic', 'aria-hidden': 'true' }, '📷'),
+    h('span', { class: 'cy-together-main' },
+      h('b', {}, `${x.link.name}記下了和你的一天`),
+      h('span', {}, snip),
+      fresh.length > 1 ? h('small', {}, `還有 ${fresh.length - 1} 則`) : null),
+    h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
+}
+const togetherPhotos = (x) => (x.m.photoIds || []).length ? h('div', { class: 'moment-photos' }, x.m.photoIds.map((id, i) => {
+  const img = h('img', { alt: '' });
+  cloudApi.memberPhotoUrl(x.link.id, id, 'thumb').then((url) => { if (url) img.src = url; });
+  return h('button', { type: 'button', class: 'thumb', 'aria-label': '看大圖', onclick: (e) => { e.stopPropagation(); openLightbox(x.m.photoIds, i, (pid, kind) => cloudApi.memberPhotoUrl(x.link.id, pid, kind)); } }, img);
+})) : null;
+// 日記時間軸上的一則（紙膠帶樣式，看得出是別人記的）
+function renderTogether(x) {
+  const d = parseDate(x.m.date);
+  const pic = h('span', { class: 'together-pic' });
+  pic.innerHTML = memberAvatarHtml(cloud.views.get(x.link.id));
+  return h('li', { class: 'moment together' },
+    h('span', { class: 'moment-date' }, x.m.approx ? '這一年' : `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`),
+    h('div', { class: 'moment-main' },
+      h('button', { class: 'moment-body', type: 'button', onclick: () => openTogether(x.key) },
+        h('span', { class: 'together-from' }, pic, `${x.link.name}記下的`),
+        h('span', { class: 'moment-text' }, momentFace(x.m), x.m.text || '（照片）'),
+        x.m.feel ? h('span', { class: 'moment-feel' }, x.m.feel) : null),
+      togetherPhotos(x)));
+}
+function openTogether(key) {
+  const x = togetherItems().find((t) => t.key === key);
+  if (!x) return;
+  markTogetherSeen(key);
+  const { m, link } = x;
+  const d = parseDate(m.date);
+  const collect = h('button', { type: 'button', class: 'btn primary', disabled: x.collected ? true : null }, x.collected ? '已收進我的日記 ✓' : '收進我的日記');
+  collect.addEventListener('click', () => withBusy(collect, () => collectTogether(x)));
+  $('#together-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `${link.name}記下了和你的一天`)),
+    h('p', { class: 'together-date' }, m.approx ? `${d.getFullYear()} 年` : `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`),
+    h('div', { class: 'together-card' },
+      m.text ? h('p', { class: 'together-text' }, momentFace(m), m.text) : null,
+      m.feel ? h('p', { class: 'together-feel' }, m.feel) : null,
+      togetherPhotos(x)),
+    h('p', { class: 'hint' }, x.collected ? '這一則已經在你的日記裡了。' : `收進日記後，就算${link.name}之後取消分享，這一天也會留在你這裡。`),
+    h('div', { class: 'sheet-actions' },
+      h('button', { type: 'button', class: 'btn', onclick: () => { $('#together-dialog').close(); openVisit(link.id); } }, `去${link.name}的小窩`),
+      h('span', { class: 'spacer' }), collect));
+  const dlg = $('#together-dialog');
+  if (!dlg.open) dlg.showModal();
+  renderCyFamily();
+}
+// 收進我的日記：複製成自己的一則（照片也存一份），記得是誰記的
+async function memberBlob(linkId, id, kind) {
+  const url = await cloudApi.memberPhotoUrl(linkId, id, kind);
+  if (!url) throw new Error('照片下載失敗，等一下再試');
+  return (await fetch(url)).blob();
+}
+async function collectTogether(x) {
+  const { m, link } = x;
+  const now = new Date().toISOString();
+  const momentId = newId();
+  let photos = [];
+  try {
+    photos = await Promise.all((m.photoIds || []).map(async (pid) => {
+      const [blob, thumb] = await Promise.all([memberBlob(link.id, pid, 'full'), memberBlob(link.id, pid, 'thumb')]);
+      const bmp = await createImageBitmap(blob).catch(() => null);
+      return { id: newId(), momentId, blob, thumb, w: bmp ? bmp.width : 0, h: bmp ? bmp.height : 0, createdAt: now };
+    }));
+    if (photos.length) await db.putPhotos(photos);
+  } catch (e) { toast(e.message || '照片儲存失敗'); return; }
+  const before = m.date < state.profile.birthday; // 出生前的事（例如爸媽記的懷孕日記）放在 0 歲
+  const person = link.personId && personById(link.personId) ? [link.personId] : [];
+  state.moments.push({
+    id: momentId, date: before ? state.profile.birthday : m.date, approx: before || !!m.approx,
+    text: m.text || '', feel: m.feel || '', emo: m.emo || null, mood: m.mood ?? null, tags: [...(m.tags || [])],
+    photoIds: photos.map((p) => p.id), people: person, event: null, starred: false, shared: false,
+    from: { userId: link.id, name: link.name, momentId: m.id }, createdAt: now, updatedAt: now,
+  });
+  await saveState();
+  render();
+  toast('收進你的日記了 📖');
+  openTogether(x.key);
+}
+
+function showHomeGuests() {
+  if (!scene) return;
+  const inbox = cloud.inbox;
+  const today = inbox ? inbox.visitors.filter((v) => v.day === inbox.today) : [];
+  scene.showGuests(today.map((v) => {
+    const view = cloud.views.get(v.id);
+    if (!memberReady(view) || !view.profile.look) return null;
+    const mood = view.room && view.room.mood && view.room.mood.date === todayStr() ? view.room.mood.emo : null;
+    return { name: v.name, label: `${v.name}今天來串門子`, look: view.profile.look, emo: mood };
+  }).filter(Boolean));
 }
 
 // 生日改成年／月／日三個下拉選單：iPhone 的日期面板選完月份會跳回月曆、要一路往回翻年份，選單比較快
@@ -3969,6 +4099,7 @@ async function init() {
     photos: () => wallPhotos(),
     door: () => openDoor(),
     note: () => openNotes(),
+    guest: (g) => scene.say(`今天${g.name}來找我玩～`),
   });
   ui.weather = weather.weatherEnabled() ? weather.cachedWeather() : null;
   render();

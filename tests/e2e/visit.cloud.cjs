@@ -71,7 +71,8 @@ async function makeAvatar(p, opts) {
   const A = await device(b, 'A');
   await A.goto(URL);
   await setup(A, 'Hsiu', '1995-03-02');
-  await tab(A, 'me').then(() => A.click('.me-menu [data-open=cloud]'));
+  await tab(A, 'me'); await A.click('#me-card'); await A.waitForSelector('#look-dialog[open]'); await A.click('#look-save'); await closed(A, '#look-dialog');
+  await A.click('.me-menu [data-open=cloud]');
   await register(A);
   await A.waitForSelector('#cloud-section >> text=已登入');
   await A.click('#cloud-section button:text-is("產生邀請連結")');
@@ -110,6 +111,7 @@ async function makeAvatar(p, opts) {
   await A.$eval('#visit-room-me', (e) => e.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   await A.waitForTimeout(200);
   assert((await A.textContent('#visit-scene-bubble')).includes('拉麵'), '點 Ken 的小人，他說出最近分享的一則');
+  assert(await A.$eval('#visit-scene', (e) => e.dataset.guests) === '我', '我的小人站在 Ken 家門口（客人）');
   await A.screenshot({ path: S + '/visit-room.png' });
 
   // 留紙條
@@ -130,6 +132,10 @@ async function makeAvatar(p, opts) {
   assert(true, 'Ken 的小人說「Hsiu留了紙條給我耶」');
   const inbox = await C.evaluate(() => fetch('/api/inbox').then((r) => r.json()));
   assert(inbox.visitors.some((v) => v.name === 'Hsiu' && v.day === inbox.today), '記得 Hsiu 今天來過');
+  await C.waitForFunction(() => document.querySelector('#scene').dataset.guests === 'Hsiu', null, { timeout: 8000 });
+  assert(await C.$eval('#scene .room-guest', (e) => e.querySelectorAll('image').length >= 2), '今天來過的 Hsiu 站在 Ken 房間的門口');
+  await C.waitForTimeout(3600);
+  await (await C.$('.home-page .room-box')).screenshot({ path: S + '/guest-door.png' });
   await C.screenshot({ path: S + '/visit-note.png' });
   await C.$eval('#scene .hot[data-name="note"]', (e) => e.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   await C.waitForSelector('#note-dialog[open]');
@@ -138,6 +144,60 @@ async function makeAvatar(p, opts) {
   await C.waitForSelector('#note-body >> text=紙條都收起來了');
   assert(await C.$eval('#scene', (e) => e.dataset.notes) === '0', '收起來之後書桌上就沒有紙條');
   await C.click('#note-body button:text-is("關閉")');
+
+  // ===== 一起的回憶：Ken 把連結對到「Hsiu」人物卡，記一筆標了 Hsiu、附照片、分享 =====
+  await tab(C, 'me').then(() => C.click('.me-family [data-open=people]'));
+  await C.click('#add-person-btn');
+  await C.fill('#person-body input[aria-label=名字]', 'Hsiu');
+  await C.click('#person-body .field:has-text("關係") button:text-is("朋友")');
+  await C.click('#person-body button:text-is("儲存")');
+  await C.waitForSelector('#person-body h3:text-is("Hsiu")');
+  await C.click('#person-body button:text-is("關閉")');
+  await C.click('#settings-dialog .win-x'); await C.waitForTimeout(150);
+  const hsiuCard = (await st(C)).people.find((x) => x.name === 'Hsiu');
+  await tab(C, 'me').then(() => C.click('.me-menu [data-open=cloud]'));
+  await C.selectOption('#cloud-section select[aria-label="Hsiu 對應的人物卡"]', hsiuCard.id);
+  await C.waitForTimeout(800);
+  await C.click('#settings-dialog .win-x'); await C.waitForTimeout(150);
+  await C.click('#add-btn'); await C.fill('#moment-form [name=text]', '和 Hsiu 一起去淡水看夕陽');
+  await C.setInputFiles('#photo-input', FIXTURES + '/p0.jpg');
+  await C.waitForFunction(() => document.querySelectorAll('#photo-picker .photo-item img').length >= 1 && !document.querySelector('.photo-item.busy'));
+  await C.click('#people-picker button:text-is("👤 Hsiu")');
+  await C.check('#moment-form [name=shared]');
+  await C.click('#moment-save'); await closed(C, '#moment-dialog');
+  await C.click('#add-btn'); await C.fill('#moment-form [name=text]', '自己一個人加班'); await C.check('#moment-form [name=shared]');
+  await C.click('#moment-save'); await closed(C, '#moment-dialog');
+  await C.waitForTimeout(2600); await synced(C);
+
+  await A.reload(); await synced(A);
+  await A.waitForSelector('#cy-family .cy-together', { timeout: 15000 });
+  assert((await A.textContent('#cy-family .cy-together')).includes('Ken記下了和你的一天'), '首頁出現「Ken記下了和你的一天」');
+  await (await A.$('#cy-family-box')).screenshot({ path: S + '/together-home.png' });
+  const kv = await A.evaluate(() => fetch('/api/me').then((r) => r.json()).then((me) => fetch('/api/members/' + me.links[0].id)).then((r) => r.json()));
+  assert(kv.view.moments.filter((m) => m.withYou).length === 1 && !kv.view.moments.some((m) => 'people' in m), '只有標了我的那則算一起的回憶，伺服器不露出人物卡');
+  await tab(A, 'memories');
+  await A.waitForSelector('#timeline .moment.together');
+  assert((await A.textContent('#timeline .moment.together')).includes('淡水') && (await A.textContent('#timeline .moment.together')).includes('Ken記下的'), '日記裡穿插一則「Ken記下的」');
+  await A.waitForFunction(() => [...document.querySelectorAll('#timeline .moment.together .thumb img')].some((i) => i.complete && i.naturalWidth > 0), null, { timeout: 10000 });
+  assert(true, '一起的回憶的照片看得到');
+  await (await A.$('#timeline .moment.together')).screenshot({ path: S + '/together-item.png' });
+  await A.click('#timeline .moment.together .moment-body');
+  await A.waitForSelector('#together-dialog[open]');
+  await A.click('#together-body button:text-is("收進我的日記")');
+  await A.waitForSelector('#together-body button:text-is("已收進我的日記 ✓")', { timeout: 15000 });
+  const mine = (await st(A)).moments.find((m) => m.from);
+  assert(mine && mine.text.includes('淡水') && mine.from.name === 'Ken' && mine.photoIds.length === 1 && !mine.shared, '收進我的日記：複製成自己的一則（含照片、不分享）');
+  const photo = await A.evaluate((id) => new Promise((r) => { const q = indexedDB.open('lifey'); q.onsuccess = () => { const t = q.result.transaction('photos').objectStore('photos').get(id); t.onsuccess = () => r(!!(t.result && t.result.blob && t.result.thumb)); }; }), mine.photoIds[0]);
+  assert(photo, '照片也存了一份在我的手機');
+  await A.waitForTimeout(2600); await synced(A);
+  const ids = await A.evaluate(() => fetch('/api/photos').then((r) => r.json()));
+  assert(ids.ids.includes(mine.photoIds[0]), '收進來的照片也備份到我的雲端');
+  await A.click('#together-dialog .win-x'); await A.waitForTimeout(150);
+  await A.waitForSelector('#timeline .from-mark');
+  assert(!(await A.$('#timeline .moment.together')) && (await A.textContent('#timeline .from-mark')).includes('來自Ken'), '收進來之後，時間軸換成自己的一則（標著來自Ken）');
+  await A.screenshot({ path: S + '/together-diary.png' });
+  await tab(A, 'home');
+  assert(!(await A.$('#cy-family .cy-together')), '看過之後首頁卡片收起來');
 
   // ===== Ken 關掉「讓連結的人來我的小窩」=====
   await tab(C, 'me').then(() => C.click('.me-menu [data-open=cloud]'));

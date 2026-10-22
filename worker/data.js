@@ -143,11 +143,15 @@ export async function bindPerson(request, user, env, otherId) {
 }
 
 // 只給對方標成「分享」的紀錄，私人的一律不出現
-function sharedView(doc) {
+// youId：寫的人用來對應看的人的人物卡（links.person_id）；標了這張卡的紀錄加上 withYou（一起的回憶），其他人物卡不露出來
+function sharedView(doc, youId = null) {
   const deleted = doc.deleted || {};
   const moments = doc.moments
     .filter((m) => m.shared && !deleted[m.id])
-    .map(({ id, date, approx, text, feel, story, emo, mood, tags, photoIds, starred }) => ({ id, date, approx, text, feel, story, emo, mood, tags, photoIds, starred }));
+    .map(({ id, date, approx, text, feel, story, emo, mood, tags, photoIds, starred, people }) => ({
+      id, date, approx, text, feel, story, emo, mood, tags, photoIds, starred,
+      withYou: !!youId && Array.isArray(people) && people.includes(youId),
+    }));
   const profile = doc.profile || {};
   const years = {};
   if (profile.shareTitles !== false) {
@@ -170,7 +174,8 @@ function latestMood(list, deleted) {
 export async function getMember(user, env, otherId) {
   if (!(await isLinked(env, user.id, otherId))) throw new HttpError(404, '還沒有和這個人連結');
   const { doc } = await loadDoc(env, otherId);
-  return json({ view: doc ? sharedView(doc) : null });
+  const link = await env.DB.prepare('SELECT person_id FROM links WHERE user_id = ? AND partner_id = ?').bind(otherId, user.id).first();
+  return json({ view: doc ? sharedView(doc, link && link.person_id) : null });
 }
 
 export async function getMemberPhoto(request, user, env, otherId, id) {
