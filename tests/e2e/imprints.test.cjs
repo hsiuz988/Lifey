@@ -26,21 +26,21 @@ const errors = [];
   // 長按打開詳情（今天已經亮的，再點一下是取消）
   const box = await (await p.$(`#joy-row [data-joy="${cat}"]`)).boundingBox();
   await p.mouse.move(box.x + 20, box.y + 20); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(300);
-  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('再收藏 9 天') && (await p.textContent('#joy-dialog .joy-imprint')).includes('愛心氣球'), '詳情告訴你還差幾天、會拿到什麼');
+  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('再收藏 9 天') && (await p.textContent('#joy-dialog .joy-imprint')).includes('室內拖鞋'), '詳情告訴你還差幾天、會拿到什麼');
 
   // 補記 10/12～10/19：還差一天，不會跳
   for (let d = 12; d <= 19; d++) { await p.click(`.joy-day[data-date="2026-10-${d}"]`); await p.waitForTimeout(80); }
   await p.waitForTimeout(500);
   assert(!(await p.$eval('#imprint-dialog', (e) => e.open)) && !((await st(p)).imprints || []).length, '收藏 9 天還不會拿到');
   await p.click('.joy-day[data-date="2026-10-20"]'); await p.waitForTimeout(700);
-  assert(await p.$eval('#imprint-dialog', (e) => e.open) && (await p.textContent('#imprint-dialog')).includes('愛心氣球'), '第 10 天跳出「房間多了一件東西」');
+  assert(await p.$eval('#imprint-dialog', (e) => e.open) && (await p.textContent('#imprint-dialog')).includes('室內拖鞋'), '第 10 天跳出「房間多了一件東西」');
   let s = await st(p);
   assert(s.imprints.length === 1 && s.imprints[0].key === 'hearts' && s.imprints[0].at === '2026-10-21' && !s.imprints[0].shown, '記下拿到的日期（照日期排的第 10 天），先不放出來');
   await p.screenshot({ path: OUT + '/imprint-got.png' });
   await p.click('#imprint-dialog .btn >> text=放到房間'); await p.waitForTimeout(300);
   s = await st(p);
-  assert(s.imprints[0].shown && await p.$('#scene image[data-imprint="hearts"]'), '放到房間：小窩裡出現愛心氣球');
-  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('紀念'), '詳情改成「房間裡的愛心氣球就是它的紀念」');
+  assert(s.imprints[0].shown && await p.$('#scene image[data-imprint="hearts"]'), '放到房間：小窩裡出現室內拖鞋');
+  assert((await p.textContent('#joy-dialog .joy-imprint')).includes('紀念'), '詳情改成「房間裡的室內拖鞋就是它的紀念」');
 
   // 撤銷一天也不會收回
   await p.click('.joy-day[data-date="2026-10-20"]'); await p.waitForTimeout(300);
@@ -78,7 +78,7 @@ const errors = [];
     const ok = await Promise.all(keys.map((k) => fetch(`room/imprints/${k}.webp`).then((x) => x.ok)));
     return { want: keys.length, got: box.querySelectorAll('image[data-imprint]').length, files: ok.every(Boolean) };
   });
-  assert(all.want === 20 && all.got === all.want - 3 && all.files, '20 件有圖的家具圖都在，同一個位置只畫一件（拿鐵／蛋糕、小貓／遊戲機、禮物／瑜珈墊各留一件）');
+  assert(all.want === 32 && all.got === 22 && all.files, '32 件家具的圖都在，22 個位置各畫一件');
 
   // 多選一：同一個位置只放一件
   const slot = await p.evaluate(async () => {
