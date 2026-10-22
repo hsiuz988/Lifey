@@ -795,9 +795,7 @@ dialog.composer-page {
 .joy-ask-x { width: 32px; height: 32px; font-size: 20px; color: var(--muted); }
 .joy-ask-input { width: 100%; }
 /* 點亮後的提問是小視窗 */
-/* 置中的小視窗（不是底部抽屜）；鍵盤跳出來時往上移半個鍵盤高，留在看得到的地方 */
-dialog.sheet.joy-ask-dialog { margin: auto; width: calc(100% - 32px); max-width: 380px; padding-bottom: 16px; border-bottom: 2px solid var(--cy-win-line); border-radius: 10px; box-shadow: 4px 4px 0 rgba(43, 47, 51, .25); transform: translateY(calc(var(--kb, 0px) / -2)); }
-.joy-ask-dialog .sheet-actions { position: static; margin: 0; padding: 0; border: 0; background: none; }
+/* 點亮後的提問：和其他抽屜一樣從底部打開（使用者定案） */
 .joy-ask-dialog .joy-ask { margin: 0; padding: 0; border: 0; background: none; animation: none; gap: 12px; }
 .joy-ask-dialog .joy-ask-ic .joy-pix { width: 44px; height: 44px; }
 /* 拖曳排序：首頁按鈕長按後拖、全部頁按住 ⠿ 拖 */

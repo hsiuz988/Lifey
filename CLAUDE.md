@@ -148,7 +148,7 @@
 
 - 首頁房間下面**常駐 2 排 × 5 顆**按鈕（最多 10 個，多的在「全部」）。新使用者一進來就有預設的 10 個（`DEFAULT_JOYS`：喝到好喝的、吃到好吃的、看見漂亮的風景、好好睡了一覺、被稱讚了、收到小驚喜、聽到喜歡的歌、遇到可愛的貓狗、出外旅行、和重要的人在一起），可以刪除或新增；`seedJoys` 只放一次（`state.prefs.joysSeeded`），id 固定 `joy-<圖示>`、`updatedAt` 是 2000 年，兩台手機同步不會變兩份，刪掉也不會復活。
 - **每個小幸福一天只記一次**（使用者定案，不要再加「一天多次」）：今天有就點亮 ✓，想留細節就寫成日記，不數次數、沒有 ×N。
-- **點一下＝收藏**，按鈕原地亮起（位置不動），跳出**置中的小視窗** `#joy-ask-dialog`（`showAsk`，問題照圖示 `ASK`；使用者定案要 modal，不是按鈕下面的卡片）：有寫按「記成日記」就存成今天的一篇日記（moment 帶 `joy: joyId`）；「不用了」關掉；「復原」取消這次。**今天已經亮的再點一下＝直接取消勾選**（使用者定案，不跳視窗），提示上有「復原」。長按放開打開詳情。「我」選單也有入口。
+- **點一下＝收藏**，按鈕原地亮起（位置不動），跳出**從底部打開的抽屜** `#joy-ask-dialog`（`showAsk`，問題照圖示 `ASK`；使用者定案：modal、從底部打開，不是按鈕下面的卡片，也不是置中）：有寫按「記成日記」就存成今天的一篇日記（moment 帶 `joy: joyId`）；「不用了」關掉；「復原」取消這次。**今天已經亮的再點一下＝直接取消勾選**（使用者定案，不跳視窗），提示上有「復原」。長按放開打開詳情。「我」選單也有入口。
 - **排序用拖曳**（使用者定案，`sortable`）：「全部」頁按住右邊的 ⠿ 把手拖（清單比畫面長時拖到邊緣會自動捲動）；首頁按鈕長按 0.45 秒後拖。前 10 個放首頁。
 - `show()`／`replaceChildren` 收到 null 會印出「null」字樣，可能沒有的區塊一律 `.filter(Boolean)`（之前編輯頁、全部頁出現過「null」）。
 - 首頁最上面是「**今天 ♡ N 個小幸福**」（`todayJoyCount`：今天點亮了幾個不同的），不累加。點了要呼叫 `ctx.onCount` 立刻更新。
@@ -311,6 +311,18 @@ tests/             Playwright 端對端測試
 - 圖層順序：`hair_*_back → body → cloth → face → hair_*_front → sym_*`。
 - 圖層尺寸是 267×420，腳底在 (108.8, 418.6)。
 - 新增髮型、衣服或表情：用 `art/` 的流程產出 webp，再加進 `LOOKS`／`faceFor`、`sw.js` 的 assets，並更新測試。
+
+## 本機測試（使用者自己在電腦上開）
+
+```bash
+git pull origin develop
+npm install          # 第一次，或 package.json 有變時
+npm run local        # 打開 http://localhost:8787
+```
+- 用的是 wrangler 在本機模擬的資料庫和照片（存在 `.wrangler/`），**不會碰到正式或測試網址的資料**；Face ID（Passkey）在 localhost 也能用。
+- 手機版面：Chrome 開發者工具（F12）→ 切換裝置（Ctrl+Shift+M）→ 選 iPhone。
+- 手機實機要測（iPhone Safari、加到主畫面、Face ID）還是要推到 `develop` 用測試網址：手機連電腦的區網 IP 是 http，Service Worker 和 Face ID 都不能用。
+- 在雲端 session 裡開的 localhost 使用者連不到；要給使用者先看，就推到 `develop`。
 
 ## 測試
 
