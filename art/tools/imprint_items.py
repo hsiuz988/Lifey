@@ -23,13 +23,15 @@ WIDTH = {'cat': 130, 'coffee': 54, 'meal': 215, 'gift': 105, 'bear': 95, 'hearts
          'paw': 120, 'moon': 44, 'star': 200, 'sneaker': 62,
          'cake': 58, 'call': 84, 'camera': 52, 'home': 215, 'plant': 64, 'sparkle': 300, 'sunset': 96,
          'game': 110, 'workout': 100, 'book': 118,
-         'bike': 66, 'bath': 54, 'letter': 58, 'umbrella': 62, 'shop': 88, 'clean': 100, 'sun': 70, 'movie': 72,
+         'bike': 66, 'bath': 54, 'letter': 58, 'umbrella': 62, 'shop': 88, 'clean': 92, 'sun': 70, 'movie': 62,
          'sing': 58, 'music': 44, 'icecream': 38, 'cook': 215}
 # 掛在牆上的要照牆的斜度斜過去：每往右 1px 往下幾 px（GPT 畫的是正面，右牆約往下 0.49，原圖的線已經斜 0.19）
 # 負的是往右上升：左牆、窗簾桿（約 -0.49）
 SHEAR = {'star': 0.3, 'sparkle': -0.49, 'sunset': -0.49}
 # GPT 畫的角度差一點的，順時針轉幾度跟家具平行（電話要和電視櫃平行）
 ROTATE = {'call': 11}
+# 縮小後很細的部分（掃把柄）半透明，門檻放低才不會斷成虛線
+KEEP = {'clean': 40}
 # 小東西的外框細一點（預設 3px）
 LINE_W = {'star': 2, 'sparkle': 2}
 
@@ -64,10 +66,10 @@ def cut(path):
     return full.crop(full.getbbox())
 
 
-def reline(im, w=3):
+def reline(im, w=3, keep=128):
     """沿外輪廓重畫一圈跟房間一樣的線；細的部分（氣球線）不重畫，不然會整條變黑"""
     a = np.array(im)
-    m = a[..., 3] > 128
+    m = a[..., 3] > keep
     thick = ndimage.binary_opening(m, iterations=w)
     ring = thick & ~ndimage.binary_erosion(thick, iterations=w)
     a[ring, :3] = LINE
@@ -88,7 +90,7 @@ def main():
             im = im.transform((im.width, im.height + dy), Image.AFFINE, (1, 0, 0, -k, 1, min(0, k) * im.width), Image.NEAREST)
             im = im.crop(im.getbbox())
         im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
-        im = reline(im, LINE_W.get(key, 3))
+        im = reline(im, LINE_W.get(key, 3), KEEP.get(key, 128))
         im.save(OUT / f'{key}.webp', lossless=True)
         print(f'{key}: w {im.width}, h {im.height}')
 
