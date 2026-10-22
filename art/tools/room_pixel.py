@@ -85,7 +85,41 @@ def apply_edit(base):
 
 def room():
     a = old_room()
-    return even_outline(apply_edit(a)) if os.path.exists(f'{SRC}/{EDIT}') else a
+    return chamfer(even_outline(apply_edit(a))) if os.path.exists(f'{SRC}/{EDIT}') else a
+
+# 地板前角做一個小小的水平切角（使用者定案，比較可愛）：前角往上切 CHAMFER px，
+# 切出來的那一面用左邊地板邊的一整條像素（外框、亮邊、粉色、底下外框）照抄過去，兩側再補一條轉角的細線
+CHAMFER = 26
+def chamfer(a):
+    lum = a[..., :3].sum(2)
+    def edge(x):                        # 地板和粉色邊交界的深色線（從最底下往上找）
+        b = H - 1 - np.argmax(a[::-1, x, 3] > 128)
+        y = b - 5
+        while y > b - 60 and lum[y, x] > 330: y -= 1
+        return y, b
+    xl = np.arange(480, 740); xr = np.arange(820, 1080)
+    ml, cl = np.polyfit(xl, [edge(x)[0] for x in xl], 1)
+    mr, cr = np.polyfit(xr, [edge(x)[0] for x in xr], 1)
+    xc = (cr - cl) / (ml - mr); yc = ml * xc + cl            # 前角
+    top = int(round(yc - CHAMFER))
+    xa, xb = int(round((top - cl) / ml)), int(round((top - cr) / mr))
+    # 從左邊地板邊抄一條直的像素：深色線往上 2 格到底下透明為止
+    x0 = xa - 24
+    e0, b0 = edge(x0)
+    col = a[e0 - 2:b0 + 3, x0].copy()
+    out = a.copy()
+    for x in range(xa, xb + 1):
+        y_floor = top - 2
+        out[y_floor:, x] = 0
+        out[y_floor:y_floor + len(col), x] = col
+    # 轉角的細線：切面和左右兩面接起來的地方
+    for x in (xa, xb):
+        for y in range(top, top + (b0 - e0) + 1):
+            for dx, k in ((0, .65), (-1 if x == xa else 1, .3)):
+                px = out[y, x + dx].astype(float)
+                out[y, x + dx, :3] = (px[:3] * (1 - k) + OUTLINE * k).astype(np.uint8)
+    print(f'切角：前角 ({xc:.0f}, {yc:.0f})，切面 x {xa}–{xb}')
+    return out
 
 # GPT 畫的外框左右不一致：左牆頂只有 1px、右地板邊底下沒有外框，看起來左右邊緣粗細不同
 # 照另一邊補一條約 3px 的深咖啡線（沿著量出來的直線，邊緣反鋸齒）
@@ -97,6 +131,7 @@ def even_outline(a):
         return lambda x: m * x + c
     xs = np.arange(110, 740); top = fit(xs, [np.argmax(alpha[:, x]) for x in xs])                       # 左牆頂邊
     xs2 = np.arange(800, 1440); bot = fit(xs2, [H - 1 - np.argmax(alpha[::-1, x]) for x in xs2])        # 右前方地板底邊
+    xs3 = np.arange(120, 740); botl = fit(xs3, [H - 1 - np.argmax(alpha[::-1, x]) for x in xs3])        # 左前方地板底邊（原本的線太細）
     def band(x0, x1, line, lo, hi):
         for x in range(x0, x1):
             y0 = line(x)
@@ -108,7 +143,8 @@ def even_outline(a):
                 na = cov + al * (1 - cov)
                 a[y, x, :3] = np.clip(rgb / max(na, 1e-3), 0, 255); a[y, x, 3] = int(round(na * 255))
     band(80, 762, top, 0, 3)          # 牆頂：從邊往裡 3px
-    band(768, 1460, bot, -2.5, .5)    # 地板底：最後 3px
+    band(768, 1460, bot, -2.5, .5)    # 地板底：最後 3px（左右兩邊同一條粗細）
+    band(76, 768, botl, -2.5, .5)
     return a
 
 def main():
