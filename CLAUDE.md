@@ -2,7 +2,7 @@
 
 > Claude Code 會自動讀這個檔案。換帳號、換電腦（例如 Warp 終端機）時：
 > ```bash
-> git clone https://github.com/hsiuz988/Lifey.git && cd Lifey
+> git clone https://github.com/hsiuz988/wowo.git && cd wowo
 > git checkout develop
 > npm install
 > ```
@@ -59,6 +59,7 @@
 - **配色有六套**（使用者定案），在「我 → 外觀與其他 → 配色」選，存在 localStorage `lifey.palette`（每台裝置不同），`<html data-palette>`；`index.html` head 的 inline script 開機前就套用。
   - 花系列（基礎色）：繡球花 `hydrangea`（原本的冷灰藍＋邦迪藍）、**長春花 `periwinkle`（預設，不設 data-palette）**、櫻花 `sakura`（奶油＋粉）。
   - 甜點系列：草莓巧克力 `berrycocoa`（粉＋咖啡）、芒果布丁 `mango`（黃＋橘）、薄荷巧克力 `mintcocoa`（薄荷＋可可）。
+  - **主要按鈕是「柔光果凍」**（使用者定案，原本的邦迪藍果凍負擔太重）：`--cy-cta-top`／`--cy-cta-bot`（主色和白色混 72%／90% 的上下漸層）、`--cy-cta-edge`（3px 底邊），沒有中間的硬反光線，按下去往下沉 2px；全站 `.btn.primary`、`.save-pill`、註冊頁的大按鈕都用它，跟著配色自動算。
   - 顏色都在 `cy.css` 最上面的變數（`--cy-desk`、`--cy-frame`、`--cy-aqua` 主色、`--cy-blue` 標題字、`--cy-pop` 數字標籤…）；**其他規則不要再直接寫色號**。新增一套：多寫一段 `:root[data-palette="…"]`，再加進 `app.js` 的 `PALETTES` 和 `tests/e2e/palette.test.cjs`。
   - 房間、電視、記一筆的日期黃章這些插畫色不跟著換。
 - 底部有四個分頁：首頁、回憶、地圖、我。中間的 ＋ 是「記一筆」。

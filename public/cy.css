@@ -19,6 +19,10 @@
   --room-bg: #fdf1f4;
   /* 果凍光澤：上半亮、中間一條反光分界，像 iMac G3 和舊 Mac 的按鈕 */
   --cy-gel: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.15) 48%, rgba(255,255,255,0) 52%, rgba(255,255,255,.25));
+  /* 主要按鈕「柔光果凍」（使用者定案）：主色淡一階的上下漸層、沒有中間的硬反光線、底下 3px 的邊；跟著配色自動算 */
+  --cy-cta-top: color-mix(in srgb, var(--cy-aqua) 72%, #ffffff);
+  --cy-cta-bot: color-mix(in srgb, var(--cy-aqua) 90%, #ffffff);
+  --cy-cta-edge: color-mix(in srgb, var(--cy-aqua) 88%, #000000);
   /* 跟著主色算出來的：聚焦光暈、LED、沒開的開關、提示上的「復原」 */
   --cy-glow: color-mix(in srgb, var(--cy-aqua) 22%, transparent);
   --cy-glow-strong: color-mix(in srgb, var(--cy-aqua) 60%, transparent);
@@ -386,11 +390,13 @@ dialog.sheet::backdrop { background: rgba(43, 47, 51, .45); }
 .composer-head .icon-btn { color: #ffffff; background: none; border: 0; }
 dialog.composer-page { border: 2px solid var(--cy-win-line); }
 
-/* 按鈕：主要＝邦迪藍果凍厚底；一般＝白到淺灰漸層、藍字 */
+/* 按鈕：主要＝柔光果凍（主色淡一階、上亮下深、3px 底邊，按下去往下沉）；一般＝白到淺灰漸層、藍字 */
 .btn.primary, .save-pill {
-  background: var(--cy-gel), var(--cy-aqua); color: #ffffff; border: 0; border-bottom: 3px solid var(--cy-pop-edge); border-radius: 4px; font-weight: 700;
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .12); text-shadow: 0 1px 1px rgba(0, 0, 0, .2);
+  background: linear-gradient(var(--cy-cta-top), var(--cy-cta-bot)); color: #ffffff; border: 0; border-radius: 4px; font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 3px 0 var(--cy-cta-edge); text-shadow: 0 1px 1px rgba(0, 0, 0, .14);
+  transition: transform .06s, box-shadow .06s;
 }
+.btn.primary:not(:disabled):active, .save-pill:not(:disabled):active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 1px 0 var(--cy-cta-edge); }
 .btn:where(:not(.primary, .danger, .link-btn)) {
   background: linear-gradient(#ffffff, var(--cy-dash)); color: var(--cy-blue);
   border: 1px solid var(--cy-field-line); border-bottom: 2px solid var(--cy-frame); border-radius: 4px; font-weight: 700;
@@ -479,8 +485,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--cy-aqua); }
 .cy-setup .setup-form label { font-size: 13px; font-weight: 700; color: var(--cy-label); }
 .cy-setup .setup-form .hint { margin: -2px 0 0; font-size: 12px; text-align: center; }
 .cy-setup .btn.big { height: 50px; padding: 0; font-size: 16px; border-radius: 4px; letter-spacing: .04em; }
-.setup-go { box-shadow: 0 4px 0 var(--cy-pop-edge); transition: transform .06s, box-shadow .06s; }
-.setup-go:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--cy-pop-edge); }
+/* 註冊頁的大按鈕：和全站的主要按鈕一樣（柔光果凍），按下去往下沉 */
 @keyframes setup-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-14px) rotate(-3deg); } 70% { transform: translateY(-4px) rotate(2deg); } }
 @keyframes setup-open { from { opacity: 0; transform: scale(.94) translateY(8px); } }
 @media (prefers-reduced-motion: reduce) {
