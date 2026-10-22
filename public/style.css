@@ -930,6 +930,7 @@ main#app { padding: 0 0 calc(84px + env(safe-area-inset-bottom)); max-width: 640
 .room-nohit, .room-night { pointer-events: none; }
 .room-me { cursor: pointer; }
 .room .hot { cursor: pointer; }
+.room-art { image-rendering: auto; } /* 房間插畫縮小要平滑，像素模式會讓外框鋸齒、斷斷續續 */
 .room-me .walking .bodybob { animation: hop .34s infinite ease-in-out; }
 .room-me .idle .bodybob { animation: breathe 2.4s infinite ease-in-out; }
 @keyframes hop { 0%,100% { transform: translateY(0) rotate(0) } 25% { transform: translateY(-9px) rotate(-2deg) } 50% { transform: translateY(0) } 75% { transform: translateY(-9px) rotate(2deg) } }

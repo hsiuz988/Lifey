@@ -5,6 +5,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (parent) parent.append(e); return e; };
 const BASE = 'room/';
 // 像素房間（art/tools/room_pixel.py）：1536×1064，地板前角已補齊
+// 房間、家具是柔和的插畫：縮小時要平滑（.room-art），用 pixelated 會跳掉像素，外框變得斷斷續續、粗細不一；小人才是真的像素畫，維持 pixelated
 const W = 1536, H = 1064;
 export const VIEW = [60, -8, 1416, 1081];
 
@@ -182,11 +183,11 @@ export class Room {
     const defs = el('defs', {}, svg);
     const rg = el('radialGradient', { id: id('room-glow') }, defs);
     el('stop', { offset: 0, 'stop-color': '#fff3b0', 'stop-opacity': .75 }, rg); el('stop', { offset: 1, 'stop-color': '#fff3b0', 'stop-opacity': 0 }, rg);
-    el('image', { href: `${BASE}pixel_room/room.webp`, x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated' }, svg);
+    el('image', { href: `${BASE}pixel_room/room.webp`, x: 0, y: 0, width: W, height: H, class: 'room-art' }, svg);
     // 晚上換成夜晚的房間（art/tools/room_night.py，檯燈亮著）；第一次天黑才載入
-    this.nightRoom = el('image', { x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated', class: 'room-fade', opacity: 0 }, svg);
+    this.nightRoom = el('image', { x: 0, y: 0, width: W, height: H, class: 'room-art room-fade', opacity: 0 }, svg);
     const [wx, wy, ww, wh] = WINDOW_BOX;
-    this.window = el('image', { x: wx, y: wy, width: ww, height: wh, style: 'image-rendering:pixelated', display: 'none' }, svg);
+    this.window = el('image', { x: wx, y: wy, width: ww, height: wh, class: 'room-art', display: 'none' }, svg);
     setInterval(() => this.showWindow(), 60000); // 天黑、天亮時換窗外
     this.tvOn = el('image', { href: `${BASE}pixel_room/tv_on.webp`, x: 1040, y: 405, width: 140, height: 145, class: 'room-fade', opacity: 0 }, svg);
     this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: `url(#${id('room-glow')})`, class: 'room-fade', opacity: 0 }, svg);
@@ -293,7 +294,7 @@ export class Room {
     EXTRA = this.extra = [];
     for (const k of list) {
       const it = IMPRINTS[k];
-      el('image', { href: `${BASE}imprints/${k}.webp`, x: it.x - it.w / 2, y: it.y - it.h, width: it.w, height: it.h, 'data-imprint': k, style: 'image-rendering:pixelated' }, this.itemsG);
+      el('image', { href: `${BASE}imprints/${k}.webp`, x: it.x - it.w / 2, y: it.y - it.h, width: it.w, height: it.h, 'data-imprint': k, class: 'room-art' }, this.itemsG);
       if (it.r) EXTRA.push([...toUV(it.x, it.y - 20), it.r]);
     }
     this.box.dataset.imprints = list.join(' ');
