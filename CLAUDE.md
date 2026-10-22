@@ -162,6 +162,7 @@
   - 資料 `state.imprints`：`{id:key, key, joyId, at, shown, updatedAt}`；同步用 `mergeImprints`：日期留最早、`shown` 照最新。
   - 設定 `public/joys-config.js` 的 `IMPRINTS`：每件家具在房間的位置（底部中間 x,y）、大小、疊放順序 z、放在地板上的擋路半徑 r；改數字不用動程式。
   - 圖：`python3 art/tools/imprint_items.py` 把 `art/source/furniture/<key>.png`（GPT 白底單張）去背、縮到房間大小、外框重畫成房間的粗細顏色 → `public/room/imprints/<key>.webp`；新增要加進 `WIDTH`、`IMPRINTS`、`sw.js`。
+    - 去背只會去掉「從邊緣連過來的白」；被線圈、帶子圍起來的白底洞要把 key 加進工具的 `HOLES`（清掉和背景一樣白的封閉區塊）。只加確定有洞的：白飯、白色星星這種和背景一樣白的東西會被一起清掉（meal、star 不能加）。新圖做好要放在深色背景上檢查一次。
   - **多選一的擺放位置**（使用者定案，取代原本的「新家具直接疊上去」）：`joys-config.js` 的 `SLOT_OF` 把 32 個圖示分到 22 個位置（`SLOTS` 是位置名稱），同一個位置一次只放一件。拿到新家具時位置已經有東西，視窗問「換上（原本的收起來）／先收著」；收藏冊的按鈕是「放到房間／換上／收起來」。`shownImprints` 和伺服器 `sharedView` 都是新放的在前，`onePerSlot` 每個位置只留第一件（兩台手機各放一件時，留最後放的）。多選一的位置：書桌左邊 coffee／cake、床上 cat／game、書櫃旁地板 gift／workout、地毯中間 meal／cook、電視櫃上（電視右邊）sun／movie／sing／call、門邊地板 umbrella／shop／clean、門上掛鉤 bath／bike。
   - 擺放規劃（使用者定案）：**32 件家具都有圖了**，完整的 22 個位置見 `SLOT_OF`、座標見 `IMPRINTS`。**大小以熊熊為現實比例參考**（使用者定案：瑜珈墊比熊熊高、書和熊熊差不多高）。
     - 書桌左邊 coffee 拿鐵（只有杯子，和蛋糕一樣大）／cake；書桌上的紙條位置不變。角落層架長邊：home 全家福（左）、camera 拍立得（右，只有相機）；角落層架短邊：music 旋轉木馬音樂盒（使用者把唱片機換掉，舊圖 `music_turntable.png`）。窗台 plant、窗簾桿 sparkle 串燈、窗戶旁的牆 sunset 明信片（兩個 `SHEAR` -0.49：負的是往右上升）。
