@@ -8,7 +8,7 @@ export const IMPRINT_DAYS = 10;
 export const IMPRINTS = {
   cat: { name: '小貓抱枕', where: '床上', x: 520, y: 520, w: 130, h: 81, z: 2 },
   coffee: { name: '拿鐵', where: '書桌上', x: 705, y: 332, w: 54, h: 47, z: 1 },
-  meal: { name: '小矮桌和碗筷', where: '電視前的地毯上', x: 975, y: 705, w: 170, h: 121, r: .07, z: 3 },
+  meal: { name: '夜市小吃', where: '電視前的地毯上', x: 975, y: 705, w: 170, h: 148, r: .07, z: 3 },
   hearts: { name: '兩雙室內拖鞋', where: '地毯旁邊', x: 832, y: 820, w: 112, h: 56, r: .03, z: 3 },
   gift: { name: '禮物盒', where: '書櫃旁邊', x: 245, y: 705, w: 105, h: 141, r: .04, z: 4 },
   bear: { name: '熊熊玩偶', where: '床邊', x: 330, y: 720, w: 95, h: 126, r: .035, z: 5 },
