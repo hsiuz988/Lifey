@@ -1,5 +1,5 @@
 // 版本號：主.次.修（見 CLAUDE.md「版本號」）。改了任何檔案就把最後一位 +1，舊快取才會被清掉
-const VERSION = '0.0.91';
+const VERSION = '0.0.92';
 const CACHE = `lifelog-${VERSION}`;
 const ASSETS = [
   './',

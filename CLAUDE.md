@@ -162,7 +162,7 @@
   - 資料 `state.imprints`：`{id:key, key, joyId, at, shown, updatedAt}`；同步用 `mergeImprints`：日期留最早、`shown` 照最新。
   - 設定 `public/joys-config.js` 的 `IMPRINTS`：每件家具在房間的位置（底部中間 x,y）、大小、疊放順序 z、放在地板上的擋路半徑 r；改數字不用動程式。
   - 圖：`python3 art/tools/imprint_items.py` 把 `art/source/furniture/<key>.png`（GPT 白底單張）去背、縮到房間大小、外框重畫成房間的粗細顏色 → `public/room/imprints/<key>.webp`；新增要加進 `WIDTH`、`IMPRINTS`、`sw.js`。
-  - 房間不清空：新家具直接疊上去蓋住舊的（使用者定案）。目前有圖的：cat 小貓抱枕、coffee 拿鐵、meal 小矮桌（電視前地毯上）、gift 禮物、bear 熊熊、hearts 愛心氣球、paw 貓狗玩偶（熊熊旁邊）、moon 月亮小夜燈（床頭）、star 星星吊飾（右牆，`SHEAR` 照牆的斜度斜過去）、sneaker 地球儀（出外旅行，書櫃上）；其他 14 個拿到會顯示「家具製作中」。還缺：music 唱片機、sunset 風景明信片。`art/source/furniture/shoes.png`（球鞋＋踏墊）先留著備用。
+  - 房間不清空：新家具直接疊上去蓋住舊的（使用者定案）。目前有圖的：cat 小貓抱枕、coffee 拿鐵、meal 小矮桌（電視前地毯上）、gift 禮物、bear 熊熊、hearts 愛心氣球、paw 貓狗玩偶（書櫃頂，地球儀旁邊）、moon 月亮小夜燈（床頭）、star 星星吊飾（右牆，`SHEAR` 照牆的斜度斜過去）、sneaker 地球儀（出外旅行，書櫃頂）；其他 14 個拿到會顯示「家具製作中」。還缺：music 唱片機、sunset 風景明信片。`art/source/furniture/shoes.png`（球鞋＋踏墊）先留著備用。
   - 收藏冊在「累積幸福 → 全部」最下面，24 格。
 - 之後：Phase 2 幸福星罐、Phase 4 年度回顧卡、日記時間軸上的小印章；新房間草稿在 `art/source/room2/room_*.webp`（之後做換房間時用）。
 
