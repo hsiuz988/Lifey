@@ -8,6 +8,7 @@ import {
 } from './avatar.js';
 import { Scene, propsForTags, festivalOf } from './scene.js';
 import { Room, lookHtml, LOOKS, normalizeLook, faceFor, looksFor } from './room.js';
+import { JOY_ICONS, iconEl } from './joys.js';
 import * as weather from './weather.js';
 import { moodFace } from './moods.js';
 import { initJoys, renderJoyRow, openJoyList, mergeJoyData, shownImprints, todayJoyCount } from './joys.js';
@@ -479,7 +480,13 @@ function renderCyFamily() {
     if (!v || !v.moments) return [];
     return v.moments.filter((m) => m.text).map((m) => ({ m, who: l.name || (v.profile && v.profile.name) || '家人', id: l.id }));
   }).sort((a, b) => b.m.date.localeCompare(a.m.date)).slice(0, 3);
-  $('#cy-family').replaceChildren(...(said.length ? said.map(({ m, who, id }) => h('button', { type: 'button', class: 'cy-family-item', onclick: () => openMembers(id) },
+  // 最上面一排：去誰的小窩坐坐（串門子）
+  const doors = h('div', { class: 'cy-visit-row' }, links.map((l) => {
+    const pic = h('span', { class: 'cy-visit-pic' });
+    pic.innerHTML = memberAvatarHtml(cloud.views.get(l.id));
+    return h('button', { type: 'button', class: 'cy-visit', 'aria-label': `去${l.name}的小窩坐坐`, onclick: () => openVisit(l.id) }, pic, h('span', {}, `去${l.name}家`));
+  }));
+  $('#cy-family').replaceChildren(doors, ...(said.length ? said.map(({ m, who, id }) => h('button', { type: 'button', class: 'cy-family-item', onclick: () => openMembers(id) },
     h('span', { class: 'cy-family-text' }, m.text), h('span', { class: 'cy-family-who' }, `${who} · ${m.date.slice(5).replace('-', '/')}`)))
     : [h('p', { class: 'cy-empty' }, '家人還沒有分享紀錄。')]));
 }
@@ -3055,9 +3062,22 @@ async function renderCloudSection() {
       await saveState();
     });
     const shared = state.moments.filter((m) => m.shared).length;
+    // 串門子：讓連結的人來我的小窩、看到我今天的心情表情（預設都開，使用者定案）
+    const toggle = (field, label) => {
+      const box = h('input', { type: 'checkbox', 'data-pref': field });
+      box.checked = state.profile[field] !== false;
+      box.addEventListener('change', async () => {
+        state.profile = { ...state.profile, [field]: box.checked, updatedAt: new Date().toISOString() };
+        await saveState();
+        runSync();
+      });
+      return h('label', { class: 'switch' }, box, h('span', {}, label));
+    };
     items.push(
       h('p', { class: 'hint' }, `你分享了 ${shared} 則。記一筆時打開「💞 分享」，連結的人才看得到；沒分享的都是私人的。`),
       h('label', { class: 'switch' }, titles, h('span', {}, '讓連結的人看到我每一歲的一句話')),
+      toggle('shareRoom', '讓連結的人來我的小窩坐坐'),
+      toggle('shareMood', '讓連結的人看到我今天的心情表情'),
     );
   }
 
@@ -3145,7 +3165,7 @@ let lastCompanionsKey = '';
 let lastCompanions = [];
 async function loadCompanions() {
   if (!scene) return;
-  if (cloud.me) await loadMemberViews();
+  if (cloud.me) await Promise.all([loadMemberViews(), loadInbox()]);
   if (state.profile) renderCyFamily();
   const links = cloud.me ? cloud.me.links : [];
   const count = (personId) => state.moments.filter((m) => m.people.includes(personId)).length;
@@ -3203,6 +3223,9 @@ function renderMembers() {
       pic, h('span', {}, l.name));
   }));
   $('#partner-name').textContent = name;
+  const head = $('#partner-dialog .partner-head');
+  head.querySelector('.partner-visit')?.remove();
+  head.append(h('button', { type: 'button', class: 'btn small partner-visit', onclick: () => openVisit(link.id) }, '🏠 去小窩'));
   $('#partner-tabs').replaceChildren(...[['timeline', `${name} 的紀錄`], ['compare', '同一個年紀']].map(([key, label]) =>
     h('button', { type: 'button', class: `chip${cloud.partnerTab === key ? ' on' : ''}`, onclick: () => { cloud.partnerTab = key; renderMembers(); } }, label)));
   const body = $('#partner-body');
@@ -3270,6 +3293,160 @@ function renderMembers() {
         col(pTitle(a), theirs, name, a > pAge))));
   }
   body.replaceChildren(...(rows.length ? rows : [h('p', { class: 'hint' }, '還沒有可以對照的年紀。')]));
+}
+
+// ---------- 串門子：去連結的人的小窩、留紙條、誰來過 ----------
+let visitRoom = null;
+const roomOpen = (view) => !!(view && view.room && memberReady(view) && view.profile.look);
+
+// 點自己房間的門：選要去誰的小窩
+async function openDoor() {
+  const links = cloud.me ? cloud.me.links : [];
+  if (!links.length) { scene.say(cloud.me ? '想去家人的小窩串門子～先到「我 → 雲端與家人」邀請他們吧' : '想去家人的小窩串門子～先到「我 → 雲端與家人」登入吧'); return; }
+  if (links.length === 1) { openVisit(links[0].id); return; }
+  const id = await ask({ title: '要去誰的小窩？', actions: [...links.map((l) => ({ label: `🏠 ${l.name}`, value: l.id })), { label: '先不要', value: null }] });
+  if (id) openVisit(id);
+}
+
+async function openVisit(id) {
+  const link = cloud.me && cloud.me.links.find((l) => l.id === id);
+  if (!link) return;
+  cloud.visitId = id;
+  const dlg = $('#visit-dialog');
+  if (!dlg.open) dlg.showModal();
+  renderVisit();
+  try { cloud.views.set(id, (await cloudApi.memberView(id)).view); } catch (e) { /* 離線：沿用上次的 */ }
+  if (cloud.visitId !== id) return;
+  renderVisit(true);
+  if (roomOpen(cloud.views.get(id))) cloudApi.visitMember(id).catch(() => {});
+}
+
+// 對方最近分享的一則：點對方的小人時，她用自己的話說出來
+const visitLine = (view) => {
+  const m = view.moments.filter((x) => x.text && !x.approx).sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (!m) return null;
+  const t = m.text.length > 28 ? `${m.text.slice(0, 28)}…` : m.text;
+  return m.date === todayStr() ? `今天：${t}` : `「${t}」`;
+};
+
+function renderVisit(greet = false) {
+  const link = cloud.me.links.find((l) => l.id === cloud.visitId);
+  const view = cloud.views.get(link.id);
+  const name = link.name;
+  $('#visit-title').textContent = `${name}的小窩`;
+  $('#visit-name').textContent = name;
+  const p = (view && view.profile) || {};
+  const st = statusOf(p.status);
+  $('#visit-status').querySelector('i').style.setProperty('--dot', st.color);
+  $('#visit-status').querySelector('span').textContent = st.label;
+  $('#visit-status').hidden = !p.status;
+  $('#visit-msg').textContent = (p.msg || '').trim();
+  $('#visit-msg').hidden = !(p.msg || '').trim();
+  const mood = view && view.room && view.room.mood && view.room.mood.date === todayStr() ? view.room.mood.emo : null;
+  $('#visit-avatar').innerHTML = view && view.profile && view.profile.look ? lookHtml(view.profile.look, faceFor(mood), 'look look-head', mood).outerHTML : memberAvatarHtml(view);
+  const open = roomOpen(view);
+  $('#visit-box').hidden = !open;
+  $('#visit-empty').hidden = open;
+  $('#visit-records').onclick = () => openMembers(link.id);
+  $('#visit-note').onclick = () => openNoteComposer(link.id);
+  if (!open) {
+    $('#visit-empty').textContent = !view ? '讀取中…' : view.profile && view.profile.birthday && !view.room ? `${name}把小窩的門關起來了，可以看看分享的紀錄或留張紙條。` : `${name}的小窩還在佈置中，等${name}選好樣子就能來坐坐了。`;
+    return;
+  }
+  if (!visitRoom) {
+    visitRoom = new Room($('#visit-scene'), {
+      diary: () => openNoteComposer(cloud.visitId),
+      letter: () => visitRoom.say('這是我的抽屜，不可以偷看喔 🤫'),
+      tv: (done) => { done(); openMembers(cloud.visitId); },
+      shelf: () => openMembers(cloud.visitId),
+      photos: () => openMembers(cloud.visitId),
+      calendar: () => visitRoom.say('最近過得還不錯唷'),
+      plant: () => visitRoom.say('我的小盆栽 🌱'),
+      door: () => $('#visit-dialog').close(),
+      poke: () => { const v = cloud.views.get(cloud.visitId); return (v && visitLine(v)) || null; },
+    }, { guest: true, label: `${name}的小窩：點東西互動` });
+  }
+  visitRoom.svg.setAttribute('aria-label', `${name}的小窩：點東西互動`);
+  visitRoom.update({ look: view.profile.look, emo: mood, imprints: view.room.imprints || [], weather: ui.weather });
+  if (greet) setTimeout(() => visitRoom.say('歡迎來我的小窩～要不要留張紙條給我？'), 500);
+}
+
+// 寫紙條：一張貼圖（小幸福的圖示）＋最多 40 字
+const NOTE_MAX = 40;
+function openNoteComposer(id) {
+  const link = cloud.me && cloud.me.links.find((l) => l.id === id);
+  if (!link) return;
+  let icon = 'hearts';
+  const grid = h('div', { class: 'note-icons', role: 'radiogroup', 'aria-label': '選一張貼圖' });
+  const drawGrid = () => grid.replaceChildren(...Object.keys(JOY_ICONS).map((k) => h('button', {
+    type: 'button', role: 'radio', 'aria-checked': String(k === icon), 'aria-label': k, class: `note-icon${k === icon ? ' on' : ''}`,
+    onclick: () => { icon = k; drawGrid(); },
+  }, iconEl(k))));
+  drawGrid();
+  const input = h('textarea', { rows: 2, maxlength: NOTE_MAX, placeholder: '想對 TA 說的話（可以不寫）', 'aria-label': '紙條內容' });
+  const count = h('span', { class: 'note-count' }, `0/${NOTE_MAX}`);
+  input.addEventListener('input', () => { count.textContent = `${[...input.value].length}/${NOTE_MAX}`; });
+  const send = h('button', { type: 'button', class: 'btn primary' }, '貼上去');
+  send.addEventListener('click', () => withBusy(send, async () => {
+    try {
+      await cloudApi.sendNote(id, icon, input.value.trim());
+    } catch (e) { toast(e.message); return; }
+    $('#note-dialog').close();
+    toast(`紙條貼在${link.name}的書桌上了 💌`);
+    if (visitRoom && $('#visit-dialog').open) setTimeout(() => visitRoom.say('謝謝你的紙條！'), 300);
+  }));
+  $('#note-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, `留紙條給${link.name}`)),
+    grid, h('div', { class: 'note-write' }, input, count),
+    h('p', { class: 'hint' }, `紙條會貼在${link.name}的書桌上，30 天後自動收起來。`),
+    h('div', { class: 'sheet-actions' }, h('span', { class: 'spacer' }), h('button', { type: 'button', class: 'btn', onclick: () => $('#note-dialog').close() }, '取消'), send));
+  const dlg = $('#note-dialog');
+  if (!dlg.open) dlg.showModal();
+}
+
+// 收到的紙條、誰來過：打開 App 時抓一次；書桌上出現紙條，小人說一聲（一天一次）
+const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 無痕模式 */ } };
+async function loadInbox() {
+  try { cloud.inbox = await cloudApi.fetchInbox(); } catch (e) { return; }
+  const { notes, visitors, today } = cloud.inbox;
+  const seen = lsGet('lifey.notesSeen');
+  const fresh = notes.filter((n) => n.at > seen);
+  if (scene) scene.showNote(notes.length, fresh.length > 0);
+  const names = [...new Set(visitors.filter((v) => v.day === today).map((v) => v.name))];
+  const said = lsGet('lifey.visitSaid');
+  const key = `${today}|${fresh.length ? fresh[0].id : ''}|${names.join(',')}`;
+  if (!scene || key === said || (!fresh.length && !names.length)) return;
+  lsSet('lifey.visitSaid', key);
+  const line = fresh.length ? `${fresh[0].fromName}留了紙條給我耶 💌` : `今天${names.join('、')}來過我的小窩耶！`;
+  setTimeout(() => scene.say(line, 3500), 2200);
+}
+
+function openNotes() {
+  const notes = (cloud.inbox && cloud.inbox.notes) || [];
+  if (notes.length) lsSet('lifey.notesSeen', notes[0].at);
+  if (scene) scene.showNote(notes.length, false);
+  const md = (iso) => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()}`; };
+  const list = notes.map((n) => h('li', { class: 'note-item' },
+    h('span', { class: 'note-item-icon' }, iconEl(n.icon)),
+    h('div', { class: 'note-item-main' },
+      n.text ? h('p', { class: 'note-item-text' }, n.text) : null,
+      h('span', { class: 'note-item-who' }, `${n.fromName} · ${md(n.at)}`)),
+    h('div', { class: 'note-item-acts' },
+      h('button', { type: 'button', class: 'btn small', onclick: () => openVisit(n.fromId) }, '回訪'),
+      h('button', { type: 'button', class: 'btn small', 'aria-label': '收起這張紙條', onclick: async (e) => {
+        e.currentTarget.disabled = true;
+        try { await cloudApi.deleteNote(n.id); } catch (err) { toast(err.message); e.currentTarget.disabled = false; return; }
+        cloud.inbox.notes = cloud.inbox.notes.filter((x) => x.id !== n.id);
+        openNotes();
+      } }, '收起來'))));
+  $('#note-body').replaceChildren(
+    h('div', { class: 'sheet-top' }, h('h3', {}, '書桌上的紙條')),
+    list.length ? h('ul', { class: 'note-list' }, list) : h('p', { class: 'hint' }, '紙條都收起來了。'),
+    h('p', { class: 'hint' }, '想回一張，就去對方的小窩也留一張吧。紙條 30 天後會自動收起來。'),
+    h('div', { class: 'sheet-actions' }, h('span', { class: 'spacer' }), h('button', { type: 'button', class: 'btn', onclick: () => $('#note-dialog').close() }, '關閉')));
+  const dlg = $('#note-dialog');
+  if (!dlg.open) dlg.showModal();
 }
 
 // 生日改成年／月／日三個下拉選單：iPhone 的日期面板選完月份會跳回月曆、要一路往回翻年份，選單比較快
@@ -3790,6 +3967,8 @@ async function init() {
     letter: () => { const ready = readyLetters(); if (ready.length) openLetter(ready[0].id); else openLetterEditor(ageAt(state.profile.birthday, todayStr()) + 1); },
     shelf: () => shelfMemory(),
     photos: () => wallPhotos(),
+    door: () => openDoor(),
+    note: () => openNotes(),
   });
   ui.weather = weather.weatherEnabled() ? weather.cachedWeather() : null;
   render();

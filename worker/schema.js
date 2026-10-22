@@ -60,6 +60,23 @@ const SCHEMA = [
     n INTEGER NOT NULL,
     PRIMARY KEY (user_id, day)
   )`,
+  // 串門子：留給連結的人的紙條（貼圖＋最多 40 字，30 天後清掉）
+  `CREATE TABLE IF NOT EXISTS notes (
+    id TEXT PRIMARY KEY,
+    from_id TEXT NOT NULL,
+    to_id TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  // 誰來過我的小窩（一天一列，day 是台灣時間的日期）
+  `CREATE TABLE IF NOT EXISTS visits (
+    host_id TEXT NOT NULL,
+    visitor_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (host_id, visitor_id, day)
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_notes_to ON notes (to_id)',
   'CREATE INDEX IF NOT EXISTS idx_credentials_user ON credentials (user_id)',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id)',
 ];

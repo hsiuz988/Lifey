@@ -54,7 +54,8 @@
 | 盆栽 `plant` | 心情花園 |
 | 點人物 | 跳一下、說句話（換裝從「我」的個人卡進去） |
 | 檯燈、床、時鐘、窗戶 | 小互動：開關燈、睡覺、報時、天氣 |
-| 門 `door` | 尚未接功能（「其他房間還在裝潢中」） |
+| 門 `door` | 串門子：去連結的人的小窩（只有一位就直接去，多位先問去誰家；沒連結的人時小人說先去邀請） |
+| 書桌上的紙條 `note` | 有人留紙條時才出現（`Room.showNote`），點了打開紙條匣 |
 
 ### 像素房間
 
@@ -139,6 +140,23 @@
   - 房間不清空：新家具直接疊上去蓋住舊的（使用者定案）。目前有圖的：cat 小貓抱枕、coffee 拿鐵、meal 小矮桌（電視前地毯上）、gift 禮物、bear 熊熊、hearts 愛心氣球、paw 貓狗玩偶（熊熊旁邊）、moon 月亮小夜燈（床頭）、star 星星吊飾（右牆，`SHEAR` 照牆的斜度斜過去）、sneaker 地球儀（出外旅行，書櫃上）；其他 14 個拿到會顯示「家具製作中」。還缺：music 唱片機、sunset 風景明信片。`art/source/furniture/shoes.png`（球鞋＋踏墊）先留著備用。
   - 收藏冊在「累積幸福 → 全部」最下面，24 格。
 - 之後：Phase 2 幸福星罐、Phase 4 年度回顧卡、日記時間軸上的小印章；新房間草稿在 `art/source/room2/room_*.webp`（之後做換房間時用）。
+
+### 串門子（Cyworld 的「去朋友家」，第 1 期；使用者定案）
+
+產品方向：wowo 整體往 Cyworld／無名小站靠。兩個功能分期做：
+1. **串門子**（已完成）：去連結的人的小窩、留紙條、誰來過。
+2. **一起的回憶**（下一期，對應無名「在別人的相簿找到自己」）：對方記一筆時標了對到你的人物卡（`links.person_id`）而且打開分享 → 你的首頁出現「📷 爸爸記下了和你的一天」，日記那一歲穿插一則「來自爸爸」（紙膠帶樣式），牆上照片也看得到。伺服器只標「和你有關」，不露出對方標的其他人。先只「看得到」，「收進我的日記」（複製）放第 3 期。
+3. 之後：收進我的日記、我的小人出現在對方房間門口、開放連結朋友。
+
+原則：只在連結的人之間；私人是預設（只有「💞 分享」的紀錄看得到）；**不顯示訪客數、人氣、排行**，只說「誰來過」；紙條不做已讀、不做回覆串（想回就去對方家留一張）。
+
+- 入口：自己房間的門、首頁「家人說」最上面一排「去○○家」（`.cy-visit`）、「看家人的人生」標題旁的「🏠 去小窩」。
+- 對方的小窩 `#visit-dialog`：MSN 狀態、個人訊息、對方的小人（今天的心情表情）、擺出來的生活印記。`Room` 的第二個實例（`new Room(box, on, { guest: true })`，id 加 `visit-` 前綴；擋路的生活印記是模組變數，`use()` 輪流換）。點對方的小人說出她最近分享的一則；點書桌留紙條、書架／電視／照片看紀錄、抽屜「不可以偷看」、門回自己的小窩。對方還沒選樣子：「還在佈置中」；對方關了：「把小窩的門關起來了」，還是可以留紙條。
+- 紙條：一張貼圖（24 個小幸福圖示）＋最多 40 字，同一人一天最多 10 張，30 天後自動清掉；收到的人書桌上出現紙條（新的會跳），紙條匣可以「回訪」「收起來」。
+- 誰來過：打開別人的小窩就記一筆（一天一列）；自己打開 App 時小人說「○○留了紙條給我耶」或「今天○○來過我的小窩耶！」，同樣的內容一天只說一次（localStorage `lifey.visitSaid`、`lifey.notesSeen`）。
+- 隱私開關（「我 → 雲端與家人」，存在 `state.profile`，預設都開）：`shareRoom` 讓連結的人來我的小窩坐坐、`shareMood` 看到我今天的心情表情（只有最近一則的表情，不含內容，私人的紀錄也算）。
+- 伺服器：`sharedView` 多了 `profile.status/msg` 和 `room: { imprints, mood }`；D1 `notes`、`visits`；API `POST /api/members/:id/visit`、`POST /api/members/:id/notes`、`GET /api/inbox`（紙條＋今天、昨天來過的人，只算還連結著的）、`DELETE /api/notes/:id`；解除連結時兩邊的紙條、來訪紀錄一起刪。
+- 測試：`tests/e2e/visit.cloud.cjs`（兩個帳號互相串門子）。
 
 ### 「我」分頁
 
@@ -264,7 +282,7 @@ tests/             Playwright 端對端測試
 ```bash
 npm i -D playwright && npx playwright install chromium   # 第一次
 tests/run.sh                 # 離線測試，16 支約 390 項，應全部通過
-tests/run-cloud.sh           # 雲端測試（本機 wrangler D1/R2 + 虛擬 Face ID），3 支
+tests/run-cloud.sh           # 雲端測試（本機 wrangler D1/R2 + 虛擬 Face ID），4 支
 node tests/e2e/room-weather.test.cjs   # 單跑一支（需要先自己開伺服器，見 run.sh）
 LIFEY_URL=https://develop-app.lifey.workers.dev/ node tests/e2e/ux-flows.test.cjs
 ```

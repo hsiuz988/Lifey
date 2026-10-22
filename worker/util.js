@@ -20,6 +20,7 @@ export async function readJson(request, maxBytes = 2_000_000) {
 }
 
 export const nowIso = () => new Date().toISOString();
+export const taipeiDay = (ms = Date.now()) => new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10);
 export const addSeconds = (s) => new Date(Date.now() + s * 1000).toISOString();
 
 export function b64url(bytes) {

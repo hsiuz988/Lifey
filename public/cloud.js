@@ -217,6 +217,11 @@ export const acceptInvite = (code) => apiJson('/api/invite/accept', { method: 'P
 export const unlink = (userId) => apiJson(`/api/links/${userId}`, { method: 'DELETE' });
 export const bindPerson = (userId, personId) => apiJson(`/api/links/${userId}`, { method: 'PUT', body: { personId } });
 export const memberView = (userId) => apiJson(`/api/members/${userId}`);
+// 串門子：記一筆「我來過」、留紙條、收紙條
+export const visitMember = (userId) => apiJson(`/api/members/${userId}/visit`, { method: 'POST', body: {} });
+export const sendNote = (userId, icon, text) => apiJson(`/api/members/${userId}/notes`, { method: 'POST', body: { icon, text } });
+export const fetchInbox = () => apiJson('/api/inbox');
+export const deleteNote = (id) => apiJson(`/api/notes/${id}`, { method: 'DELETE' });
 
 const memberUrls = new Map();
 export function memberPhotoUrl(userId, id, kind = 'thumb') {

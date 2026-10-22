@@ -38,6 +38,7 @@ async function route(request, env) {
   if (method === 'POST' && pathname === '/api/invite') return data.createInvite(request, user, env);
   if (method === 'POST' && pathname === '/api/invite/accept') return data.acceptInvite(request, user, env);
   if (method === 'POST' && pathname === '/api/story') return writeStory(request, user, env);
+  if (method === 'GET' && pathname === '/api/inbox') return data.inbox(user, env);
 
   let m = pathname.match(/^\/api\/photos\/([^/]+)$/);
   if (m && method === 'PUT') return data.putPhoto(request, user, env, m[1]);
@@ -47,6 +48,12 @@ async function route(request, env) {
   if (m && method === 'PUT') return data.bindPerson(request, user, env, m[1]);
   m = pathname.match(/^\/api\/members\/([^/]+)$/);
   if (m && method === 'GET') return data.getMember(user, env, m[1]);
+  m = pathname.match(/^\/api\/members\/([^/]+)\/visit$/);
+  if (m && method === 'POST') return data.visit(user, env, m[1]);
+  m = pathname.match(/^\/api\/members\/([^/]+)\/notes$/);
+  if (m && method === 'POST') return data.postNote(request, user, env, m[1]);
+  m = pathname.match(/^\/api\/notes\/([^/]+)$/);
+  if (m && method === 'DELETE') return data.deleteNote(user, env, m[1]);
   m = pathname.match(/^\/api\/members\/([^/]+)\/photos\/([^/]+)$/);
   if (m && method === 'GET') return data.getMemberPhoto(request, user, env, m[1], m[2]);
 

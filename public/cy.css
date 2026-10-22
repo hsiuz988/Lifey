@@ -285,6 +285,49 @@ html.room-full, html.room-full body { overflow: hidden; }
 .cy-family-text { font-size: 14px; color: var(--text); }
 .cy-family-who { font-size: 12px; color: var(--muted); }
 
+/* 串門子：家人說最上面的「去誰家」、別人的小窩、紙條 */
+.cy-visit-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; border-bottom: 1px dashed var(--line); scrollbar-width: none; }
+.cy-visit-row::-webkit-scrollbar { display: none; }
+.cy-visit { display: flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 44px; padding: 4px 12px 4px 4px; border: 1px solid var(--cy-field-line); border-radius: 999px; background: var(--panel-2); font: inherit; font-size: 13px; font-weight: 600; color: var(--cy-blue); cursor: pointer; }
+.cy-visit-pic { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: #fff; border: 1px solid var(--cy-faint); line-height: 0; }
+.cy-visit-pic .look-head { width: 34px; }
+.cy-visit-pic .look.pixel.look-head { transform: translateY(-17%) scale(1.1); transform-origin: 50% 0; }
+.visit-dialog { display: none; flex-direction: column; gap: 10px; }
+.visit-dialog[open] { display: flex; }
+.visit-head { display: flex; gap: 10px; align-items: center; }
+.visit-avatar { width: 56px; height: 56px; flex-shrink: 0; overflow: hidden; border: 1px solid var(--cy-faint); border-radius: 10px; background: var(--panel-2); line-height: 0; }
+.visit-avatar .look-head { width: 56px; }
+.visit-avatar .look.pixel.look-head { transform: translateY(-17%) scale(1.1); transform-origin: 50% 0; }
+.visit-who { min-width: 0; flex: 1; }
+.visit-name { display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--cy-blue); }
+.visit-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.visit-status[hidden], .visit-msg[hidden], .visit-room[hidden], .visit-empty[hidden] { display: none; }
+.visit-msg { margin: 6px 0 0; padding: 5px 10px; border: 1px solid var(--cy-faint); border-radius: 8px; background: linear-gradient(#fff, var(--cy-bubble)); font-size: 13px; font-weight: 700; font-style: italic; color: var(--cy-blue); overflow-wrap: anywhere; }
+.visit-room { border: 1px solid #e6cfcf; border-radius: 8px; overflow: hidden; background: #f7e6e4 radial-gradient(ellipse 62% 62% at 50% 52%, #fffaf5, #f7e6e4); }
+.visit-room:has(.room[data-light="night"]) { background: #1f1a2e radial-gradient(ellipse 62% 62% at 50% 52%, #5a466e, #1f1a2e); border-color: #3d3556; }
+.visit-empty { margin: 0; padding: 28px 12px; text-align: center; font-size: 14px; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+.partner-visit { margin-left: auto; flex-shrink: 0; }
+.note-icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.note-icon { aspect-ratio: 1; display: grid; place-items: center; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); font-size: 22px; cursor: pointer; }
+.note-icon .joy-pix { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.note-icon.on { border-color: var(--cy-aqua); box-shadow: 0 0 0 2px color-mix(in srgb, var(--cy-aqua) 30%, transparent); background: #fff; }
+.note-write { position: relative; margin-top: 10px; }
+.note-write textarea { width: 100%; resize: none; }
+.note-count { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: var(--muted); pointer-events: none; }
+.note-list { list-style: none; margin: 0; padding: 0; }
+.note-item { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.note-item-icon { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; font-size: 24px; }
+.note-item-icon .joy-pix { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+.note-item-main { flex: 1; min-width: 0; }
+.note-item-text { margin: 0 0 2px; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+.note-item-who { font-size: 12px; color: var(--muted); }
+.note-item-acts { display: flex; gap: 6px; flex-shrink: 0; }
+/* 房間書桌上的紙條：新的會輕輕跳 */
+.room-note { cursor: pointer; }
+.room-note .fresh { animation: note-hop 1.6s infinite ease-in-out; transform-box: fill-box; transform-origin: center bottom; }
+@keyframes note-hop { 0%, 60%, 100% { transform: translateY(0); } 70% { transform: translateY(-8px); } 80% { transform: translateY(0); } 88% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .room-note .fresh { animation: none; } }
+
 /* 提示訊息：在分頁上方，不擋住手指（點得到後面的按鈕） */
 .toast { pointer-events: none; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 30; }
 /* 有「復原」按鈕的提示：只有按鈕本身點得到 */

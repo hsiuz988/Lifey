@@ -408,6 +408,28 @@
     </div>
   </dialog>
 
+  <!-- 串門子：連結的人的小窩 -->
+  <dialog id="visit-dialog" class="sheet visit-dialog">
+    <div class="sheet-top"><h3 id="visit-title">小窩</h3></div>
+    <div class="visit-head">
+      <div id="visit-avatar" class="visit-avatar"></div>
+      <div class="visit-who">
+        <div class="visit-name"><b id="visit-name"></b><span id="visit-status" class="visit-status"><i class="cy-dot"></i><span></span></span></div>
+        <p id="visit-msg" class="visit-msg"></p>
+      </div>
+    </div>
+    <div id="visit-box" class="room-box visit-room"><div id="visit-scene" class="room"></div></div>
+    <p id="visit-empty" class="visit-empty" hidden></p>
+    <div class="sheet-actions visit-actions">
+      <button id="visit-note" class="btn primary" type="button">留紙條</button>
+      <button id="visit-records" class="btn" type="button">看紀錄</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>回我的小窩</button>
+    </div>
+  </dialog>
+  <!-- 紙條：寫一張、收到的紙條 -->
+  <dialog id="note-dialog" class="sheet note-dialog"><div id="note-body"></div></dialog>
+
   <!-- 捏小人 -->
   <dialog id="avatar-dialog" class="sheet avatar-dialog">
     <h3>捏你的小人</h3>

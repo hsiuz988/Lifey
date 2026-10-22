@@ -1,5 +1,5 @@
 // 同步（整份文字資料＋照片）與另一半的唯讀檢視
-import { HttpError, json, readJson, nowIso, addSeconds, randomToken, isValidId } from './util.js';
+import { HttpError, json, readJson, nowIso, addSeconds, randomToken, isValidId, taipeiDay } from './util.js';
 import { linkUsers, findInvite } from './auth.js';
 
 const MAX_DOC_BYTES = 1_800_000; // D1 單筆上限約 2MB
@@ -124,8 +124,12 @@ export async function acceptInvite(request, user, env) {
 }
 
 export async function unlink(user, env, otherId) {
-  await env.DB.prepare('DELETE FROM links WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)')
-    .bind(user.id, otherId, otherId, user.id).run();
+  const pair = (sql) => env.DB.prepare(sql).bind(user.id, otherId, otherId, user.id);
+  await env.DB.batch([
+    pair('DELETE FROM links WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)'),
+    pair('DELETE FROM notes WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)'), // 解除連結，紙條一起刪
+    pair('DELETE FROM visits WHERE (host_id = ? AND visitor_id = ?) OR (host_id = ? AND visitor_id = ?)'),
+  ]);
   return me(user, env);
 }
 
@@ -149,7 +153,18 @@ function sharedView(doc) {
   if (profile.shareTitles !== false) {
     for (const [age, y] of Object.entries(doc.years || {})) if (y && y.title) years[age] = { title: y.title };
   }
-  return { profile: { name: profile.name, birthday: profile.birthday, avatar: profile.avatar, look: profile.look }, moments, years };
+  // 串門子看到的小窩：擺出來的生活印記、最近一則的心情表情（只有表情，不含內容）；各有開關，預設都給看
+  const room = profile.shareRoom === false ? null : {
+    imprints: (doc.imprints || []).filter((i) => i && i.shown && !deleted[i.id]).map((i) => i.key),
+    mood: profile.shareMood === false ? null : latestMood(doc.moments, deleted),
+  };
+  return { profile: { name: profile.name, birthday: profile.birthday, avatar: profile.avatar, look: profile.look, status: profile.status, msg: profile.msg }, moments, years, room };
+}
+
+function latestMood(list, deleted) {
+  const m = list.filter((x) => x.emo && !x.approx && !deleted[x.id])
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''))[0];
+  return m ? { date: m.date, emo: m.emo } : null;
 }
 
 export async function getMember(user, env, otherId) {
@@ -164,4 +179,51 @@ export async function getMemberPhoto(request, user, env, otherId, id) {
   const allowed = doc && sharedView(doc).moments.some((m) => (m.photoIds || []).includes(id));
   if (!allowed) throw new HttpError(404, '找不到照片');
   return streamPhoto(env, otherId, id, kindOf(request.url), false);
+}
+
+// ---------- 串門子：紙條、誰來過 ----------
+const NOTE_DAYS = 30;
+const NOTE_MAX = 40;
+const NOTES_PER_DAY = 10; // 同一個人一天最多留給同一個人幾張
+
+export async function visit(user, env, otherId) {
+  if (!(await isLinked(env, user.id, otherId))) throw new HttpError(404, '還沒有和這個人連結');
+  await env.DB.prepare('INSERT INTO visits (host_id, visitor_id, day) VALUES (?, ?, ?) ON CONFLICT DO NOTHING')
+    .bind(otherId, user.id, taipeiDay()).run();
+  return json({ ok: true });
+}
+
+export async function postNote(request, user, env, otherId) {
+  if (!(await isLinked(env, user.id, otherId))) throw new HttpError(404, '還沒有和這個人連結');
+  const body = await readJson(request, 10_000);
+  const icon = String(body.icon || '');
+  const text = String(body.text || '').trim();
+  if (!/^[a-z_]{2,20}$/.test(icon)) throw new HttpError(400, '請選一張貼圖');
+  if ([...text].length > NOTE_MAX) throw new HttpError(400, `紙條最多 ${NOTE_MAX} 個字`);
+  const since = new Date(Date.now() - 86400 * 1000).toISOString();
+  const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM notes WHERE from_id = ? AND to_id = ? AND created_at > ?').bind(user.id, otherId, since).first();
+  if (row && row.n >= NOTES_PER_DAY) throw new HttpError(429, '今天留了好多張了，明天再來吧');
+  const id = randomToken(12).replace(/_/g, '-');
+  await env.DB.prepare('INSERT INTO notes (id, from_id, to_id, icon, text, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(id, user.id, otherId, icon, text, nowIso()).run();
+  return json({ id });
+}
+
+// 收到的紙條（30 天內）＋今天、昨天來過的人；只算現在還連結著的
+export async function inbox(user, env) {
+  await env.DB.prepare('DELETE FROM notes WHERE to_id = ? AND created_at < ?').bind(user.id, new Date(Date.now() - NOTE_DAYS * 86400 * 1000).toISOString()).run();
+  const notes = await env.DB.prepare(`SELECT n.id, n.icon, n.text, n.created_at AS at, u.id AS fromId, u.name AS fromName FROM notes n
+    JOIN users u ON u.id = n.from_id JOIN links l ON l.user_id = n.to_id AND l.partner_id = n.from_id
+    WHERE n.to_id = ? ORDER BY n.created_at DESC LIMIT 100`).bind(user.id).all();
+  const days = [taipeiDay(), taipeiDay(Date.now() - 86400 * 1000)];
+  const visitors = await env.DB.prepare(`SELECT v.visitor_id AS id, u.name, v.day FROM visits v
+    JOIN users u ON u.id = v.visitor_id JOIN links l ON l.user_id = v.host_id AND l.partner_id = v.visitor_id
+    WHERE v.host_id = ? AND v.day IN (?, ?) ORDER BY v.day DESC`).bind(user.id, ...days).all();
+  return json({ notes: notes.results, visitors: visitors.results, today: days[0] });
+}
+
+export async function deleteNote(user, env, id) {
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(id)) throw new HttpError(400, '紙條編號錯誤');
+  await env.DB.prepare('DELETE FROM notes WHERE id = ? AND to_id = ?').bind(id, user.id).run();
+  return json({ ok: true });
 }

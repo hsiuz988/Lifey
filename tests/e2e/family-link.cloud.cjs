@@ -122,7 +122,7 @@ const sceneCompanions = (p) => p.$eval('#scene', e => e.dataset.companions);
   await A.waitForFunction(() => document.querySelector('#scene').dataset.companions === '1', null, { timeout: 15000 });
   assert(true, 'Ken 選好樣子後算進 A 的家人');
   await tab(A, 'me').then(() => A.click('.me-family [data-open=people]')); await A.click('#people-section button:has-text("Ken")');
-  assert((await A.textContent('#person-body')).includes('已連結 Ken 的帳號') && await A.$eval('#person-body .person-avatar', e => e.querySelectorAll('img').length >= 4), 'Ken 的人物卡顯示已連結＋他的小人');
+  assert((await A.textContent('#person-body')).includes('已連結 Ken 的帳號') && await A.$eval('#person-body .person-avatar', e => e.querySelectorAll('img').length >= 2), 'Ken 的人物卡顯示已連結＋他的小人（像素女孩：身體＋頭）');
   await A.click('#person-body button:text-is("關閉")');
 
   // 從設定邀請媽媽（下拉選人物卡）

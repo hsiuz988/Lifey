@@ -166,16 +166,20 @@ export const MOOD_LINES = {
 const QUIET_MOODS = new Set(['tired', 'sad', 'angry', 'nervous', 'miss']);
 
 export class Room {
-  // box：放房間的元素（裡面會建 svg 和泡泡）；on：點了東西要做的事 { diary, calendar, tv, letter, shelf, door, plant, photos }
-  constructor(box, on = {}) {
+  // box：放房間的元素（裡面會建 svg 和泡泡）；on：點了東西要做的事 { diary, calendar, tv, letter, shelf, door, plant, photos, note, poke }
+  // opts.guest：串門子時看到的別人的小窩（id 加上 visit- 前綴，免得和自己的房間撞名）
+  constructor(box, on = {}, opts = {}) {
     this.box = box;
     this.on = on;
+    this.guest = !!opts.guest;
+    this.extra = [];
+    const id = (name) => (this.guest ? `visit-${name}` : name);
     this.state = { look: DEFAULT_LOOK, emo: null, weather: null, companions: [], pets: [], flowers: [], items: [] };
     this.me = { u: .5, v: .62, dir: 1, path: [], then: null, asleep: false };
     this.face = 'smile';
-    const svg = this.svg = el('svg', { class: 'room-svg', viewBox: VIEW.join(' '), preserveAspectRatio: 'xMidYMid meet', role: 'img', 'aria-label': '我的房間：點地板走路，點東西互動' }, box);
+    const svg = this.svg = el('svg', { class: 'room-svg', viewBox: VIEW.join(' '), preserveAspectRatio: 'xMidYMid meet', role: 'img', 'aria-label': opts.label || '我的房間：點地板走路，點東西互動' }, box);
     const defs = el('defs', {}, svg);
-    const rg = el('radialGradient', { id: 'room-glow' }, defs);
+    const rg = el('radialGradient', { id: id('room-glow') }, defs);
     el('stop', { offset: 0, 'stop-color': '#fff3b0', 'stop-opacity': .75 }, rg); el('stop', { offset: 1, 'stop-color': '#fff3b0', 'stop-opacity': 0 }, rg);
     el('image', { href: `${BASE}pixel_room/room.webp`, x: 0, y: 0, width: W, height: H, style: 'image-rendering:pixelated' }, svg);
     // 晚上換成夜晚的房間（art/tools/room_night.py，檯燈亮著）；第一次天黑才載入
@@ -184,16 +188,17 @@ export class Room {
     this.window = el('image', { x: wx, y: wy, width: ww, height: wh, style: 'image-rendering:pixelated', display: 'none' }, svg);
     setInterval(() => this.showWindow(), 60000); // 天黑、天亮時換窗外
     this.tvOn = el('image', { href: `${BASE}pixel_room/tv_on.webp`, x: 1040, y: 405, width: 140, height: 145, class: 'room-fade', opacity: 0 }, svg);
-    this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: 'url(#room-glow)', class: 'room-fade', opacity: 0 }, svg);
+    this.lamp = el('circle', { cx: 860, cy: 290, r: 120, fill: `url(#${id('room-glow')})`, class: 'room-fade', opacity: 0 }, svg);
     this.itemsG = el('g', { class: 'room-items room-nohit' }, svg);
     this.itemKeys = '';
     this.markers = el('g', {}, svg);
     this.hots = el('g', {}, svg);
+    this.noteG = el('g', { class: 'room-note', display: 'none' }, svg); // 書桌上的紙條（有人留紙條時才出現）
     this.fx = el('g', { class: 'room-nohit' }, svg);
     this.dark = el('rect', { x: -2000, y: -2000, width: W + 4000, height: H + 4000, fill: '#1c1f4a', opacity: 0, class: 'room-fade room-night' }, svg); // 晚上關檯燈
     this.night = el('rect', { x: -2000, y: -2000, width: W + 4000, height: H + 4000, fill: '#2c2f6b', opacity: 0, class: 'room-fade room-night' }, svg);
     // 小人
-    this.meG = el('g', { id: 'room-me', class: 'room-me' }, svg);
+    this.meG = el('g', { id: id('room-me'), class: 'room-me' }, svg);
     this.pose = el('g', { class: 'idle' }, this.meG);
     const bob = el('g', { class: 'bodybob' }, this.pose);
     el('ellipse', { cx: 0, cy: -2, rx: 52, ry: 13, fill: 'rgba(160,70,100,.16)' }, bob);
@@ -227,7 +232,7 @@ export class Room {
     this.walking = false;
     // 泡泡（HTML，字比較清楚）
     this.bubble = document.createElement('div');
-    this.bubble.id = 'scene-bubble';
+    this.bubble.id = id('scene-bubble');
     this.bubble.className = 'scene-bubble';
     this.bubble.setAttribute('role', 'status');
     box.append(this.bubble);
@@ -283,7 +288,7 @@ export class Room {
     if (list.join() === this.itemKeys) return;
     this.itemKeys = list.join();
     this.itemsG.replaceChildren();
-    EXTRA = [];
+    EXTRA = this.extra = [];
     for (const k of list) {
       const it = IMPRINTS[k];
       el('image', { href: `${BASE}imprints/${k}.webp`, x: it.x - it.w / 2, y: it.y - it.h, width: it.w, height: it.h, 'data-imprint': k, style: 'image-rendering:pixelated' }, this.itemsG);
@@ -385,7 +390,10 @@ export class Room {
     if (this.isPixel && !this.walking) this.pixFlip.setAttribute('transform', `scale(${this.me.dir},1)`);
     if (this.bubble.classList.contains('show')) this.placeBubble();
   }
+  // 擋路的生活印記是模組共用的變數：兩個房間（自己的、串門子的）輪流用，走路前換成自己的
+  use() { EXTRA = this.extra; }
   walkTo(u, v, then) {
+    this.use();
     if (this.me.asleep) this.wake();
     const goal = nearestFree(u, v);
     this.me.path = findPath([this.me.u, this.me.v], goal);
@@ -428,6 +436,7 @@ export class Room {
     }
   }
   onFloor(e) {
+    this.use();
     if (this.me.asleep) { this.wake(); return; }
     const p = this.svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
     const q = p.matrixTransform(this.svg.getScreenCTM().inverse());
@@ -475,6 +484,8 @@ export class Room {
   // 點自己：跳一下、說句話（換裝在「我」分頁）
   poke() {
     this.jump();
+    const line = this.on.poke && this.on.poke();
+    if (line) { this.say(line, 3200); return; }
     const lines = ['嗨！👋', '今天過得好嗎？', '要不要記一筆？📖', '我在這裡 ✨', '嘿嘿 😊'];
     this.say(lines[Math.floor(Math.random() * lines.length)], 2000);
   }
@@ -532,11 +543,29 @@ export class Room {
       node.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.me.asleep && h.name !== 'bed') { this.wake(); return; }
+        this.use();
         if (h.go && !this.instant) { const [u, v, dir] = h.go; this.marker(...nearestFree(u, v)); this.walkTo(u, v, () => { this.me.dir = dir; this.place(); h.act(); }); } else h.act();
       });
     }
     HOTS.filter((h) => h.spark).forEach((h, i) => el('path', { d: star(h.spark[0], h.spark[1], 16), fill: '#ffe58a', stroke: '#5b3a3e', 'stroke-width': 3, class: 'room-twinkle', style: `animation-delay: ${i * .55}s` }, this.fx));
     this.svg.append(this.meG);
+  }
+  // 書桌上的紙條：n 張（0 就收起來）；fresh＝有新的，會輕輕跳
+  showNote(n, fresh = false) {
+    this.noteG.replaceChildren();
+    this.noteG.setAttribute('display', n ? 'inline' : 'none');
+    this.box.dataset.notes = String(n || 0);
+    if (!n) return;
+    // 平貼在桌面上：兩個邊照地板的方向（u 沿右牆、v 沿左牆）
+    const c = [858, 372], du = [EU[0] * .036, EU[1] * .036], dv = [EV[0] * .036, EV[1] * .036];
+    const pt = (a, b) => `${c[0] + a * du[0] + b * dv[0]},${c[1] + a * du[1] + b * dv[1]}`;
+    const g = el('g', { class: fresh ? 'fresh' : '' }, this.noteG);
+    if (n > 1) el('polygon', { points: [pt(-.8, -1.2), pt(1.2, -1.2), pt(1.2, .8), pt(-.8, .8)].join(' '), fill: '#f6e3c9', stroke: '#8a5a44', 'stroke-width': 3 }, g);
+    el('polygon', { points: [pt(-1, -1), pt(1, -1), pt(1, 1), pt(-1, 1)].join(' '), fill: '#fffaf0', stroke: '#8a5a44', 'stroke-width': 3, 'stroke-linejoin': 'round' }, g);
+    el('polygon', { points: [pt(-.35, -1.15), pt(.35, -1.15), pt(.35, -.75), pt(-.35, -.75)].join(' '), fill: '#f5a3b5', opacity: .9 }, g); // 紙膠帶
+    el('path', { d: star(c[0] + 2, c[1] + 2, 9), fill: '#ec7896' }, g);
+    const hot = el('rect', { x: c[0] - 40, y: c[1] - 28, width: 80, height: 56, fill: 'transparent', class: 'hot', 'data-name': 'note', role: 'button', 'aria-label': `書桌上的紙條（${n} 張）` }, this.noteG);
+    hot.addEventListener('click', (e) => { e.stopPropagation(); this.on.note && this.on.note(); });
   }
   // 走到某樣東西再做事（首頁按鈕用）
   go(name) { const n = this.hots.querySelector(`[data-name="${name}"]`); if (n) n.dispatchEvent(new MouseEvent('click', { bubbles: true })); }

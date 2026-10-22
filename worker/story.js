@@ -1,7 +1,7 @@
 // AI 故事：把一則紀錄（事件＋心情）用「那一年的世界」的語氣改寫成短短的故事
 // 金鑰放在 Worker 的 secret（ANTHROPIC_API_KEY），不會出現在 App 裡
 import Anthropic from '@anthropic-ai/sdk';
-import { HttpError, json, readJson } from './util.js';
+import { HttpError, json, readJson, taipeiDay } from './util.js';
 
 const MODEL = 'claude-opus-5-5';
 const DAILY_LIMIT = 5; // 每人每天幾次（「再寫一次」也算），封測期間控制費用
@@ -53,7 +53,6 @@ const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const MOOD_WORDS = ['很低落', '有點難過', '普通', '不錯', '很開心'];
 
 // 台灣時間的今天，用來算每日次數
-const taipeiDay = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 
 async function takeQuota(env, userId) {
   const day = taipeiDay();
