@@ -164,10 +164,10 @@
   - 圖：`python3 art/tools/imprint_items.py` 把 `art/source/furniture/<key>.png`（GPT 白底單張）去背、縮到房間大小、外框重畫成房間的粗細顏色 → `public/room/imprints/<key>.webp`；新增要加進 `WIDTH`、`IMPRINTS`、`sw.js`。
   - **多選一的擺放位置**（使用者定案，取代原本的「新家具直接疊上去」）：`joys-config.js` 的 `SLOT_OF` 把 32 個圖示分到 22 個位置（`SLOTS` 是位置名稱），同一個位置一次只放一件。拿到新家具時位置已經有東西，視窗問「換上（原本的收起來）／先收著」；收藏冊的按鈕是「放到房間／換上／收起來」。`shownImprints` 和伺服器 `sharedView` 都是新放的在前，`onePerSlot` 每個位置只留第一件（兩台手機各放一件時，留最後放的）。多選一的位置：書桌左邊 coffee／cake、床上 cat／game、書櫃旁地板 gift／workout、地毯中間 meal／cook、電視櫃上（電視右邊）sun／movie／sing／call、門邊地板 umbrella／shop／clean、門上掛鉤 bath／bike。
   - 擺放規劃（使用者定案）：**32 件家具都有圖了**，完整的 22 個位置見 `SLOT_OF`、座標見 `IMPRINTS`。**大小以熊熊為現實比例參考**（使用者定案：瑜珈墊比熊熊高、書和熊熊差不多高）。
-    - 書桌左邊 coffee 拿鐵（只有杯子，和蛋糕一樣大）／cake；書桌上的紙條位置不變。角落層架長邊：home 全家福（左）、camera 拍立得（右，只有相機）。窗台 plant、窗簾桿 sparkle 串燈、窗戶旁的牆 sunset 明信片（兩個 `SHEAR` -0.49：負的是往右上升）。
+    - 書桌左邊 coffee 拿鐵（只有杯子，和蛋糕一樣大）／cake；書桌上的紙條位置不變。角落層架長邊：home 全家福（左）、camera 拍立得（右，只有相機）；角落層架短邊：music 旋轉木馬音樂盒（使用者把唱片機換掉，舊圖 `music_turntable.png`）。窗台 plant、窗簾桿 sparkle 串燈、窗戶旁的牆 sunset 明信片（兩個 `SHEAR` -0.49：負的是往右上升）。
     - 床上 cat／game；書櫃頂 sneaker 地球儀、paw；書櫃旁 gift／workout；小熊旁 book；地毯中間 meal／cook（同一張小矮桌換成一鍋湯）；地毯左前方 hearts 兩雙室內拖鞋（放在地毯外面，不疊到地毯；取代愛心氣球，舊圖 `hearts_balloons.png`）；前方地板 icecream 懶骨頭。
-    - 電視櫃最左格 music 唱片機；電視櫃上（電視右邊）call／sun／movie／sing（站在桌面中間；電話用 `imprint_items.py` 的 `ROTATE` 轉 11 度，和櫃子平行）；門邊地板 umbrella／shop／clean；門前 letter；門上掛鉤 bath／bike（`SHEAR` 0.49，照右牆往右下）。
-    - 舊模型圖留著備用：`camera_tripod.png`、`cloud_beanbag.png`、`coffee_pot.png`、`hearts_balloons.png`、`shoes.png`。
+    - 電視櫃最左格目前空著；電視櫃上（電視右邊）call／sun／movie／sing（站在桌面中間；電話用 `imprint_items.py` 的 `ROTATE` 轉 11 度，和櫃子平行）；門邊地板 umbrella／shop（只有一個袋子，舊的兩袋 `shop_two_bags.png`）／clean；門前 letter；門上掛鉤 bath／bike（目前用 `SHEAR` 0.49 斜過去；使用者要請 GPT 直接畫斜掛在門上的版本，新圖來了就拿掉 `SHEAR`，不要再自己斜）。
+    - 舊模型圖留著備用：`camera_tripod.png`、`cloud_beanbag.png`、`coffee_pot.png`、`hearts_balloons.png`、`shoes.png`、`music_turntable.png`、`shop_two_bags.png`。
   - 收藏冊在「累積幸福 → 全部」最下面，32 格（`JOY_ICONS` 全部）。
 - **使用者在小幸福選單（artifact）選了 32 個**：原本 24 個，加上 game 玩了喜歡的遊戲、cook 自己做了一頓飯、shop 買到喜歡的東西、workout 去運動了、movie 看了好看的電影、clean 把房間整理乾淨、call 和好久不見的人聊天、sing 大聲唱了歌。這 8 個已加進 `JOY_ICONS`（emoji）和 `ASK`，但**還沒有像素圖示**：不在 `JOY_PIX`，所以不能選來當小幸福或紙條貼圖（`PICKABLE_ICONS`），收藏冊顯示「即將推出」；圖做好放進 `public/joys/`、加進 `JOY_PIX` 和 `sw.js`，再加進 `SUGGESTIONS`。原本只有圖示的 6 個補了名稱，加進建議：被抱抱了 bear、照顧了植物 plant、完成了一件事 sparkle、雨天也很好 umbrella、吃到冰淇淋 icecream、騎車出去晃晃 bike。
 - 之後：Phase 2 幸福星罐、Phase 4 年度回顧卡、日記時間軸上的小印章；新房間草稿在 `art/source/room2/room_*.webp`（之後做換房間時用）。

@@ -28,12 +28,12 @@ export const IMPRINTS = {
   book: { name: '一疊書', where: '小熊旁邊', x: 440, y: 728, w: 118, h: 116, r: .045, z: 5 },
   cook: { name: '小矮桌和一鍋熱湯', where: '電視前的地毯上', x: 975, y: 705, w: 170, h: 172, r: .07, z: 3 },
   icecream: { name: '冰淇淋懶骨頭', where: '房間前面的地板', x: 560, y: 830, w: 200, h: 197, r: .09, z: 5 },
-  music: { name: '小唱片機', where: '電視櫃的格子裡', x: 1029, y: 567, w: 40, h: 43, z: 1 },
+  music: { name: '旋轉木馬音樂盒', where: '牆角的層架上', x: 712, y: 163, w: 44, h: 60, z: 1 },
   sun: { name: '向日葵花瓶', where: '電視櫃上', x: 1212, y: 576, w: 70, h: 87, z: 1 },
   movie: { name: '爆米花和電影票', where: '電視櫃上', x: 1212, y: 578, w: 72, h: 62, z: 1 },
   sing: { name: '小麥克風', where: '電視櫃上', x: 1210, y: 576, w: 58, h: 69, z: 1 },
   umbrella: { name: '小傘架', where: '門旁邊', x: 1276, y: 676, w: 62, h: 148, r: .03, z: 4 },
-  shop: { name: '購物紙袋', where: '門旁邊', x: 1262, y: 690, w: 116, h: 100, r: .04, z: 4 },
+  shop: { name: '購物紙袋', where: '門旁邊', x: 1268, y: 688, w: 88, h: 105, r: .035, z: 4 },
   clean: { name: '小掃把和畚箕', where: '門旁邊', x: 1268, y: 684, w: 100, h: 118, r: .035, z: 4 },
   letter: { name: '門縫塞進來的信', where: '門前', x: 1335, y: 714, w: 58, h: 40, z: 2 },
   bath: { name: '浴巾和小黃鴨', where: '門上的掛鉤', x: 1368, y: 575, w: 56, h: 126, z: 2 },
@@ -46,14 +46,14 @@ export const SLOTS = {
   'desk-left': '書桌左邊', 'shelf-left': '角落層架長邊（左）', 'shelf-right': '角落層架長邊（右）',
   sill: '窗台', rod: '窗簾桿', 'window-wall': '窗戶旁的牆', 'bookcase-right': '書櫃頂', 'bookcase-left': '書櫃頂',
   bedhead: '床頭', bed: '床上', 'bookcase-floor': '書櫃旁的地板', bedside: '床邊的地板', 'bear-right': '小熊旁邊',
-  rug: '地毯中間', 'rug-front': '地毯旁邊', 'front-floor': '房間前面的地板', 'tv-cubby': '電視櫃最左格', 'tv-top': '電視櫃上',
+  rug: '地毯中間', 'rug-front': '地毯旁邊', 'front-floor': '房間前面的地板', 'shelf-short': '角落層架短邊', 'tv-top': '電視櫃上',
   'door-floor': '門邊的地板', 'door-front': '門前', 'door-hook': '門上的掛鉤', 'wall-right': '右邊的牆上',
 };
 const SLOT_OF = {
   coffee: 'desk-left', cake: 'desk-left', call: 'tv-top', camera: 'shelf-right', home: 'shelf-left',
   plant: 'sill', sparkle: 'rod', sunset: 'window-wall', sneaker: 'bookcase-right', paw: 'bookcase-left',
   moon: 'bedhead', cat: 'bed', game: 'bed', gift: 'bookcase-floor', workout: 'bookcase-floor', bear: 'bedside', book: 'bear-right',
-  meal: 'rug', cook: 'rug', hearts: 'rug-front', icecream: 'front-floor', music: 'tv-cubby', sun: 'tv-top', movie: 'tv-top', sing: 'tv-top',
+  meal: 'rug', cook: 'rug', hearts: 'rug-front', icecream: 'front-floor', music: 'shelf-short', sun: 'tv-top', movie: 'tv-top', sing: 'tv-top',
   umbrella: 'door-floor', shop: 'door-floor', clean: 'door-floor', letter: 'door-front', bath: 'door-hook', bike: 'door-hook', star: 'wall-right',
 };
 export const slotOf = (key) => SLOT_OF[key] || key;
