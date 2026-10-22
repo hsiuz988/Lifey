@@ -28,6 +28,8 @@ WIDTH = {'cat': 130, 'coffee': 54, 'meal': 170, 'gift': 105, 'bear': 95, 'hearts
 # 掛在牆上的要照牆的斜度斜過去：每往右 1px 往下幾 px（GPT 畫的是正面，右牆約往下 0.49，原圖的線已經斜 0.19）
 # 負的是往右上升：左牆、窗簾桿（約 -0.49）
 SHEAR = {'star': 0.3, 'sparkle': -0.49, 'sunset': -0.49, 'bike': 0.49, 'bath': 0.49}
+# GPT 畫的角度差一點的，順時針轉幾度跟家具平行（電話要和電視櫃平行）
+ROTATE = {'call': 11}
 # 小東西的外框細一點（預設 3px）
 LINE_W = {'star': 2, 'sparkle': 2}
 
@@ -47,6 +49,9 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for key, w in WIDTH.items():
         im = white_cut(SRC / f'{key}.png')
+        if key in ROTATE:
+            im = im.rotate(-ROTATE[key], expand=True, resample=Image.BICUBIC)
+            im = im.crop(im.getbbox())
         if key in SHEAR:
             k = SHEAR[key]
             dy = round(im.width * abs(k))
