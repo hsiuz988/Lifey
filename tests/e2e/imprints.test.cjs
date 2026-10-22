@@ -78,7 +78,7 @@ const errors = [];
     const ok = await Promise.all(keys.map((k) => fetch(`room/imprints/${k}.webp`).then((x) => x.ok)));
     return { want: keys.length, got: box.querySelectorAll('image[data-imprint]').length, files: ok.every(Boolean) };
   });
-  assert(all.want === 32 && all.got === 22 && all.files, '32 件家具的圖都在，22 個位置各畫一件');
+  assert(all.want === 32 && all.got === 21 && all.files, '32 件家具的圖都在，21 個位置各畫一件');
 
   // 多選一：同一個位置只放一件
   const slot = await p.evaluate(async () => {

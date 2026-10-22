@@ -19,14 +19,14 @@ export const IMPRINTS = {
   cake: { name: '杯子蛋糕', where: '書桌上', x: 705, y: 334, w: 58, h: 58, z: 1 },
   call: { name: '復古電話', where: '電視櫃上', x: 1212, y: 576, w: 84, h: 70, z: 1 },
   camera: { name: '拍立得相機', where: '牆角的層架上', x: 845, y: 182, w: 52, h: 52, z: 1 },
-  home: { name: '全家福相框', where: '牆角的層架上', x: 790, y: 156, w: 56, h: 55, z: 1 },
+  home: { name: '一家人的火鍋', where: '電視前的地毯上', x: 975, y: 705, w: 170, h: 165, r: .07, z: 3 },
   plant: { name: '小多肉盆栽', where: '窗台上', x: 470, y: 398, w: 64, h: 49, z: 1 },
   sparkle: { name: '星光串燈', where: '窗簾桿上', x: 470, y: 312, w: 300, h: 178, z: 2 },
   sunset: { name: '風景明信片', where: '窗戶旁的牆上', x: 700, y: 270, w: 96, h: 79, z: 1 },
   game: { name: '掌上遊戲機', where: '床上', x: 520, y: 515, w: 110, h: 69, z: 2 },
   workout: { name: '瑜珈墊和啞鈴', where: '書櫃旁邊', x: 245, y: 712, w: 100, h: 152, r: .045, z: 4 },
   book: { name: '一疊書', where: '小熊旁邊', x: 440, y: 728, w: 118, h: 116, r: .045, z: 5 },
-  cook: { name: '小矮桌和一鍋熱湯', where: '電視前的地毯上', x: 975, y: 705, w: 170, h: 172, r: .07, z: 3 },
+  cook: { name: '自己做的早餐', where: '電視前的地毯上', x: 975, y: 705, w: 170, h: 148, r: .07, z: 3 },
   icecream: { name: '冰淇淋懶骨頭', where: '房間前面的地板', x: 560, y: 830, w: 200, h: 197, r: .09, z: 5 },
   music: { name: '旋轉木馬音樂盒', where: '牆角的層架上', x: 712, y: 163, w: 44, h: 60, z: 1 },
   sun: { name: '向日葵花瓶', where: '電視櫃上', x: 1212, y: 576, w: 70, h: 87, z: 1 },
@@ -43,14 +43,14 @@ export const IMPRINTS = {
 // 擺放位置（多選一，使用者定案）：同一個位置一次只放一件；換上新的，原本那件自動收起來，隨時可以換回來
 // 每個圖示都要有位置（還沒有家具圖的也先排好）；SLOTS 是位置的名稱
 export const SLOTS = {
-  'desk-left': '書桌左邊', 'shelf-left': '角落層架長邊（左）', 'shelf-right': '角落層架長邊（右）',
+  'desk-left': '書桌左邊', 'shelf-right': '角落層架長邊（右）',
   sill: '窗台', rod: '窗簾桿', 'window-wall': '窗戶旁的牆', 'bookcase-right': '書櫃頂', 'bookcase-left': '書櫃頂',
   bedhead: '床頭', bed: '床上', 'bookcase-floor': '書櫃旁的地板', bedside: '床邊的地板', 'bear-right': '小熊旁邊',
   rug: '地毯中間', 'rug-front': '地毯旁邊', 'front-floor': '房間前面的地板', 'shelf-short': '角落層架短邊', 'tv-top': '電視櫃上',
   'door-floor': '門邊的地板', 'door-front': '門前', 'door-hook': '門上的掛鉤', 'wall-right': '右邊的牆上',
 };
 const SLOT_OF = {
-  coffee: 'desk-left', cake: 'desk-left', call: 'tv-top', camera: 'shelf-right', home: 'shelf-left',
+  coffee: 'desk-left', cake: 'desk-left', call: 'tv-top', camera: 'shelf-right', home: 'rug',
   plant: 'sill', sparkle: 'rod', sunset: 'window-wall', sneaker: 'bookcase-right', paw: 'bookcase-left',
   moon: 'bedhead', cat: 'bed', game: 'bed', gift: 'bookcase-floor', workout: 'bookcase-floor', bear: 'bedside', book: 'bear-right',
   meal: 'rug', cook: 'rug', hearts: 'rug-front', icecream: 'front-floor', music: 'shelf-short', sun: 'tv-top', movie: 'tv-top', sing: 'tv-top',
